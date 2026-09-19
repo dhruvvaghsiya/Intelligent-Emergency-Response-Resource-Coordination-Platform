@@ -9,6 +9,7 @@ import { Layers, Minus, Plus, Crosshair } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { SEVERITY_CONFIG } from '../../lib/constants';
 import { Button } from '../ui/Button';
+import { CoverageRadar } from './CoverageRadar';
 
 // Severity color map for map markers (raw hex values)
 const SEV_COLORS = {
@@ -147,6 +148,9 @@ export function SituationMap() {
             );
           })}
       </div>
+
+      {/* Coverage overlay */}
+      <CoverageRadar visible={mapLayers.coverage} />
 
       {/* Map controls */}
       <div className="absolute top-3 right-3 flex flex-col gap-1">

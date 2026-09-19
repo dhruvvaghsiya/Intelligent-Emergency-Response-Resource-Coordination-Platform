@@ -8,6 +8,7 @@ import { IncidentQueue } from '../components/incident/IncidentQueue';
 import { IncidentDetail } from '../components/incident/IncidentDetail';
 import { SituationMap } from '../components/map/SituationMap';
 import { LiveFeed } from '../components/layout/LiveFeed';
+import { SimControls } from '../components/sim/SimControls';
 import { useStore } from '../lib/store';
 
 export function OpsPage() {
@@ -28,6 +29,9 @@ export function OpsPage() {
 
       {/* Bottom — Live Feed */}
       <LiveFeed />
+
+      {/* Simulation controls */}
+      <SimControls />
     </div>
   );
 }

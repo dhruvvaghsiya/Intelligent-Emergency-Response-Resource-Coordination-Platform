@@ -15,6 +15,7 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { AIHealthPage } from './pages/AIHealthPage';
 import { ReplayPage } from './pages/ReplayPage';
 import { ReportPage } from './pages/ReportPage';
+import { FieldPage } from './pages/FieldPage';
 
 // Auth guard
 function ProtectedRoute({ children }) {
@@ -87,6 +88,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/field" element={<FieldPage />} />
             {/* Default redirect */}
             <Route path="*" element={<Navigate to={isAuthenticated ? '/ops' : '/login'} replace />} />
           </Routes>
