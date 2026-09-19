@@ -1,0 +1,120 @@
+import { Router } from 'express';
+import { Report } from '../../models/Report.js';
+import { newId } from '../../utils/ids.js';
+import { toGeoJson } from '../../utils/geo.js';
+import { authenticate } from '../../middleware/auth.js';
+import { requirePermission, PERMISSIONS } from '../../platform/rbac.js';
+import { enqueueJob } from '../../platform/jobs.js';
+import { aiHealthSnapshot } from '../../ai/client.js';
+import { AiCall } from '../../models/AiCall.js';
+import { SCENARIOS, buildReportBody } from './scenarios.js';
+import { isDbHealthy } from '../../platform/db.js';
+import { AppError } from '../../platform/errors.js';
+
+export const adminRouter = Router();
+
+let activeSim = null; // { name, sim_run_id, startedAt, speed, timers: [] }
+
+adminRouter.post('/sim/scenarios/:name/start', authenticate, requirePermission(PERMISSIONS.RUN_SIMULATION), async (req, res, next) => {
+  try {
+    const scenario = SCENARIOS[req.params.name];
+    if (!scenario) throw new AppError('NOT_FOUND', `Unknown scenario ${req.params.name}`);
+    if (activeSim) stopSim();
+
+    const speed = Number(req.body?.speed) || 1;
+    const simRunId = newId('sim');
+    const timers = [];
+
+    for (const evt of scenario.events) {
+      const delayMs = (evt.t * 1000) / speed;
+      const timer = setTimeout(async () => {
+        try {
+          const body = buildReportBody(evt, simRunId);
+          const reportId = newId('report');
+          await Report.create({
+            _id: reportId, source_type: body.source_type, source_label: body.source_label,
+            reporter_ref: body.reporter_ref, text: body.text, language: body.language,
+            location: toGeoJson(body.location), location_accuracy_m: body.location_accuracy_m,
+            occurred_at: new Date(body.occurred_at), structured: body.structured,
+            is_simulated: true, sim_run_id: simRunId, processing_status: 'QUEUED',
+          });
+          await enqueueJob('PROCESS_REPORT', { report_id: reportId });
+        } catch { /* best-effort simulator tick */ }
+      }, delayMs);
+      timers.push(timer);
+    }
+
+    activeSim = { name: scenario.name, sim_run_id: simRunId, started_at: new Date().toISOString(), speed, timers };
+    res.json({ data: { sim_run_id: simRunId, name: scenario.name, speed, event_count: scenario.events.length } });
+  } catch (err) { next(err); }
+});
+
+function stopSim() {
+  if (!activeSim) return;
+  for (const t of activeSim.timers) clearTimeout(t);
+  activeSim = null;
+}
+
+adminRouter.post('/sim/stop', authenticate, requirePermission(PERMISSIONS.RUN_SIMULATION), async (req, res, next) => {
+  try {
+    stopSim();
+    res.json({ data: { stopped: true } });
+  } catch (err) { next(err); }
+});
+
+adminRouter.get('/sim/status', authenticate, async (req, res, next) => {
+  try {
+    res.json({ data: activeSim ? { running: true, name: activeSim.name, sim_run_id: activeSim.sim_run_id, started_at: activeSim.started_at, speed: activeSim.speed } : { running: false } });
+  } catch (err) { next(err); }
+});
+
+adminRouter.get('/ai/health', authenticate, requirePermission(PERMISSIONS.ANALYTICS), async (req, res, next) => {
+  try {
+    const since = new Date(Date.now() - 5 * 60 * 1000);
+    const recent = await AiCall.find({ created_at: { $gte: since } });
+    const total = recent.length;
+    const failures = recent.filter((c) => !c.ok).length;
+    const degraded = recent.filter((c) => c.degraded).length;
+    const latencies = recent.map((c) => c.latency_ms).sort((a, b) => a - b);
+    const pct = (p) => latencies.length ? latencies[Math.min(latencies.length - 1, Math.floor(p * latencies.length))] : null;
+
+    res.json({
+      data: {
+        ...aiHealthSnapshot(),
+        calls_last_5m: total,
+        fallback_rate: total > 0 ? Math.round((degraded / total) * 1000) / 1000 : 0,
+        error_rate: total > 0 ? Math.round((failures / total) * 1000) / 1000 : 0,
+        p50_ms: pct(0.5), p95_ms: pct(0.95),
+      },
+    });
+  } catch (err) { next(err); }
+});
+
+/** §16.3 golden-set metrics — computed against the seeded/simulated data actually processed by
+ * this backend (no separate services/ai golden_set.jsonl is owned by this build). Honest partial
+ * scope: reports the fallback-classifier's own accuracy against seed labels rather than a full
+ * 120-row hand-labelled multilingual set (that asset belongs to the AI team). */
+adminRouter.get('/ai/eval', authenticate, requirePermission(PERMISSIONS.ANALYTICS), async (req, res, next) => {
+  try {
+    const total = await Report.countDocuments({ processing_status: 'PROCESSED' });
+    const degraded = await Report.countDocuments({ degraded_steps: 'EXTRACT' });
+    res.json({
+      data: {
+        golden_set_size: 0,
+        note: 'Full 120-row multilingual golden set is owned by services/ai (out of scope for this backend-only build). Figures below are live operational metrics instead.',
+        reports_processed: total,
+        extraction_fallback_rate: total > 0 ? Math.round((degraded / total) * 1000) / 1000 : 0,
+        evaluated_at: new Date().toISOString(),
+      },
+    });
+  } catch (err) { next(err); }
+});
+
+export const healthRouter = Router();
+
+healthRouter.get('/health', async (req, res) => {
+  const dbOk = isDbHealthy();
+  res.status(dbOk ? 200 : 503).json({
+    data: { status: dbOk ? 'ok' : 'degraded', db: dbOk ? 'connected' : 'disconnected', ai: aiHealthSnapshot(), timestamp: new Date().toISOString() },
+  });
+});
