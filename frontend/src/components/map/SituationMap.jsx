@@ -1,15 +1,11 @@
 /* =========================================================================
-   SITUATION MAP — §14.2 Map rules
-   Dark basemap, incidents as circles (radius by severity), units as chevrons
-   colored by status. No ambient animation.
-   Real MapLibre GL map using Esri's free World_Dark_Gray_Base raster tiles
-   (no API key required) — a raster source avoids the vector-tile worker
-   pipeline, which some sandboxed/embedded renderers don't complete.
+   SITUATION MAP — Spacious Light Cartography (Esri Light Gray Canvas)
+   Features soft light tiles, high-contrast markers, and pure white floating controls.
    ========================================================================= */
 import React, { useEffect, useRef, useState } from 'react';
 import { Map as MapLibreMap, Marker, setWorkerCount } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Minus, Plus, Crosshair } from 'lucide-react';
+import { Minus, Plus, Crosshair, Layers, Globe, Map as MapIcon, Menu } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { Button } from '../ui/Button';
 import { CoverageRadar } from './CoverageRadar';
@@ -24,48 +20,87 @@ setWorkerCount(0);
 const MAP_STYLE = {
   version: 8,
   sources: {
-    'esri-dark-gray': {
+    'esri-light-gray': {
       type: 'raster',
       tiles: [
-        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
       ],
       tileSize: 256,
       maxzoom: 16,
       attribution: '© Esri, © OpenStreetMap contributors',
     },
-    'esri-dark-gray-labels': {
+    'esri-light-gray-labels': {
       type: 'raster',
       tiles: [
-        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
       ],
       tileSize: 256,
       maxzoom: 16,
     },
+    'esri-satellite': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: '© Esri, Maxar, Earthstar Geographics',
+    },
+    'esri-satellite-labels': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+    },
   },
   layers: [
-    { id: 'esri-dark-gray', type: 'raster', source: 'esri-dark-gray' },
-    { id: 'esri-dark-gray-labels', type: 'raster', source: 'esri-dark-gray-labels' },
+    {
+      id: 'esri-satellite',
+      type: 'raster',
+      source: 'esri-satellite',
+      layout: { visibility: 'visible' },
+    },
+    {
+      id: 'esri-satellite-labels',
+      type: 'raster',
+      source: 'esri-satellite-labels',
+      layout: { visibility: 'visible' },
+    },
+    {
+      id: 'esri-light-gray',
+      type: 'raster',
+      source: 'esri-light-gray',
+      layout: { visibility: 'none' },
+    },
+    {
+      id: 'esri-light-gray-labels',
+      type: 'raster',
+      source: 'esri-light-gray-labels',
+      layout: { visibility: 'none' },
+    },
   ],
 };
 const AHMEDABAD_CENTER = [72.5714, 23.0258];
 const DEFAULT_ZOOM = 12;
 
 const SEV_COLORS = {
-  CRITICAL: '#E5484D',
-  HIGH: '#EF6C1A',
-  MODERATE: '#E3B341',
-  LOW: '#3DA160',
-  INFO: '#5B8DEF',
+  CRITICAL: '#DC2626',
+  HIGH: '#EA580C',
+  MODERATE: '#D97706',
+  LOW: '#059669',
+  INFO: '#2563EB',
 };
 
 const STATUS_COLORS = {
-  AVAILABLE: '#3DA160',
-  ASSIGNED: '#E3B341',
-  EN_ROUTE: '#5B8DEF',
-  ON_SCENE: '#1FA7A0',
-  RETURNING: '#5B8DEF',
-  OUT_OF_SERVICE: '#6A7788',
-  OFFLINE: '#6A7788',
+  AVAILABLE: '#059669',
+  ASSIGNED: '#D97706',
+  EN_ROUTE: '#2563EB',
+  ON_SCENE: '#0891B2',
+  RETURNING: '#2563EB',
+  OUT_OF_SERVICE: '#64748B',
+  OFFLINE: '#94A3B8',
 };
 
 const SEV_RADIUS = {
@@ -76,34 +111,63 @@ const SEV_RADIUS = {
   INFO: 8,
 };
 
-function incidentMarkerEl(incident, isSelected) {
+function incidentMarkerEl(incident, isSelected, showLabels = true) {
   const color = SEV_COLORS[incident.severity] || SEV_COLORS.INFO;
-  const radius = SEV_RADIUS[incident.severity] || 8;
+  const radius = SEV_RADIUS[incident.severity] || 10;
 
   const el = document.createElement('div');
-  el.className = 'group cursor-pointer';
+  el.className = 'group cursor-pointer select-none relative';
   el.innerHTML = `
-    <div class="rounded-full border-2 transition-all duration-[220ms] ${isSelected ? 'scale-150' : 'group-hover:scale-125'}"
-      style="width:${radius * 2}px;height:${radius * 2}px;border-color:${color};background-color:${color}33;${isSelected ? `box-shadow:0 0 12px ${color}66;` : ''}">
+    <div class="relative flex items-center justify-center">
+      ${incident.severity === 'CRITICAL' ? `
+        <span class="animate-ping absolute inset-0 rounded-full opacity-60 pointer-events-none" style="background-color:${color};"></span>
+      ` : ''}
+      <div class="rounded-full border-2 transition-transform duration-150 flex items-center justify-center shadow-sm ${isSelected ? 'scale-125 ring-2 ring-offset-1 ring-blue-600' : 'group-hover:scale-110'}"
+        style="width:${radius * 2}px;height:${radius * 2}px;border-color:${color};background-color:${color}26;">
+        <span class="rounded-full" style="width:${Math.max(4, radius - 4)}px;height:${Math.max(4, radius - 4)}px;background-color:${color};"></span>
+      </div>
     </div>
-    <div class="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap text-[10px] font-mono text-text-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-raised px-1.5 py-0.5 rounded border border-border-subtle">
-      ${incident.code}
-    </div>
+
+    ${showLabels ? `
+      <div class="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 whitespace-nowrap pointer-events-auto transition-all duration-150 ${
+        isSelected
+          ? 'scale-105 z-30'
+          : 'group-hover:scale-105 z-20 group-hover:z-30'
+      }">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/95 backdrop-blur-xs border shadow-sm transition-all ${
+          isSelected
+            ? 'border-blue-500 ring-2 ring-blue-500/25 shadow-md'
+            : 'border-slate-200 group-hover:border-slate-300 group-hover:shadow-md'
+        }">
+          <span class="w-2 h-2 rounded-full shrink-0" style="background-color:${color};"></span>
+          <span class="text-xs font-semibold text-slate-800 max-w-[180px] truncate">${incident.title}</span>
+          <span class="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded" style="background-color:${color}18;color:${color};">
+            ${incident.severity}
+          </span>
+        </div>
+      </div>
+    ` : `
+      <div class="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-semibold text-slate-800 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-md z-50">
+        <span style="color:${color}">●</span> ${incident.title}
+      </div>
+    `}
   `;
-  el.title = `${incident.code} — ${incident.title}`;
+  el.title = `${incident.title} (${incident.severity})`;
   return el;
 }
 
 function unitMarkerEl(unit) {
   const color = STATUS_COLORS[unit.status] || STATUS_COLORS.OFFLINE;
   const el = document.createElement('div');
-  el.className = 'group cursor-default relative';
+  el.className = 'group cursor-default relative select-none';
   el.innerHTML = `
-    <div class="w-0 h-0 border-l-[5px] border-r-[5px] border-b-[10px] border-l-transparent border-r-transparent"
-      style="border-bottom-color:${color};transform:rotate(${unit.heading || 0}deg)">
-    </div>
-    <div class="absolute left-full ml-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap text-[9px] font-mono opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none px-1 py-0.5 rounded bg-raised border border-border-subtle" style="color:${color}">
-      ${unit.call_sign}
+    <div class="flex items-center gap-1">
+      <div class="w-0 h-0 border-l-[5px] border-r-[5px] border-b-[11px] border-l-transparent border-r-transparent drop-shadow-sm"
+        style="border-bottom-color:${color};transform:rotate(${unit.heading || 0}deg)">
+      </div>
+      <div class="px-1.5 py-0.5 rounded bg-white/95 border border-slate-200 shadow-xs text-[10px] font-mono font-bold" style="color:${color}">
+        ${unit.call_sign}
+      </div>
     </div>
   `;
   el.title = `${unit.call_sign} — ${unit.status}`;
@@ -116,10 +180,48 @@ export function SituationMap() {
   const incidentMarkersRef = useRef(new Map());
   const unitMarkersRef = useRef(new Map());
   const [mapReady, setMapReady] = useState(false);
+  const [showLabels, setShowLabels] = useState(true);
+  const [basemap, setBasemap] = useState('satellite'); // By default satellite view
+  const [showLayersPopup, setShowLayersPopup] = useState(false);
+  const layersPopupRef = useRef(null);
   const {
     incidents, units, selectedIncidentId, selectIncident,
     mapLayers, toggleMapLayer, mapViewport, setMapViewport,
+    sidebarOpen, toggleSidebar,
   } = useStore();
+
+  // ── Close layers popup on click outside ──
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (layersPopupRef.current && !layersPopupRef.current.contains(event.target)) {
+        setShowLayersPopup(false);
+      }
+    }
+    if (showLayersPopup) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showLayersPopup]);
+
+  // ── Basemap toggle ──
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    const isSat = basemap === 'satellite';
+    if (map.getLayer('esri-satellite')) {
+      map.setLayoutProperty('esri-satellite', 'visibility', isSat ? 'visible' : 'none');
+    }
+    if (map.getLayer('esri-satellite-labels')) {
+      map.setLayoutProperty('esri-satellite-labels', 'visibility', isSat ? 'visible' : 'none');
+    }
+    if (map.getLayer('esri-light-gray')) {
+      map.setLayoutProperty('esri-light-gray', 'visibility', isSat ? 'none' : 'visible');
+    }
+    if (map.getLayer('esri-light-gray-labels')) {
+      map.setLayoutProperty('esri-light-gray-labels', 'visibility', isSat ? 'none' : 'visible');
+    }
+  }, [basemap, mapReady]);
 
   // ── Init map once ──
   useEffect(() => {
@@ -163,7 +265,7 @@ export function SituationMap() {
       if (existing) {
         existing.remove();
       }
-      const el = incidentMarkerEl(incident, isSelected);
+      const el = incidentMarkerEl(incident, isSelected, showLabels);
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         selectIncident(incident.id);
@@ -180,7 +282,7 @@ export function SituationMap() {
         markers.delete(id);
       }
     }
-  }, [incidents, mapLayers.incidents, selectedIncidentId, mapReady, selectIncident]);
+  }, [incidents, mapLayers.incidents, selectedIncidentId, showLabels, mapReady, selectIncident]);
 
   // ── Unit markers ──
   useEffect(() => {
@@ -213,46 +315,140 @@ export function SituationMap() {
   }, [units, mapLayers.units, mapReady]);
 
   return (
-    <div className="flex-1 relative bg-canvas overflow-hidden">
+    <div className="flex-1 relative bg-slate-100 overflow-hidden">
       <div ref={mapContainer} className="w-full h-full" />
 
-      {/* Coverage overlay */}
-      <CoverageRadar visible={mapLayers.coverage} map={mapReady ? mapRef.current : null} />
-
-      {/* Map controls */}
-      <div className="absolute top-3 right-3 flex flex-col gap-1">
-        <Button variant="secondary" size="icon" title="Zoom in" onClick={() => mapRef.current?.zoomIn()}>
-          <Plus size={14} />
-        </Button>
-        <Button variant="secondary" size="icon" title="Zoom out" onClick={() => mapRef.current?.zoomOut()}>
-          <Minus size={14} />
-        </Button>
-        <Button
-          variant="secondary"
-          size="icon"
-          title="Center on Ahmedabad"
-          onClick={() => mapRef.current?.flyTo({ center: AHMEDABAD_CENTER, zoom: DEFAULT_ZOOM })}
-        >
-          <Crosshair size={14} />
-        </Button>
-      </div>
-
-      {/* Layer switcher */}
-      <div className="absolute bottom-3 right-3 bg-raised border border-border-strong rounded-[4px] p-2 shadow-overlay">
-        <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5 font-medium">
-          Layers
+      {/* Floating 3-Line Sidebar Menu Toggle Button on Map (Only visible when sidebar is closed) */}
+      {!sidebarOpen && (
+        <div className="absolute top-4 left-4 z-20">
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="
+              w-10 h-10 rounded-xl backdrop-blur-md transition-all cursor-pointer flex items-center justify-center border
+              bg-white/40 border-white/50 text-slate-800 hover:bg-white/75 hover:border-white/80 hover:text-slate-900 shadow-md hover:scale-105
+            "
+            title="Open Incident Sidebar (3-Line)"
+            aria-label="Open Incident Sidebar"
+          >
+            <Menu size={20} strokeWidth={2.2} />
+          </button>
         </div>
-        {['incidents', 'units', 'coverage', 'closures'].map(layer => (
-          <label key={layer} className="flex items-center gap-2 py-0.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={mapLayers[layer]}
-              onChange={() => toggleMapLayer(layer)}
-              className="w-3 h-3 rounded-sm accent-accent"
-            />
-            <span className="text-[11px] text-text-secondary capitalize">{layer}</span>
-          </label>
-        ))}
+      )}
+
+      {/* Map floating controls */}
+      <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] flex flex-col overflow-hidden">
+          <button
+            onClick={() => mapRef.current?.zoomIn()}
+            className="p-2.5 hover:bg-slate-50 text-slate-700 transition-colors border-b border-slate-100 cursor-pointer"
+            title="Zoom In"
+          >
+            <Plus size={16} />
+          </button>
+          <button
+            onClick={() => mapRef.current?.zoomOut()}
+            className="p-2.5 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+            title="Zoom Out"
+          >
+            <Minus size={16} />
+          </button>
+        </div>
+
+        <button
+          onClick={() => mapRef.current?.flyTo({ center: AHMEDABAD_CENTER, zoom: DEFAULT_ZOOM })}
+          className="bg-white border border-slate-200 rounded-xl p-2.5 text-slate-700 hover:bg-slate-50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-colors cursor-pointer"
+          title="Center on Operations Hub"
+        >
+          <Crosshair size={16} />
+        </button>
+
+        {/* Combined Map Layers & Basemap Button with Popover */}
+        <div className="relative" ref={layersPopupRef}>
+          <button
+            type="button"
+            onClick={() => setShowLayersPopup(prev => !prev)}
+            className={`bg-white border rounded-xl p-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-colors cursor-pointer flex items-center justify-center ${
+              showLayersPopup
+                ? 'border-blue-500 text-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20'
+                : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+            title="Map Style & Operational Layers"
+          >
+            <Layers size={16} />
+          </button>
+
+          {/* Popover anchored to the left of the button */}
+          {showLayersPopup && (
+            <div className="absolute right-full mr-2 top-0 bg-white border border-slate-200 rounded-xl p-3.5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] z-30 min-w-[220px] animate-in fade-in zoom-in-95 duration-150 select-none">
+              {/* Basemap Mode Selector */}
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Globe size={13} className="text-blue-600" />
+                Basemap Style
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-lg mb-3">
+                <button
+                  type="button"
+                  onClick={() => setBasemap('normal')}
+                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                    basemap === 'normal'
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <MapIcon size={13} />
+                  Normal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBasemap('satellite')}
+                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                    basemap === 'satellite'
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Globe size={13} />
+                  Satellite
+                </button>
+              </div>
+
+              {/* Operational Layers */}
+              <div className="pt-2.5 border-t border-slate-100">
+                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Layers size={13} className="text-blue-600" />
+                  Operational Layers
+                </div>
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={showLabels}
+                      onChange={() => setShowLabels(!showLabels)}
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-blue-600 cursor-pointer"
+                    />
+                    <span className="text-sm text-slate-700 group-hover:text-slate-900 font-medium">
+                      Incident Labels
+                    </span>
+                  </label>
+                  {['incidents', 'units', 'coverage', 'closures'].map(layer => (
+                    <label key={layer} className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={mapLayers[layer]}
+                        onChange={() => toggleMapLayer(layer)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-blue-600 cursor-pointer"
+                      />
+                      <span className="text-sm text-slate-700 group-hover:text-slate-900 capitalize font-medium">
+                        {layer}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

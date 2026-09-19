@@ -1,88 +1,76 @@
 @import "tailwindcss";
 
 /* ========================================================================
-   PRAHARI DESIGN SYSTEM v2 — Glass / aurora dark command console
+   PRAHARI DESIGN SYSTEM v4 — Premium Spacious Light Theme (Slate 50 / Pure White)
+   Inspired by clean municipal data dashboards (wardalerts.com)
    ======================================================================== */
 
 @theme {
-  /* ——— Base: deep space graphite with a cool blue undertone ——— */
-  --color-canvas: #060809;
-  --color-surface: #0F1318;
-  --color-raised: #161B22;
-  --color-inset: #0A0D11;
-  --color-hover: #1D242D;
-  --color-selected: #17293344;
+  /* ——— Base: Slate 50 background & Pure White elevated surfaces ——— */
+  --color-canvas: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-raised: #F1F5F9;
+  --color-inset: #F8FAFC;
+  --color-hover: #F8FAFC;
+  --color-selected: #EFF6FF;
 
-  /* ——— Borders ——— */
-  --color-border-subtle: #FFFFFF14;
-  --color-border-strong: #FFFFFF26;
-  --color-border-focus: #2DD4BF;
+  /* ——— Borders: subtle crisp slate lines ——— */
+  --color-border-subtle: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-border-focus: #2563EB;
 
-  /* ——— Text ——— */
-  --color-text-primary: #F3F6F9;
-  --color-text-secondary: #9AA7B5;
-  --color-text-muted: #64707D;
-  --color-text-inverse: #06110F;
+  /* ——— Text: high-contrast slate hierarchy ——— */
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #94A3B8;
+  --color-text-inverse: #FFFFFF;
 
-  /* ——— Accent: teal → cyan → indigo gradient family ——— */
-  --color-accent: #2DD4BF;
-  --color-accent-hover: #5EEAD4;
-  --color-accent-muted: #10393480;
-  --color-accent-2: #6366F1;
+  /* ——— Primary Brand Action: Blue 600 ——— */
+  --color-accent: #2563EB;
+  --color-accent-hover: #1D4ED8;
+  --color-accent-muted: #EFF6FF;
+  --color-accent-2: #1E40AF;
 
-  /* ——— Severity ramp (🔒 must match map + alert colours) ——— */
-  --color-sev-critical: #FB4B4B;
-  --color-sev-critical-bg: #3A141680;
-  --color-sev-high: #FF8A3D;
-  --color-sev-high-bg: #3A210E80;
-  --color-sev-moderate: #FACC42;
-  --color-sev-moderate-bg: #34290C80;
-  --color-sev-low: #4ADE80;
-  --color-sev-low-bg: #10331F80;
-  --color-sev-info: #60A5FA;
-  --color-sev-info-bg: #14213A80;
+  /* ——— Status Indicators: soft tinted backgrounds with darker text ——— */
+  --color-sev-critical: #B91C1C;
+  --color-sev-critical-bg: #FEF2F2;
+  --color-sev-high: #C2410C;
+  --color-sev-high-bg: #FFF7ED;
+  --color-sev-moderate: #B45309;
+  --color-sev-moderate-bg: #FFFBEB;
+  --color-sev-low: #047857;
+  --color-sev-low-bg: #ECFDF5;
+  --color-sev-info: #1D4ED8;
+  --color-sev-info-bg: #EFF6FF;
 
   /* ——— Operational status ——— */
-  --color-status-available: #4ADE80;
-  --color-status-busy: #FACC42;
-  --color-status-enroute: #60A5FA;
-  --color-status-onscene: #2DD4BF;
-  --color-status-offline: #64707D;
-  --color-status-stale: #FF8A3D;
+  --color-status-available: #047857;
+  --color-status-busy: #B45309;
+  --color-status-enroute: #1D4ED8;
+  --color-status-onscene: #0E7490;
+  --color-status-offline: #64748B;
+  --color-status-stale: #C2410C;
 
   /* ——— Typography ——— */
-  --font-sans: "Inter", "IBM Plex Sans Devanagari", system-ui, sans-serif;
-  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Inter", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Inter", "Geist", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* ——— Spacing: 4px grid ——— */
+  /* ——— Spacing & Radius ——— */
   --spacing: 0.25rem;
-
-  /* ——— Border radius: softer, more premium ——— */
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 22px;
-  --radius-pill: 999px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
 
-  /* ——— Shadows & glows ——— */
-  --shadow-overlay: 0 20px 60px -12px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.04);
-  --shadow-card: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -16px rgba(0,0,0,.5);
-  --glow-accent: 0 0 0 1px rgba(45,212,191,.25), 0 8px 24px -6px rgba(45,212,191,.35);
-  --glow-accent-lg: 0 0 60px -10px rgba(45,212,191,.45);
-
-  /* ——— Animation ——— */
-  --duration-instant: 80ms;
-  --duration-fast: 160ms;
-  --duration-state: 260ms;
-  --ease-default: cubic-bezier(.16,.84,.32,1);
-  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  /* ——— Soft Shadows ——— */
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-overlay: 0 20px 40px -15px rgba(15, 23, 42, 0.12), 0 0 0 1px #E2E8F0;
 }
 
-/* ——— Global resets ———
-   Wrapped in @layer base so Tailwind's utility layer (p-*, m-*, etc.)
-   can still override these — unlayered CSS always wins over layered
-   CSS regardless of specificity, which silently killed all spacing utilities. */
+/* ——— Global resets & base ——— */
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
@@ -98,22 +86,21 @@
 
   body {
     font-family: var(--font-sans);
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.5;
     color: var(--color-text-primary);
     background-color: var(--color-canvas);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "cv11", "ss01";
   }
 
   ::selection {
-    background: rgba(45, 212, 191, 0.28);
-    color: var(--color-text-primary);
+    background: #DBEAFE;
+    color: #1E3A8A;
   }
 }
 
-/* ——— Scrollbar styling ——— */
+/* ——— Clean Slate Scrollbars ——— */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -124,182 +111,62 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border-strong);
+  background: #CBD5E1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-accent);
+  background: #94A3B8;
 }
 
-/* ——— Focus ring (accessibility floor) ——— */
+/* ——— Focus ring ——— */
 :focus-visible {
-  outline: 1px solid var(--color-border-focus);
+  outline: 2px solid #2563EB;
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.22);
 }
 
-/* ——— Reduced motion ——— */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* ——— MapLibre container ——— */
+/* ——— MapLibre container overrides ——— */
 .maplibregl-map {
   font-family: var(--font-sans);
 }
 .maplibregl-ctrl-attrib {
-  background: rgba(15, 19, 24, 0.7) !important;
-  backdrop-filter: blur(6px);
-  color: var(--color-text-muted) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 6px;
+  color: #64748B !important;
+  font-size: 11px;
 }
-.maplibregl-ctrl-attrib a { color: var(--color-text-secondary) !important; }
+.maplibregl-ctrl-attrib a { color: #2563EB !important; }
 
-/* ——— Utility: tabular figures for numeric data ——— */
+/* ——— Card & Surface Utilities ——— */
+.panel {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.panel-header {
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+/* Floating overlay panels on map */
+.map-floating-panel {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+/* Backward compatibility aliases */
+.glass, .glass-strong, .glass-panel {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
 .tabular-nums {
   font-variant-numeric: tabular-nums;
-}
-
-/* ========================================================================
-   GLASS SURFACES
-   ======================================================================== */
-.glass {
-  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid var(--color-border-subtle);
-}
-
-.glass-strong {
-  background: linear-gradient(180deg, rgba(22,27,34,0.92), rgba(15,19,24,0.88));
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  border: 1px solid var(--color-border-subtle);
-  box-shadow: var(--shadow-card);
-}
-
-.glass-panel {
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--color-border-subtle);
-}
-
-/* ========================================================================
-   GRADIENT TEXT / ACCENTS
-   ======================================================================== */
-.text-gradient {
-  background: linear-gradient(120deg, #5EEAD4 0%, #2DD4BF 45%, #6366F1 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.glow-ring {
-  box-shadow: var(--glow-accent);
-}
-
-/* ========================================================================
-   AURORA BACKGROUND — animated mesh gradient
-   ======================================================================== */
-.aurora-bg {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  background: var(--color-canvas);
-}
-
-.aurora-bg::before,
-.aurora-bg::after {
-  content: "";
-  position: absolute;
-  width: 140%;
-  height: 140%;
-  top: -20%;
-  left: -20%;
-  background:
-    radial-gradient(circle at 25% 30%, rgba(45,212,191,0.20) 0%, transparent 45%),
-    radial-gradient(circle at 75% 25%, rgba(99,102,241,0.18) 0%, transparent 45%),
-    radial-gradient(circle at 50% 75%, rgba(45,212,191,0.12) 0%, transparent 50%);
-  animation: auroraDrift 22s ease-in-out infinite alternate;
-  filter: blur(40px);
-}
-
-.aurora-bg::after {
-  animation-duration: 30s;
-  animation-direction: alternate-reverse;
-  opacity: 0.7;
-}
-
-@keyframes auroraDrift {
-  0%   { transform: translate(0%, 0%) rotate(0deg) scale(1); }
-  50%  { transform: translate(4%, -3%) rotate(8deg) scale(1.08); }
-  100% { transform: translate(-3%, 4%) rotate(-6deg) scale(1.04); }
-}
-
-.grain-overlay {
-  position: absolute;
-  inset: 0;
-  opacity: 0.035;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* ========================================================================
-   ANIMATION KEYFRAMES
-   ======================================================================== */
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse-ring {
-  0%   { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(2.2); opacity: 0; }
-}
-
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(16px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes softGlowPulse {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(45,212,191,.25), 0 0 20px -4px rgba(45,212,191,.35); }
-  50%      { box-shadow: 0 0 0 1px rgba(45,212,191,.4), 0 0 34px -2px rgba(45,212,191,.55); }
-}
-
-.animate-fade-slide-in {
-  animation: fadeSlideIn var(--duration-state) var(--ease-default) forwards;
-}
-
-.animate-fade-slide-up {
-  animation: fadeSlideUp var(--duration-state) var(--ease-default) forwards;
-}
-
-.animate-slide-in-right {
-  animation: slideInRight var(--duration-fast) var(--ease-default) forwards;
-}
-
-.animate-glow-pulse {
-  animation: softGlowPulse 2.6s ease-in-out infinite;
-}
-
-.shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 2s linear infinite;
+  font-family: var(--font-mono);
 }

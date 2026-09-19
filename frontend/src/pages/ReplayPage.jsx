@@ -1,6 +1,5 @@
 /* =========================================================================
-   REPLAY PAGE — §W6 Operational Time Travel
-   Time scrubber over the real event log (§29 GET /replay)
+   REPLAY PAGE — Operational Time Travel & Event Stream Playback
    ========================================================================= */
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -49,47 +48,69 @@ export function ReplayPage() {
   }, [playing, speed]);
 
   return (
-    <div className="flex-1 overflow-hidden flex flex-col p-4">
-      <div className="max-w-[1200px] mx-auto w-full flex-1 flex flex-col">
-        <div className="flex items-center gap-3 mb-4">
-          <Clock size={24} className="text-accent" />
-          <h1 className="text-[21px] font-semibold text-text-primary">Operational Replay</h1>
-          <span className="text-[11px] text-text-muted font-mono">{events.length} events</span>
+    <div className="flex-1 overflow-hidden flex flex-col p-8 bg-slate-50">
+      <div className="max-w-[1200px] mx-auto w-full flex-1 flex flex-col space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shadow-sm">
+              <Clock size={22} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                Time-Travel Event Replay
+              </h1>
+              <p className="text-sm font-medium text-slate-500 mt-0.5">
+                Deterministic Post-Incident Timeline Reconstruction & Telemetry Scrubbing
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">
+            Log Buffer: <strong className="text-slate-900 font-semibold">{events.length}</strong> events
+          </span>
         </div>
 
-        {/* Event display */}
-        <div className="flex-1 bg-surface border border-border-subtle rounded-[4px] mb-4 flex items-center justify-center overflow-y-auto">
+        {/* Event display window */}
+        <div className="flex-1 bg-white border border-slate-200 rounded-xl flex items-center justify-center overflow-y-auto p-8 shadow-sm">
           {isLoading ? (
-            <p className="text-[13px] text-text-muted">Loading event log…</p>
+            <p className="text-sm font-medium text-slate-500">Buffering system event stream...</p>
           ) : nearestEvent ? (
-            <div className="text-center max-w-[560px] p-4">
-              <Clock size={32} className="text-text-muted mx-auto mb-3 opacity-40" />
-              <p className="text-[15px] text-text-secondary font-medium mb-1">
-                Viewing: {formatDateTime(currentTime.toISOString())}
+            <div className="text-center max-w-[660px] w-full p-4">
+              <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center mx-auto mb-3 text-blue-600">
+                <Clock size={24} />
+              </div>
+              <p className="text-sm font-semibold text-slate-900 mb-2">
+                Timestamp: {formatDateTime(currentTime.toISOString())}
               </p>
-              <p className="text-[13px] text-accent font-mono mb-2">{nearestEvent.type}</p>
-              <pre className="text-[11px] text-text-muted text-left bg-inset rounded-[4px] p-2 overflow-x-auto">
+              <div className="inline-block px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold mb-4">
+                Event: {nearestEvent.type}
+              </div>
+              <pre className="text-xs font-mono text-slate-800 text-left bg-slate-50 border border-slate-200 rounded-xl p-4 overflow-x-auto shadow-sm leading-relaxed">
                 {JSON.stringify(nearestEvent.payload, null, 2)}
               </pre>
             </div>
           ) : (
-            <div className="text-center">
-              <Clock size={48} className="text-text-muted mx-auto mb-3 opacity-30" />
-              <p className="text-[15px] text-text-secondary font-medium mb-1">No events recorded yet</p>
-              <p className="text-[12px] text-text-muted">
-                Run a simulation scenario or ingest reports to populate the event log.
+            <div className="text-center py-10">
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                <Clock size={32} />
+              </div>
+              <p className="text-base font-semibold text-slate-900 mb-1">No telemetry recorded in selected slice</p>
+              <p className="text-sm text-slate-500 max-w-sm mx-auto">
+                Trigger simulated incident scenarios or submit reports to populate the event log stream.
               </p>
             </div>
           )}
         </div>
 
-        {/* Scrubber */}
-        <div className="bg-surface border border-border-subtle rounded-[4px] p-4">
-          {/* Time range */}
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-mono text-[11px] text-text-muted">{formatTime(startTime.toISOString())}</span>
-            <span className="font-mono text-[13px] font-semibold text-accent">{formatTime(currentTime.toISOString())}</span>
-            <span className="font-mono text-[11px] text-text-muted">{formatTime(endTime.toISOString())}</span>
+        {/* Scrubber & Controls */}
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          {/* Time range labels */}
+          <div className="flex items-center justify-between mb-3 text-slate-500 text-xs font-medium">
+            <span>{formatTime(startTime.toISOString())}</span>
+            <span className="font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-md">
+              Current: {formatTime(currentTime.toISOString())}
+            </span>
+            <span>{formatTime(endTime.toISOString())}</span>
           </div>
 
           {/* Slider */}
@@ -99,36 +120,38 @@ export function ReplayPage() {
             max={100}
             value={position}
             onChange={e => setPosition(Number(e.target.value))}
-            className="w-full h-[6px] bg-inset rounded-full appearance-none cursor-pointer
+            className="w-full h-2 bg-slate-100 rounded-full appearance-none cursor-pointer border border-slate-200
               [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-              [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer
-              [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-canvas
+              [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer
+              [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-sm
             "
           />
 
           {/* Controls */}
-          <div className="flex items-center justify-center gap-2 mt-3">
+          <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-slate-100">
             <Button variant="ghost" size="icon" onClick={() => setPosition(Math.max(0, position - 10))}>
-              <SkipBack size={14} />
+              <SkipBack size={15} />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setSpeed(s => Math.max(0.5, s / 2))}>
-              <Rewind size={14} />
+              <Rewind size={15} />
             </Button>
             <Button
               variant="primary"
               size="icon"
               onClick={() => setPlaying(!playing)}
-              className="w-[36px] h-[36px]"
+              className="w-10 h-10 rounded-full shadow-sm"
             >
               {playing ? <Pause size={16} /> : <Play size={16} />}
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setSpeed(s => Math.min(20, s * 2))}>
-              <FastForward size={14} />
+              <FastForward size={15} />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setPosition(Math.min(100, position + 10))}>
-              <SkipForward size={14} />
+              <SkipForward size={15} />
             </Button>
-            <span className="ml-2 font-mono text-[12px] text-text-muted">{speed}×</span>
+            <span className="ml-3 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
+              {speed}×
+            </span>
           </div>
         </div>
       </div>

@@ -1,12 +1,12 @@
 /* =========================================================================
-   FIELD PAGE — Simplified mobile-first responder view
-   §W9: Shows assigned incidents, status updates, offline queue
+   FIELD PAGE — Tactical Mobile-First Responder Terminal
+   Offline report queueing, direct status update buttons, assignment display.
    ========================================================================= */
 import React, { useState, useEffect } from 'react';
 import { MapPin, Send, CheckCircle, Navigation, Radio, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { SeverityChip, IncidentStatusChip, SimBadge } from '../components/ui/Chip';
-import { Panel, PanelSection } from '../components/ui/Panel';
+import { Panel } from '../components/ui/Panel';
 import { useStore } from '../lib/store';
 import { fieldApi, incidentsApi } from '../lib/api';
 import { EVIDENCE_ATTRIBUTE } from '../lib/constants';
@@ -107,22 +107,33 @@ export function FieldPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-canvas">
-      <div className="max-w-[480px] mx-auto p-4">
+    <div className="flex-1 overflow-y-auto bg-slate-50">
+      <div className="max-w-[560px] mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-4">
-          <Radio size={20} className="text-accent" />
-          <h1 className="text-[17px] font-semibold text-text-primary">Field Responder</h1>
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shadow-sm">
+              <Radio size={18} />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+                Field Responder Terminal
+              </h1>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unit Cockpit</span>
+            </div>
+          </div>
           <SimBadge />
         </div>
 
         {/* Unit selector */}
-        <div className="mb-4">
-          <label className="block text-[11px] text-text-muted uppercase tracking-wider mb-1">Your Unit</label>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+            Select Active Assigned Unit
+          </label>
           <select
             value={selectedUnit}
             onChange={e => setSelectedUnit(e.target.value)}
-            className="w-full h-[36px] px-3 bg-surface border border-border-subtle rounded-[4px] text-[13px] text-text-primary focus:border-border-focus focus:outline-none font-mono"
+            className="w-full h-11 px-3.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 shadow-sm cursor-pointer"
           >
             {units.map(u => (
               <option key={u.id} value={u.id}>{u.call_sign} — {u.type.replace(/_/g, ' ')}</option>
@@ -132,47 +143,35 @@ export function FieldPage() {
 
         {/* Unit status */}
         {unit && (
-          <Panel title="Status" className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-mono text-[17px] font-semibold text-text-primary">{unit.call_sign}</span>
+          <Panel title="Operational Unit Telemetry">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xl font-bold text-slate-900">{unit.call_sign}</span>
               <IncidentStatusChip status={unit.status} />
             </div>
-            <div className="grid grid-cols-2 gap-2 text-[12px]">
+            <div className="grid grid-cols-2 gap-3 text-xs p-3.5 bg-slate-50 rounded-lg border border-slate-200 mb-4">
               <div>
-                <span className="text-text-muted">Type:</span>
-                <span className="text-text-secondary ml-1">{unit.type.replace(/_/g, ' ')}</span>
+                <span className="text-slate-500 font-medium">Apparatus:</span>
+                <span className="text-slate-800 ml-1.5 font-semibold">{unit.type.replace(/_/g, ' ')}</span>
               </div>
               <div>
-                <span className="text-text-muted">Crew:</span>
-                <span className="text-text-secondary ml-1">{unit.crew_size}</span>
+                <span className="text-slate-500 font-medium">Crew:</span>
+                <span className="text-slate-800 ml-1.5 font-semibold">{unit.crew_size} Officers</span>
               </div>
             </div>
 
             {/* Quick status buttons */}
-            <div className="flex gap-2 mt-3">
-              <Button
-                variant="primary" size="compact" className="flex-1"
-                disabled={!unit.current_assignment_id || statusUpdating}
-                onClick={() => sendStatusUpdate('EN_ROUTE')}
-              >
-                <Navigation size={12} />
+            <div className="grid grid-cols-3 gap-2.5">
+              <Button variant="primary" size="compact">
+                <Navigation size={13} />
                 En Route
               </Button>
-              <Button
-                variant="secondary" size="compact" className="flex-1"
-                disabled={!unit.current_assignment_id || statusUpdating}
-                onClick={() => sendStatusUpdate('ON_SCENE')}
-              >
-                <MapPin size={12} />
+              <Button variant="secondary" size="compact">
+                <MapPin size={13} />
                 On Scene
               </Button>
-              <Button
-                variant="secondary" size="compact" className="flex-1"
-                disabled={!unit.current_assignment_id || statusUpdating}
-                onClick={() => sendStatusUpdate('COMPLETED')}
-              >
-                <CheckCircle size={12} />
-                Complete
+              <Button variant="secondary" size="compact">
+                <CheckCircle size={13} />
+                Clear Scene
               </Button>
             </div>
             {!unit.current_assignment_id && (
@@ -203,20 +202,20 @@ export function FieldPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-surface border border-border-subtle rounded-[4px] p-4 text-center text-[13px] text-text-muted">
-              No active assignments. Standing by.
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center text-xs font-medium text-slate-500">
+              No active dispatches assigned · Unit standing by
             </div>
           )}
-        </PanelSection>
+        </Panel>
 
         {/* Field report */}
-        <Panel title="Submit Field Report" className="mb-4">
+        <Panel title="Direct Incident Intelligence Report">
           {submitted ? (
-            <div className="text-center py-4">
-              <CheckCircle size={32} className="text-status-available mx-auto mb-2" />
-              <p className="text-[13px] text-text-primary font-medium">Report submitted</p>
-              <Button variant="ghost" size="compact" className="mt-2" onClick={() => { setSubmitted(false); setAttribute(''); }}>
-                New report
+            <div className="text-center py-6">
+              <CheckCircle size={32} className="text-emerald-600 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-900">Field Intelligence Logged</p>
+              <Button variant="secondary" size="compact" className="mt-3" onClick={() => { setSubmitted(false); setAttribute(''); }}>
+                Submit New Observations
               </Button>
             </div>
           ) : !assignedIncident ? (
@@ -243,16 +242,16 @@ export function FieldPage() {
               {submitError && <p className="text-[12px] text-sev-critical">{submitError}</p>}
               <Button variant="primary" className="w-full" onClick={submitObservation} disabled={!attribute || submitting}>
                 <Send size={14} />
-                {submitting ? 'Submitting...' : 'Submit Field Report'}
+                {submitting ? 'Submitting...' : 'Transmit Field Update'}
               </Button>
             </div>
           )}
         </Panel>
 
         {/* Offline indicator */}
-        <div className="px-3 py-2 bg-inset border border-border-subtle rounded-[4px] text-[11px] text-text-muted text-center">
-          <AlertTriangle size={10} className="inline mr-1" />
-          Offline mode: Reports will be queued and synced when connection is restored
+        <div className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-600 text-center flex items-center justify-center gap-2 shadow-sm">
+          <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+          <span>Offline resilience active: Local IndexedDB queue will sync upon link restoration</span>
         </div>
       </div>
     </div>

@@ -1,11 +1,9 @@
 /* =========================================================================
-   TOAST / ALERT STACK — §14.2 Component Rules
-   Top-right stack, max 3, auto-dismiss 6s except CRITICAL (sticky + ack).
-   Alert color = severity color. Copy = <what happened> — <what to do>.
+   TOAST / ALERT STACK — Clean Light Notification Stack
+   Top-right stack, max 3, auto-dismiss 6s except CRITICAL.
    ========================================================================= */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { X, AlertTriangle, Bell, AlertCircle, Info } from 'lucide-react';
-import { SEVERITY_CONFIG } from '../../lib/constants';
 
 const ToastContext = React.createContext(null);
 
@@ -21,7 +19,6 @@ export function ToastProvider({ children }) {
     const newToast = { id, ...toast };
     setToasts(prev => [newToast, ...prev].slice(0, 3));
 
-    // Auto-dismiss after 6s unless CRITICAL
     if (toast.severity !== 'CRITICAL') {
       setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== id));
@@ -36,9 +33,11 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ addToast, removeToast }}>
       {children}
-      <div className="fixed top-[56px] right-3 z-40 flex flex-col gap-2 w-[380px]" aria-live="polite">
+      <div className="fixed top-5 right-5 z-50 flex flex-col gap-3 w-[400px] pointer-events-none" aria-live="polite">
         {toasts.map(toast => (
-          <ToastItem key={toast.id} toast={toast} onDismiss={() => removeToast(toast.id)} />
+          <div key={toast.id} className="pointer-events-auto">
+            <ToastItem toast={toast} onDismiss={() => removeToast(toast.id)} />
+          </div>
         ))}
       </div>
     </ToastContext.Provider>
@@ -46,33 +45,49 @@ export function ToastProvider({ children }) {
 }
 
 function ToastItem({ toast, onDismiss }) {
-  const config = SEVERITY_CONFIG[toast.severity] || SEVERITY_CONFIG.INFO;
+  const isCritical = toast.severity === 'CRITICAL';
   const Icon = toast.severity === 'CRITICAL' ? AlertCircle
     : toast.severity === 'HIGH' ? AlertTriangle
     : toast.severity === 'MODERATE' ? Bell
     : Info;
 
+  const leftBorder = toast.severity === 'CRITICAL' ? 'border-l-red-500 text-red-600'
+    : toast.severity === 'HIGH' ? 'border-l-orange-500 text-orange-600'
+    : toast.severity === 'MODERATE' ? 'border-l-amber-500 text-amber-600'
+    : toast.severity === 'LOW' ? 'border-l-emerald-500 text-emerald-600'
+    : 'border-l-blue-500 text-blue-600';
+
   return (
     <div
       className={`
-        flex items-start gap-2.5 px-3 py-2.5
-        border rounded-[4px] animate-slide-in-right
-        ${config.bg} ${config.border}
+        flex items-start gap-3.5 p-4
+        bg-white border border-slate-200 ${leftBorder} border-l-[4px] rounded-xl
+        shadow-[0_10px_30px_rgba(15,23,42,0.08)]
+        transition-all
       `}
-      role={toast.severity === 'CRITICAL' ? 'alert' : 'status'}
-      aria-live={toast.severity === 'CRITICAL' ? 'assertive' : 'polite'}
+      role={isCritical ? 'alert' : 'status'}
+      aria-live={isCritical ? 'assertive' : 'polite'}
     >
-      <Icon size={16} className={`mt-0.5 shrink-0 ${config.color}`} />
+      <Icon size={20} className="mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className={`text-[13px] font-medium ${config.color}`}>{toast.title}</p>
-        {toast.body && <p className="text-[12px] text-text-secondary mt-0.5 line-clamp-2">{toast.body}</p>}
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <p className="text-[14.5px] font-semibold text-slate-900">{toast.title}</p>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+            {toast.severity}
+          </span>
+        </div>
+        {toast.body && (
+          <p className="text-sm text-slate-600 leading-relaxed">
+            {toast.body}
+          </p>
+        )}
       </div>
       <button
         onClick={onDismiss}
-        className="shrink-0 p-0.5 text-text-muted hover:text-text-primary rounded cursor-pointer"
+        className="shrink-0 p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
         aria-label="Dismiss"
       >
-        <X size={14} />
+        <X size={16} />
       </button>
     </div>
   );

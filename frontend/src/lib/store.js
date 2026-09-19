@@ -11,7 +11,7 @@ import {
 import { connectSocket, disconnectSocket } from './socket';
 import { MOCK_INCIDENTS, MOCK_UNITS, MOCK_ALERTS, MOCK_HOSPITALS } from '../mocks/fixtures';
 
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
+const USE_MOCKS = import.meta.env?.VITE_USE_MOCKS !== 'false';
 
 function loadStoredUser() {
   try {
@@ -303,6 +303,11 @@ export const useStore = create((set, get) => ({
   // ——— Right rail state ———
   rightRailTab: 'overview', // 'overview' | 'evidence' | 'response' | 'related' | 'timeline'
   setRightRailTab: (tab) => set({ rightRailTab: tab }),
+
+  // ——— Sidebar state ———
+  sidebarOpen: false, // Hidden by default; opens via hamburger menu toggle
+  toggleSidebar: () => set(state => ({ sidebarOpen: !state.sidebarOpen })),
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
   // ——— Simulation ———
   simStatus: { running: false, scenario: null, speed: 1, clock: null },

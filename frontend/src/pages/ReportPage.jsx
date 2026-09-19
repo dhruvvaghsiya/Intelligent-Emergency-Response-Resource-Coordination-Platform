@@ -1,20 +1,19 @@
 /* =========================================================================
-   PUBLIC REPORT FORM — §W4 Public reporting
-   Mobile-first, 3 fields + GPS, no auth required
+   PUBLIC REPORT FORM — High-Throughput Incident Ingestion Portal
+   Mobile-friendly, high-contrast, structured input with geolocation.
    ========================================================================= */
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Send, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { MapPin, Send, CheckCircle2, X, ShieldAlert } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { INCIDENT_TYPE } from '../lib/constants';
 import { reportsApi } from '../lib/api';
 
 const inputClass = `
-  w-full h-[42px] px-3.5 bg-black/25 border border-border-subtle rounded-[var(--radius-md)]
-  text-[13.5px] text-text-primary placeholder:text-text-muted
-  focus:border-accent/60 focus:bg-black/40 focus:outline-none
-  focus:shadow-[0_0_0_3px_rgba(45,212,191,0.15)]
-  transition-all duration-200
+  w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg
+  text-sm text-slate-900 placeholder:text-slate-400
+  focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600
+  transition-colors
 `;
 
 export function ReportPage() {
@@ -72,129 +71,128 @@ export function ReportPage() {
   };
 
   return (
-    <div className="flex-1 relative overflow-y-auto">
-      <div className="fixed inset-0 -z-10">
-        <div className="aurora-bg" />
-        <div className="grain-overlay" />
-      </div>
-
-      <div className="min-h-full flex items-center justify-center py-10 px-4">
+    <div className="flex-1 relative overflow-y-auto bg-slate-50">
+      <div className="min-h-full flex items-center justify-center py-12 px-4">
         <AnimatePresence mode="wait">
           {submitted ? (
             <motion.div
               key="success"
-              initial={{ opacity: 0, scale: 0.94 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="glass-strong rounded-[var(--radius-xl)] p-10 text-center max-w-[440px]"
+              className="bg-white border border-slate-200 rounded-2xl p-8 text-center max-w-[460px] shadow-sm"
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.1 }}
-                className="relative mx-auto mb-5 w-16 h-16"
-              >
-                <div className="absolute inset-0 blur-2xl bg-status-available/40 rounded-full" />
-                <CheckCircle2 size={64} className="relative text-status-available" strokeWidth={1.5} />
-              </motion.div>
-              <h2 className="text-[22px] font-bold text-text-primary mb-2 tracking-tight">Report Submitted</h2>
-              <p className="text-[13.5px] text-text-secondary mb-5 leading-relaxed">
-                Your report has been received and will be processed by our coordination team.
-                A tracking ID will be sent to your contact if provided.
+              <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto mb-4 text-emerald-600">
+                <CheckCircle2 size={32} strokeWidth={2.2} />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Report Ingested</h2>
+              <p className="text-sm text-slate-600 mb-5 leading-relaxed font-sans">
+                Emergency signal verified and routed into the automated belief fusion matrix.
+                Nearest responders and hospital units have been notified.
               </p>
-              <p className="text-[11px] text-text-muted font-mono mb-6 px-3 py-2 bg-black/25 rounded-[var(--radius-sm)] inline-block">
-                REF: {reportId || `RPT-${Date.now().toString(36).toUpperCase()}`}
-              </p>
+              <div className="text-xs font-mono text-slate-600 mb-6 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-lg inline-block">
+                INGEST_ID: <strong className="text-slate-900 font-semibold">{reportId || `RPT-${Date.now().toString(36).toUpperCase()}`}</strong>
+              </div>
               <Button
-                variant="secondary"
-                className="w-full"
+                variant="primary"
+                className="w-full h-11 text-sm font-semibold"
                 onClick={() => { setSubmitted(false); setReportId(null); setForm({ type: 'UNKNOWN', description: '', location: null, contact: '' }); }}
               >
-                Submit another report
+                Submit Additional Report
               </Button>
             </motion.div>
           ) : (
             <motion.div
               key="form"
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="w-full max-w-[480px]"
+              className="w-full max-w-[500px]"
             >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="relative">
-                  <div className="absolute inset-0 blur-lg bg-accent/40 rounded-full" />
-                  <div className="relative w-10 h-10 rounded-xl glass-strong flex items-center justify-center">
-                    <AlertTriangle size={19} className="text-accent" />
-                  </div>
+              <div className="flex items-center gap-3.5 mb-5">
+                <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shadow-sm">
+                  <ShieldAlert size={22} />
                 </div>
-                <h1 className="text-[22px] font-bold text-text-primary tracking-tight">Report an Emergency</h1>
+                <div>
+                  <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                    Citizen Emergency Report
+                  </h1>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Direct Gateway into Municipal Dispatch
+                  </p>
+                </div>
               </div>
 
-              <p className="text-[13px] text-text-secondary mb-5 leading-relaxed">
-                Submit an emergency report to the Prahari coordination center. Your report will be reviewed and
-                correlated with other incoming information. No login required.
-              </p>
-
-              <form onSubmit={handleSubmit} className="glass-strong rounded-[var(--radius-xl)] p-6 space-y-5">
+              <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl p-7 space-y-4 shadow-sm">
                 {/* Type */}
                 <div>
-                  <label className="block text-[12px] font-medium text-text-secondary mb-1.5">What happened?</label>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                    Incident Classification
+                  </label>
                   <select
                     value={form.type}
                     onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
                     className={`${inputClass} cursor-pointer`}
                   >
                     {INCIDENT_TYPE.map(type => (
-                      <option key={type} value={type} className="bg-raised">{type.replace(/_/g, ' ')}</option>
+                      <option key={type} value={type}>
+                        {type.replace(/_/g, ' ')}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-[12px] font-medium text-text-secondary mb-1.5">Description</label>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                    Incident Narrative & Hazards Observed
+                  </label>
                   <textarea
                     value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                    placeholder="Describe what you see: location details, number of people affected, visible hazards..."
+                    placeholder="Describe specific location landmarks, casualties trapped, smoke color, road blockages..."
                     rows={4}
-                    className={`${inputClass} h-auto py-3 resize-none`}
+                    className={`${inputClass} resize-none font-sans leading-relaxed`}
+                    required
                   />
                 </div>
 
                 {/* Location */}
                 <div>
-                  <label className="block text-[12px] font-medium text-text-secondary mb-1.5">Location</label>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                    Incident Geolocation
+                  </label>
                   {form.location ? (
-                    <div className="flex items-center gap-2 px-3.5 h-[42px] bg-black/25 border border-accent/30 rounded-[var(--radius-md)]">
-                      <MapPin size={14} className="text-accent shrink-0" />
-                      <span className="font-mono text-[12px] text-text-primary flex-1">
+                    <div className="flex items-center gap-2 px-3.5 h-10 bg-slate-50 border border-blue-200 rounded-lg">
+                      <MapPin size={15} className="text-blue-600 shrink-0" />
+                      <span className="text-xs font-mono text-slate-700 flex-1 font-semibold">
                         {form.location.lat.toFixed(4)}°N, {form.location.lng.toFixed(4)}°E
                       </span>
                       <button
                         type="button"
                         onClick={() => setForm(f => ({ ...f, location: null }))}
-                        className="text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                        className="text-slate-400 hover:text-slate-700 cursor-pointer p-1"
                       >
-                        <X size={14} />
+                        <X size={15} />
                       </button>
                     </div>
                   ) : (
-                    <Button variant="secondary" onClick={getLocation} disabled={locating} className="w-full h-[42px]">
+                    <Button variant="secondary" onClick={getLocation} disabled={locating} className="w-full h-10 text-xs font-semibold">
                       <MapPin size={14} />
-                      {locating ? 'Getting location...' : 'Use my current location'}
+                      {locating ? 'Acquiring GPS Position...' : 'Acquire Current Device Coordinates'}
                     </Button>
                   )}
                 </div>
 
                 {/* Contact */}
                 <div>
-                  <label className="block text-[12px] font-medium text-text-secondary mb-1.5">Contact (optional)</label>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                    Reporter Contact (Optional Callback ID)
+                  </label>
                   <input
                     type="text"
                     value={form.contact}
                     onChange={e => setForm(f => ({ ...f, contact: e.target.value }))}
-                    placeholder="Phone number or email"
+                    placeholder="Mobile number or callsign"
                     className={inputClass}
                   />
                 </div>
@@ -205,7 +203,7 @@ export function ReportPage() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="px-3.5 py-2.5 bg-sev-critical-bg border border-sev-critical/30 rounded-[var(--radius-md)] text-[12.5px] text-sev-critical overflow-hidden"
+                      className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-700"
                     >
                       {error}
                     </motion.div>
@@ -214,16 +212,16 @@ export function ReportPage() {
 
                 <Button
                   variant="primary"
-                  className="w-full h-[44px] text-[14px]"
+                  className="w-full h-11 text-sm font-semibold"
                   disabled={!form.description || submitting}
                 >
-                  <Send size={14} />
-                  {submitting ? 'Submitting...' : 'Submit Report'}
+                  <Send size={15} />
+                  {submitting ? 'Transmitting Ingest Payload...' : 'Transmit Emergency Report'}
                 </Button>
               </form>
 
-              <p className="text-[11px] text-text-muted text-center mt-5 font-mono tracking-wide">
-                SIM · Reports are processed through the standard AI pipeline
+              <p className="text-xs font-medium text-slate-400 text-center mt-4">
+                Realtime Public Ingest Gateway · Multi-Channel Adapter
               </p>
             </motion.div>
           )}

@@ -94,55 +94,34 @@ export function CoverageRadar({ visible = false, map }) {
   const degraded = HEXES.filter(h => h.coverage === 'degraded');
 
   return (
-    <>
-      {/* Hex overlay, projected live from the map */}
-      {map && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
-          {HEXES.map(hex => {
-            const colors = COVERAGE_COLORS[hex.coverage];
-            const pts = hexPolygonLngLat(hex.lng, hex.lat, hex.lngStep * 0.48, hex.latStep * 0.48)
-              .map(([lng, lat]) => {
-                const p = map.project([lng, lat]);
-                return `${p.x},${p.y}`;
-              })
-              .join(' ');
-            return (
-              <polygon key={hex.id} points={pts} fill={colors.fill} stroke={colors.stroke} strokeWidth={1} />
-            );
-          })}
-        </svg>
-      )}
-
-      {/* Coverage stats panel */}
-      <div className="absolute top-12 left-3 bg-raised border border-border-strong rounded-[4px] p-2.5 shadow-overlay w-[200px]">
-        <div className="text-[10px] text-text-muted uppercase tracking-wider mb-2 font-medium flex items-center gap-1">
-          <Shield size={10} />
-          Coverage Radar
-        </div>
-        <div className="space-y-1.5">
-          <CoverageStat label="Good" count={HEXES.filter(h => h.coverage === 'good').length} total={HEXES.length} color="bg-status-available" />
-          <CoverageStat label="Degraded" count={degraded.length} total={HEXES.length} color="bg-sev-moderate" />
-          <CoverageStat label="Holes" count={holes.length} total={HEXES.length} color="bg-sev-critical" />
-        </div>
-        {holes.length > 0 && (
-          <div className="mt-2 px-2 py-1 bg-sev-critical-bg border border-sev-critical/20 rounded text-[10px] text-sev-critical flex items-center gap-1">
-            <AlertTriangle size={10} />
-            {holes.length} coverage hole{holes.length !== 1 ? 's' : ''} detected
-          </div>
-        )}
+    <div className="absolute top-4 left-4 bg-white border border-slate-200 rounded-xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.06)] w-[220px] z-10 select-none">
+      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+        <Shield size={14} className="text-blue-600" />
+        Coverage Radar
       </div>
-    </>
+      <div className="space-y-2">
+        <CoverageStat label="Adequate" count={hexes.filter(h => h.coverage === 'good').length} total={hexes.length} color="bg-emerald-500" />
+        <CoverageStat label="Degraded" count={degraded.length} total={hexes.length} color="bg-amber-500" />
+        <CoverageStat label="Coverage Holes" count={holes.length} total={hexes.length} color="bg-red-500" />
+      </div>
+      {holes.length > 0 && (
+        <div className="mt-3 px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-700 flex items-center gap-1.5">
+          <AlertTriangle size={13} className="shrink-0" />
+          <span>{holes.length} coverage hole{holes.length !== 1 ? 's' : ''} detected</span>
+        </div>
+      )}
+    </div>
   );
 }
 
 function CoverageStat({ label, count, total, color }) {
   const pct = Math.round((count / total) * 100);
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 text-sm">
       <span className={`w-2 h-2 rounded-full ${color}`} />
-      <span className="text-[11px] text-text-secondary flex-1">{label}</span>
-      <span className="font-mono text-[11px] text-text-muted">{count}</span>
-      <span className="font-mono text-[10px] text-text-muted">({pct}%)</span>
+      <span className="text-slate-600 flex-1">{label}</span>
+      <span className="font-semibold text-slate-900">{count}</span>
+      <span className="text-xs text-slate-400 font-mono">({pct}%)</span>
     </div>
   );
 }

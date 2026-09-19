@@ -7,7 +7,7 @@ let socket = null;
 
 export function connectSocket(token) {
   if (socket) disconnectSocket();
-  socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000', {
+  socket = io(import.meta.env?.VITE_SOCKET_URL || 'http://localhost:4000', {
     auth: { token },
     transports: ['websocket', 'polling'],
   });

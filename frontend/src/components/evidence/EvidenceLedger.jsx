@@ -1,13 +1,10 @@
 /* =========================================================================
-   EVIDENCE LEDGER — §W1 Evidence Ledger & Belief Fusion
-   Shows evidence items with source reliability, confidence, belief bars
-   CONTESTED detection, operator supersede action
+   EVIDENCE LEDGER — Multi-Source Evidence & Belief Fusion (Light Theme)
    ========================================================================= */
 import React, { useState } from 'react';
-import { AlertTriangle, Eye, EyeOff, User, Radio, Cpu, Globe, Phone, Ban } from 'lucide-react';
+import { AlertTriangle, Eye, EyeOff, User, Radio, Cpu, Globe, Phone, Ban, ShieldCheck } from 'lucide-react';
 import { PanelSection } from '../ui/Panel';
 import { ContestedBadge } from '../ui/Chip';
-import { Button } from '../ui/Button';
 import { formatAttribute, formatTime, formatProbability, formatConfidence } from '../../lib/format';
 import { SOURCE_RELIABILITY } from '../../lib/constants';
 import { evidenceApi } from '../../lib/api';
@@ -34,11 +31,11 @@ export function EvidenceLedger({ incident }) {
   const evidence = incident.evidence || [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Belief summary */}
       {beliefs.length > 0 && (
-        <PanelSection title="Fused beliefs">
-          <div className="space-y-2.5">
+        <PanelSection title="Fused State Beliefs">
+          <div className="space-y-3">
             {beliefs.map(belief => (
               <BeliefDetail key={belief.attribute} belief={belief} />
             ))}
@@ -48,8 +45,8 @@ export function EvidenceLedger({ incident }) {
 
       {/* Evidence items */}
       {evidence.length > 0 && (
-        <PanelSection title={`Evidence ledger (${evidence.length})`}>
-          <div className="space-y-1.5">
+        <PanelSection title={`Ingested Evidence Ledger (${evidence.length})`}>
+          <div className="space-y-2">
             {evidence.map(ev => (
               <EvidenceItem key={ev.id} evidence={ev} incidentId={incident.id} />
             ))}
@@ -58,8 +55,8 @@ export function EvidenceLedger({ incident }) {
       )}
 
       {evidence.length === 0 && beliefs.length === 0 && (
-        <div className="text-[13px] text-text-muted text-center py-4">
-          No evidence items recorded for this incident.
+        <div className="text-sm text-slate-400 text-center py-8">
+          No evidence signals logged for this incident.
         </div>
       )}
     </div>
@@ -74,61 +71,65 @@ function BeliefDetail({ belief }) {
 
   return (
     <div className={`
-      px-2.5 py-2 rounded-[4px] border
-      ${isContested ? 'bg-sev-high-bg/50 border-sev-high/30' :
-        isSupported ? 'bg-surface border-border-subtle' :
-        'bg-surface border-border-subtle'}
+      p-4 rounded-xl border transition-colors
+      ${isContested ? 'bg-amber-50/50 border-amber-200' : 'bg-white border-slate-200 shadow-sm'}
     `}>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[12px] font-medium text-text-primary">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-semibold text-slate-900">
           {formatAttribute(belief.attribute)}
         </span>
         {isContested && <ContestedBadge />}
         {isSupported && (
-          <span className="text-[10px] text-accent font-medium uppercase">Supported</span>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+            Supported
+          </span>
         )}
         {isRefuted && (
-          <span className="text-[10px] text-text-muted font-medium uppercase">Refuted</span>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+            Refuted
+          </span>
         )}
       </div>
 
       {/* Dual bar — supporting vs refuting */}
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-[10px] text-text-muted w-[28px]">For</span>
-        <div className="flex-1 h-[5px] bg-inset rounded-full overflow-hidden">
-          <div
-            className="h-full bg-accent rounded-full transition-all duration-[220ms]"
-            style={{ width: `${Math.min(belief.supporting_weight / 5 * 100, 100)}%` }}
-          />
+      <div className="space-y-1.5 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-slate-500 w-12">Supporting</span>
+          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-600 rounded-full transition-all duration-200"
+              style={{ width: `${Math.min(belief.supporting_weight / 5 * 100, 100)}%` }}
+            />
+          </div>
+          <span className="font-mono text-xs text-slate-600 w-7 text-right font-medium">
+            {belief.supporting_weight.toFixed(1)}
+          </span>
         </div>
-        <span className="font-mono text-[10px] text-text-muted w-[28px] text-right">
-          {belief.supporting_weight.toFixed(1)}
-        </span>
-      </div>
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-[10px] text-text-muted w-[28px]">Against</span>
-        <div className="flex-1 h-[5px] bg-inset rounded-full overflow-hidden">
-          <div
-            className="h-full bg-sev-critical rounded-full transition-all duration-[220ms]"
-            style={{ width: `${Math.min(belief.refuting_weight / 5 * 100, 100)}%` }}
-          />
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-slate-500 w-12">Refuting</span>
+          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-red-500 rounded-full transition-all duration-200"
+              style={{ width: `${Math.min(belief.refuting_weight / 5 * 100, 100)}%` }}
+            />
+          </div>
+          <span className="font-mono text-xs text-slate-600 w-7 text-right font-medium">
+            {belief.refuting_weight.toFixed(1)}
+          </span>
         </div>
-        <span className="font-mono text-[10px] text-text-muted w-[28px] text-right">
-          {belief.refuting_weight.toFixed(1)}
-        </span>
       </div>
 
-      {/* Result */}
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] text-text-muted">
-          {belief.evidence_ids.length} evidence source{belief.evidence_ids.length !== 1 ? 's' : ''}
+      {/* Result metrics */}
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+        <span className="text-slate-500">
+          {belief.evidence_ids.length} corroborated sources
         </span>
-        <span className={`font-mono text-[13px] font-semibold ${
-          isContested ? 'text-sev-high' :
-          pct > 60 ? 'text-accent' :
-          pct < 40 ? 'text-text-muted' : 'text-sev-moderate'
+        <span className={`font-mono text-sm font-bold ${
+          isContested ? 'text-amber-700' :
+          pct > 60 ? 'text-blue-600' :
+          pct < 40 ? 'text-slate-400' : 'text-amber-700'
         }`}>
-          {pct}%
+          {pct}% Confidence
         </span>
       </div>
     </div>
@@ -158,28 +159,33 @@ function EvidenceItem({ evidence, incidentId }) {
 
   return (
     <div className={`
-      flex items-start gap-2 px-2 py-1.5 rounded-[4px] border
+      flex items-start gap-3 p-3.5 rounded-xl border
       ${evidence.superseded
-        ? 'opacity-50 bg-inset border-border-subtle line-through'
-        : 'bg-surface border-border-subtle hover:bg-hover'
+        ? 'opacity-50 bg-slate-50 border-slate-200 line-through'
+        : 'bg-white border-slate-200 hover:bg-slate-50/70'
       }
-      transition-colors
+      transition-colors duration-100 shadow-xs
     `}>
-      <Icon size={14} className="mt-0.5 text-text-muted shrink-0" />
+      <div className="p-2 rounded-lg bg-slate-100 text-slate-600 shrink-0">
+        <Icon size={16} />
+      </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[12px] text-text-primary font-medium truncate">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-slate-900 truncate">
             {evidence.source_label}
           </span>
-          <span className={`text-[10px] font-mono ${supports ? 'text-accent' : 'text-sev-critical'}`}>
-            {supports ? '✓' : '✗'} {formatAttribute(evidence.attribute)}
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${supports ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+            {supports ? 'Positive' : 'Negative'}
           </span>
         </div>
-        <div className="flex items-center gap-3 mt-0.5 text-[10px] text-text-muted">
-          <span>Reliability: {formatConfidence(evidence.source_reliability)}</span>
-          <span>Confidence: {formatConfidence(evidence.extraction_confidence)}</span>
-          <span>Weight: {evidence.weight.toFixed(3)}</span>
-          <span className="font-mono">{formatTime(evidence.observed_at)}</span>
+        <div className="text-xs text-slate-600 font-medium mt-1">
+          {formatAttribute(evidence.attribute)}
+        </div>
+        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-400 font-mono">
+          <span>Rel: <strong className="text-slate-600 font-normal">{formatConfidence(evidence.source_reliability)}</strong></span>
+          <span>Conf: <strong className="text-slate-600 font-normal">{formatConfidence(evidence.extraction_confidence)}</strong></span>
+          <span>Weight: <strong className="text-slate-600 font-normal">{evidence.weight.toFixed(2)}</strong></span>
+          <span className="ml-auto">{formatTime(evidence.observed_at)}</span>
         </div>
         {evidence.superseded ? (
           <div className="text-[10px] text-sev-moderate mt-1 no-underline">Superseded{evidence.superseded_reason ? `: ${evidence.superseded_reason}` : ''}</div>
