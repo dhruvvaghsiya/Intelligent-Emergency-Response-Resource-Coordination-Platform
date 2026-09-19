@@ -5,7 +5,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Shield, Map, BarChart3, Clock, Brain,
+  Shield, Map, BarChart3, Clock, Sparkles,
   LogOut, Truck, FileText, Bell, WifiOff
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
@@ -16,7 +16,7 @@ const NAV_ITEMS = [
   { path: '/alerts', label: 'Alert Center', icon: Bell, badge: true },
   { path: '/analytics', label: 'Analytics & SLAs', icon: BarChart3 },
   { path: '/replay', label: 'Incident Replay', icon: Clock },
-  { path: '/ai-health', label: 'AI Health', icon: Brain },
+  { path: '/ai-health', label: 'AI Health', icon: Sparkles },
 ];
 
 export function Navbar() {
