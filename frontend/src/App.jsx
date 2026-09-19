@@ -29,11 +29,14 @@ export default function App() {
   useKeyboardShortcuts();
 
   useEffect(() => {
-    // Temporary bypass: initialize demo user session if not present
+    // Ensure authentication token exists so backend API queries succeed
+    if (!localStorage.getItem('prahari.token')) {
+      useStore.getState().login('commander@prahari.in', 'prahari123').catch(() => {});
+    }
     if (!localStorage.getItem('resilio.user') && !localStorage.getItem('prahari.user')) {
       const defaultUser = {
         id: 'usr_001',
-        email: 'commander@resilio.in',
+        email: 'commander@prahari.in',
         name: 'Cdr. Arjun Shah',
         role: 'COMMANDER'
       };
