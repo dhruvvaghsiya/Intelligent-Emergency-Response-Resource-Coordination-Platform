@@ -1,6 +1,6 @@
-# 🚨 PRAHARI — Intelligent Emergency Response & Resource Coordination Platform
+# 🚨 RESILIO — Intelligent Emergency Response & Resource Coordination Platform
 
-**PRAHARI** (Sanskrit: *"Guardian/Sentinel"*) is a real-time command-and-control system that turns a chaotic flood of emergency reports — 108 calls, citizen app submissions, SMS, social media, IoT sensors, CCTV analytics, hospital and government feeds — into a **single, trustworthy operating picture**, and then tells commanders *exactly which unit to send where, and why.*
+**Resilio** (from Latin *resilire*: "to spring back / resilient") is a real-time command-and-control system that turns a chaotic flood of emergency reports — 108 calls, citizen app submissions, SMS, social media, IoT sensors, CCTV analytics, hospital and government feeds — into a **single, trustworthy operating picture**, and then tells commanders *exactly which unit to send where, and why.*
 
 Built for Ahmedabad's Area of Interest, but the pipeline is city-agnostic: swap the AOI bounding box and it runs anywhere.
 
@@ -12,7 +12,7 @@ Built for Ahmedabad's Area of Interest, but the pipeline is city-agnostic: swap 
 
 During a disaster, the bottleneck isn't lack of information — it's **too much of it, from too many sources, with no way to tell what's true or what to do about it**. A flood generates dozens of overlapping reports of "water on the road," each with different severity, location noise, and credibility. Meanwhile every ambulance, fire engine, and rescue unit is a scarce resource that can only be committed once.
 
-PRAHARI's job, end-to-end, in under 80ms of synchronous request time:
+Resilio's job, end-to-end, in under 80ms of synchronous request time:
 
 **Report arrives → dedupe/correlate → fuse evidence into belief → score severity → derive resource requirements → optimally dispatch → predict cascading effects → alert commanders** — with every step independently retryable so **a report is never lost even if the AI is down**.
 
@@ -126,5 +126,3 @@ No API key? Set `LLM_PROVIDER=mock` in `ai/.env` (the default) — the system ru
 - **Real domain modeling**: 16 incident types, 11 unit types, 11 capabilities, and a frozen enum contract (`contracts/enums.js`) shared across the entire system — this was designed like a real dispatch system, not improvised.
 
 ---
-
-*Built in a 48-hour hackathon window. Scope cuts are declared, not hidden — read the code comments prefixed `§` for the original design spec references.*
