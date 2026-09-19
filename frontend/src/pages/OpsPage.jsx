@@ -28,7 +28,7 @@ export function OpsPage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: '-100%', opacity: 0 }}
               transition={{ duration: 0.25, ease: [0.4, 0.0, 0.2, 1] }}
-              className="absolute top-0 left-0 bottom-0 z-30 h-full w-[440px] max-w-[90vw] shadow-2xl overflow-hidden"
+              className="absolute top-16 left-0 bottom-0 z-30 w-[440px] max-w-[90vw] shadow-2xl overflow-hidden"
             >
               <IncidentQueue />
             </motion.div>
