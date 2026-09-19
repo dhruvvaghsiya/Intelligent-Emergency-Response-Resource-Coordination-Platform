@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, LogIn, AlertCircle, ChevronRight, Lock } from 'lucide-react';
+import { ShieldCheck, LogIn, AlertCircle, ChevronRight, Lock } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { Button } from '../components/ui/Button';
 
@@ -53,10 +53,10 @@ export function LoginPage() {
             className="flex flex-col items-center text-center mb-6"
           >
             <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center mb-3 shadow-sm text-blue-600">
-              <Shield size={26} strokeWidth={2.4} />
+              <ShieldCheck size={26} strokeWidth={2.4} />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-none flex items-center gap-2">
-              PRAHARI
+              RESILIO
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                 OPS
               </span>

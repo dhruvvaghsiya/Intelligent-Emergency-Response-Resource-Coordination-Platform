@@ -5,7 +5,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Shield, Map, BarChart3, Clock, Sparkles,
+  ShieldCheck, Map, BarChart3, Clock, Sparkles,
   LogOut, Truck, FileText, Bell, WifiOff
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
@@ -28,13 +28,13 @@ export function Navbar() {
   return (
     <header className="h-16 bg-white border-b border-slate-200/80 z-40 flex items-center justify-between px-6 shrink-0 select-none shadow-2xs text-slate-900">
       {/* Brand Logo */}
-      <Link to="/ops" className="flex items-center gap-3 no-underline group shrink-0" title="Prahari Ops">
+      <Link to="/ops" className="flex items-center gap-3 no-underline group shrink-0" title="Resilio Ops">
         <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/25">
-          <Shield size={22} strokeWidth={2.4} />
+          <ShieldCheck size={22} strokeWidth={2.4} />
         </div>
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-slate-900 tracking-tight whitespace-nowrap">
-            Prahari
+            Resilio
           </span>
           <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/80">
             Ops

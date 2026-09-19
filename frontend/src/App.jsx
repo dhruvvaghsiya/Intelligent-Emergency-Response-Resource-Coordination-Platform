@@ -30,13 +30,14 @@ export default function App() {
 
   useEffect(() => {
     // Temporary bypass: initialize demo user session if not present
-    if (!localStorage.getItem('prahari.user')) {
+    if (!localStorage.getItem('resilio.user') && !localStorage.getItem('prahari.user')) {
       const defaultUser = {
         id: 'usr_001',
-        email: 'commander@prahari.in',
+        email: 'commander@resilio.in',
         name: 'Cdr. Arjun Shah',
         role: 'COMMANDER'
       };
+      localStorage.setItem('resilio.user', JSON.stringify(defaultUser));
       localStorage.setItem('prahari.user', JSON.stringify(defaultUser));
       useStore.setState({ user: defaultUser, isAuthenticated: true });
     }

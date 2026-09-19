@@ -15,7 +15,7 @@ const USE_MOCKS = import.meta.env?.VITE_USE_MOCKS !== 'false';
 
 function loadStoredUser() {
   try {
-    const raw = localStorage.getItem('prahari.user');
+    const raw = localStorage.getItem('resilio.user') || localStorage.getItem('prahari.user');
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -48,6 +48,7 @@ export const useStore = create((set, get) => ({
     try {
       const data = await authApi.login(email, password);
       storeTokens(data);
+      localStorage.setItem('resilio.user', JSON.stringify(data.user));
       localStorage.setItem('prahari.user', JSON.stringify(data.user));
       set({ user: data.user, token: data.access_token, isAuthenticated: true, authLoading: false });
       get().connectRealtime();
@@ -70,6 +71,7 @@ export const useStore = create((set, get) => ({
       get().fetchAll();
     } catch {
       clearTokens();
+      localStorage.removeItem('resilio.user');
       localStorage.removeItem('prahari.user');
       set({ user: null, token: null, isAuthenticated: false });
     }
@@ -77,6 +79,7 @@ export const useStore = create((set, get) => ({
 
   logout: () => {
     clearTokens();
+    localStorage.removeItem('resilio.user');
     localStorage.removeItem('prahari.user');
     disconnectSocket();
     set({ user: null, token: null, isAuthenticated: false });

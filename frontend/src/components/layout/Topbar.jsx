@@ -5,7 +5,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Shield, Radio, Bell, Map, BarChart3, Clock, Brain,
+  ShieldCheck, Radio, Bell, Map, BarChart3, Clock, Brain,
   LogOut, WifiOff, Truck, FileText
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
@@ -32,10 +32,10 @@ export function Topbar() {
       {/* Logo */}
       <Link to="/ops" className="flex items-center gap-2 mr-5 no-underline group">
         <div className="w-8 h-8 rounded-lg glass-strong flex items-center justify-center group-hover:glow-ring transition-shadow duration-300">
-          <Shield size={16} className="text-accent" strokeWidth={2.4} />
+          <ShieldCheck size={16} className="text-accent" strokeWidth={2.4} />
         </div>
         <span className="font-[family-name:var(--font-display)] text-[15px] font-bold text-text-primary tracking-tight hidden sm:inline">
-          PRAHARI
+          RESILIO
         </span>
       </Link>
 

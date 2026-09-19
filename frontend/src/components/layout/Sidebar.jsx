@@ -5,7 +5,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Shield, Map, BarChart3, Clock, Brain,
+  ShieldCheck, Map, BarChart3, Clock, Brain,
   LogOut, Truck, FileText, Bell, CheckCircle2, WifiOff
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
@@ -32,11 +32,11 @@ export function Sidebar() {
       <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100">
         <Link to="/ops" className="flex items-center gap-3 no-underline group">
           <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
-            <Shield size={20} className="text-blue-600" strokeWidth={2.2} />
+            <ShieldCheck size={20} className="text-blue-600" strokeWidth={2.2} />
           </div>
           <div>
             <div className="text-[16px] font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              Prahari
+              Resilio
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
                 Ops
               </span>
