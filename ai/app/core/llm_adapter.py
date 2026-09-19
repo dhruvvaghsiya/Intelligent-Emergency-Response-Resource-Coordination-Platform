@@ -241,7 +241,7 @@ class GeminiProvider(BaseLLMProvider):
     def _get_client(self):
         if self._client is None:
             import google.generativeai as genai
-            genai.configure(api_key=settings.llm_api_key)
+            genai.configure(api_key=settings.get_api_key())
             self._client = genai.GenerativeModel(
                 self._model_name,
                 generation_config={
@@ -252,7 +252,7 @@ class GeminiProvider(BaseLLMProvider):
         return self._client
 
     def is_available(self) -> bool:
-        return bool(settings.llm_api_key)
+        return bool(settings.get_api_key())
 
     async def generate(self, system_prompt: str, user_prompt: str) -> LLMResponse:
         start = time.time()
@@ -282,11 +282,11 @@ class OpenAIProvider(BaseLLMProvider):
     def _get_client(self):
         if self._client is None:
             from openai import OpenAI
-            self._client = OpenAI(api_key=settings.llm_api_key)
+            self._client = OpenAI(api_key=settings.get_api_key())
         return self._client
 
     def is_available(self) -> bool:
-        return bool(settings.llm_api_key)
+        return bool(settings.get_api_key())
 
     async def generate(self, system_prompt: str, user_prompt: str) -> LLMResponse:
         start = time.time()
@@ -327,13 +327,13 @@ class GroqProvider(BaseLLMProvider):
         if self._client is None:
             from openai import OpenAI
             self._client = OpenAI(
-                api_key=settings.llm_api_key,
+                api_key=settings.get_api_key(),
                 base_url="https://api.groq.com/openai/v1",
             )
         return self._client
 
     def is_available(self) -> bool:
-        return bool(settings.llm_api_key)
+        return bool(settings.get_api_key())
 
     async def generate(self, system_prompt: str, user_prompt: str) -> LLMResponse:
         start = time.time()

@@ -36,7 +36,7 @@ async def health():
     # LLM is "ok" if provider is mock (always works) or if a key is configured
     llm_ok = (
         settings.llm_provider == "mock"
-        or bool(settings.llm_api_key)
+        or bool(settings.get_api_key())
     )
 
     # Determine overall status

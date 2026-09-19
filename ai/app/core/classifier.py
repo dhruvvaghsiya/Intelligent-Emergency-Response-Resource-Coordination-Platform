@@ -41,8 +41,11 @@ class IncidentClassifier:
         # Get decision function scores for all classes
         decision_scores = self.model.decision_function(X)[0]
         
-        # Convert to pseudo-probabilities using softmax
-        exp_scores = np.exp(decision_scores - np.max(decision_scores))
+        # Convert to pseudo-probabilities using temperature-scaled softmax
+        # LinearSVC margins (~[-1.5, 1.5]) with 23 classes benefit from temperature scaling
+        temperature = 0.5
+        scaled_scores = (decision_scores - np.max(decision_scores)) / temperature
+        exp_scores = np.exp(scaled_scores)
         probabilities = exp_scores / exp_scores.sum()
         
         # Sort by probability

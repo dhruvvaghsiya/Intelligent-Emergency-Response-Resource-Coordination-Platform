@@ -15,7 +15,22 @@ class Settings(BaseSettings):
     # ── LLM Configuration ──
     llm_provider: Literal["gemini", "openai", "groq", "mock"] = "mock"
     llm_api_key: str = ""
+    groq_api_key: str = ""
+    openai_api_key: str = ""
+    gemini_api_key: str = ""
     llm_model: str = "gemini-1.5-flash"
+
+    def get_api_key(self) -> str:
+        """Returns the effective API key for the active provider."""
+        if self.llm_api_key:
+            return self.llm_api_key
+        if self.llm_provider == "groq" and self.groq_api_key:
+            return self.groq_api_key
+        if self.llm_provider == "openai" and self.openai_api_key:
+            return self.openai_api_key
+        if self.llm_provider == "gemini" and self.gemini_api_key:
+            return self.gemini_api_key
+        return self.groq_api_key or self.openai_api_key or self.gemini_api_key or ""
 
     # ── Embedding Model ──
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
