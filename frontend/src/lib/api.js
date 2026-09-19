@@ -165,11 +165,11 @@ export const fieldApi = {
 };
 
 export const adminApi = {
-  startScenario: (name, speed) => api.post(`/admin/sim/scenarios/${name}/start`, { speed }).then(unwrap),
-  stopSim: () => api.post('/admin/sim/stop').then(unwrap),
-  simStatus: () => api.get('/admin/sim/status').then(unwrap),
-  aiHealth: () => api.get('/admin/ai/health').then(unwrap),
-  aiEval: () => api.get('/admin/ai/eval').then(unwrap),
+  startScenario: (name, speed) => api.post(`/sim/scenarios/${name}/start`, { speed }).then(unwrap),
+  stopSim: () => api.post('/sim/stop').then(unwrap),
+  simStatus: () => api.get('/sim/status').then(unwrap),
+  aiHealth: () => api.get('/ai/health').then(unwrap),
+  aiEval: () => api.get('/ai/eval').then(unwrap),
 };
 
 export const healthApi = {

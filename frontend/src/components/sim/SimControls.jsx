@@ -5,7 +5,10 @@ import React, { useState } from 'react';
 import { Play, Square, Zap, Clock, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { SimBadge } from '../ui/Chip';
+import { adminApi } from '../../lib/api';
 
+// Duration (seconds) matches the last event's `t` in backend/src/modules/admin/scenarios.js —
+// only scenarios defined there actually run; there is no server-side handler for anything else.
 const SCENARIOS = [
   { id: 'flood_sabarmati', name: 'Flood Inundation — Sabarmati Basin', desc: '14 multi-source reports, deduplication clustering → coverage hole in West Zone', duration: '4 min' },
   { id: 'industrial_fire_vatva', name: 'Chemical Fire — Vatva GIDC', desc: 'Conflicting toxicity reports, belief probability fusion, dynamic severity escalation', duration: '3 min' },
@@ -18,15 +21,54 @@ export function SimControls() {
   const [running, setRunning] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState(null);
   const [speed, setSpeed] = useState(5);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState('');
+  const startedAtRef = useRef(null);
 
-  const handleStart = (scenario) => {
-    setSelectedScenario(scenario);
-    setRunning(true);
+  useEffect(() => {
+    adminApi.simStatus().then(status => {
+      if (status.running) {
+        const scenario = SCENARIOS.find(s => s.name === status.name) || null;
+        setSelectedScenario(scenario);
+        setSpeed(status.speed || 5);
+        startedAtRef.current = status.started_at ? new Date(status.started_at).getTime() : Date.now();
+        setRunning(true);
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!running || !selectedScenario) return;
+    const tick = setInterval(() => {
+      const elapsedRealMs = Date.now() - startedAtRef.current;
+      const elapsedSimSeconds = (elapsedRealMs / 1000) * speed;
+      const pct = Math.min(100, (elapsedSimSeconds / selectedScenario.durationSeconds) * 100);
+      setProgress(pct);
+      if (pct >= 100) setRunning(false);
+    }, 500);
+    return () => clearInterval(tick);
+  }, [running, selectedScenario, speed]);
+
+  const handleStart = async (scenario) => {
+    setError('');
+    try {
+      await adminApi.startScenario(scenario.id, speed);
+      startedAtRef.current = Date.now();
+      setProgress(0);
+      setSelectedScenario(scenario);
+      setRunning(true);
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || 'Failed to start scenario');
+    }
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
+    try {
+      await adminApi.stopSim();
+    } catch { /* best-effort */ }
     setRunning(false);
     setSelectedScenario(null);
+    setProgress(0);
   };
 
   return (

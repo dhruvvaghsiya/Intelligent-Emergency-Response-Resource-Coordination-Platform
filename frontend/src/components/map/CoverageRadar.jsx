@@ -2,15 +2,16 @@
    COVERAGE RADAR — §W6 Coverage Layer
    Hex grid overlay on the map showing coverage quality.
    Green = good, Yellow = degraded, Red = hole.
-   Rendered as a real GeoJSON layer on the MapLibre map so it stays aligned
-   with the basemap when panning/zooming.
+   Rendered as an SVG overlay whose points are recomputed from the real
+   MapLibre projection on every move/zoom — not a MapLibre GL layer. A
+   dynamically-added fill/circle layer was found to silently render zero
+   pixels against a raster-only style in this MapLibre 6.10.0 build (fully
+   reproducible outside React too), so this overlay uses the same
+   HTML/SVG-over-canvas technique already proven reliable for the
+   incident/unit markers instead.
    ========================================================================= */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Shield, AlertTriangle } from 'lucide-react';
-
-const SOURCE_ID = 'coverage-hex-source';
-const FILL_LAYER_ID = 'coverage-hex-fill';
-const LINE_LAYER_ID = 'coverage-hex-line';
 
 // Generate a hex grid covering Ahmedabad AOI
 // bbox: [72.45, 22.95, 72.72, 23.13]
@@ -53,80 +54,44 @@ function generateHexGrid() {
   return hexes;
 }
 
-function hexPolygon(lng, lat, lngRadius, latRadius) {
+function hexPolygonLngLat(lng, lat, lngRadius, latRadius) {
   const points = [];
   for (let i = 0; i < 6; i++) {
     const angle = (Math.PI / 180) * (60 * i - 30);
     points.push([lng + lngRadius * Math.cos(angle), lat + latRadius * Math.sin(angle)]);
   }
-  points.push(points[0]);
   return points;
 }
 
-function hexGridGeoJson(hexes) {
-  return {
-    type: 'FeatureCollection',
-    features: hexes.map(hex => ({
-      type: 'Feature',
-      properties: { coverage: hex.coverage },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [hexPolygon(hex.lng, hex.lat, hex.lngStep * 0.48, hex.latStep * 0.48)],
-      },
-    })),
-  };
-}
+const COVERAGE_COLORS = {
+  good: { fill: 'rgba(61, 161, 96, 0.28)', stroke: 'rgba(61, 161, 96, 0.5)' },
+  degraded: { fill: 'rgba(227, 179, 65, 0.28)', stroke: 'rgba(227, 179, 65, 0.5)' },
+  hole: { fill: 'rgba(229, 72, 77, 0.28)', stroke: 'rgba(229, 72, 77, 0.5)' },
+};
 
-const COVERAGE_FILL = ['match', ['get', 'coverage'],
-  'good', 'rgba(61, 161, 96, 0.25)',
-  'degraded', 'rgba(227, 179, 65, 0.25)',
-  'hole', 'rgba(229, 72, 77, 0.25)',
-  'rgba(155,167,182,0.1)',
-];
-
-const COVERAGE_LINE = ['match', ['get', 'coverage'],
-  'good', 'rgba(61, 161, 96, 0.4)',
-  'degraded', 'rgba(227, 179, 65, 0.4)',
-  'hole', 'rgba(229, 72, 77, 0.4)',
-  'rgba(155,167,182,0.2)',
-];
+const HEXES = generateHexGrid();
 
 export function CoverageRadar({ visible = false, map }) {
-  const hexes = generateHexGrid();
+  const [, forceRerender] = useState(0);
 
   useEffect(() => {
-    if (!map) return;
-
-    const addLayers = () => {
-      if (map.getSource(SOURCE_ID)) return;
-      map.addSource(SOURCE_ID, { type: 'geojson', data: hexGridGeoJson(hexes) });
-      map.addLayer({ id: FILL_LAYER_ID, type: 'fill', source: SOURCE_ID, paint: { 'fill-color': COVERAGE_FILL } });
-      map.addLayer({ id: LINE_LAYER_ID, type: 'line', source: SOURCE_ID, paint: { 'line-color': COVERAGE_LINE, 'line-width': 1 } });
-    };
-
-    if (map.isStyleLoaded()) addLayers();
-    else map.once('load', addLayers);
-
+    if (!map || !visible) return;
+    const tick = () => forceRerender((n) => n + 1);
+    tick();
+    map.on('move', tick);
+    map.on('zoom', tick);
+    map.on('resize', tick);
     return () => {
-      if (!map.getStyle) return;
-      if (map.getLayer(LINE_LAYER_ID)) map.removeLayer(LINE_LAYER_ID);
-      if (map.getLayer(FILL_LAYER_ID)) map.removeLayer(FILL_LAYER_ID);
-      if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+      map.off('move', tick);
+      map.off('zoom', tick);
+      map.off('resize', tick);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map]);
-
-  useEffect(() => {
-    if (!map || !map.getLayer(FILL_LAYER_ID)) return;
-    const visibility = visible ? 'visible' : 'none';
-    map.setLayoutProperty(FILL_LAYER_ID, 'visibility', visibility);
-    map.setLayoutProperty(LINE_LAYER_ID, 'visibility', visibility);
-  }, [visible, map]);
+  }, [map, visible]);
 
   if (!visible) return null;
 
-  const holes = hexes.filter(h => h.coverage === 'hole');
-  const degraded = hexes.filter(h => h.coverage === 'degraded');
+  const holes = HEXES.filter(h => h.coverage === 'hole');
+  const degraded = HEXES.filter(h => h.coverage === 'degraded');
 
   return (
     <div className="absolute top-4 left-4 bg-white border border-slate-200 rounded-xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.06)] w-[220px] z-10 select-none">

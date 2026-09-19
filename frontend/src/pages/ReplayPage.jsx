@@ -1,7 +1,7 @@
 /* =========================================================================
    REPLAY PAGE — Operational Time Travel & Event Stream Playback
    ========================================================================= */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Play, Pause, SkipBack, SkipForward, Clock, Rewind, FastForward } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -31,6 +31,21 @@ export function ReplayPage() {
       return !best || d < best.d ? { d, event: e } : best;
     }, null)?.event;
   }, [events, currentTime]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const tick = setInterval(() => {
+      setPosition(p => {
+        const next = p + speed * 0.5;
+        if (next >= 100) {
+          setPlaying(false);
+          return 100;
+        }
+        return next;
+      });
+    }, 200);
+    return () => clearInterval(tick);
+  }, [playing, speed]);
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col p-8 bg-slate-50">

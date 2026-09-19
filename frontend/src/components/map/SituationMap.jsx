@@ -3,12 +3,19 @@
    Features soft light tiles, high-contrast markers, and pure white floating controls.
    ========================================================================= */
 import React, { useEffect, useRef, useState } from 'react';
-import { Map as MapLibreMap, Marker } from 'maplibre-gl';
+import { Map as MapLibreMap, Marker, setWorkerCount } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Minus, Plus, Crosshair, Layers, Globe, Map as MapIcon } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { Button } from '../ui/Button';
 import { CoverageRadar } from './CoverageRadar';
+
+// GeoJSON sources (used by the coverage overlay) are tiled/parsed on a background
+// Web Worker by default. Some sandboxed/embedded browser contexts never complete
+// that worker round-trip, silently leaving the layer with zero rendered features.
+// Forcing everything onto the main thread is negligible at our data volumes (tens
+// of polygons, not tiled vector basemaps) and works everywhere.
+setWorkerCount(0);
 
 const MAP_STYLE = {
   version: 8,
