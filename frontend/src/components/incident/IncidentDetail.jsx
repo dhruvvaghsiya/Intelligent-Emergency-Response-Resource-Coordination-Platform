@@ -48,9 +48,9 @@ export function IncidentDetail() {
   const tagStyle = SEVERITY_TAG_STYLES[incident.severity] || 'text-slate-700 bg-slate-100 border-slate-200';
 
   return (
-    <div className="w-[480px] max-w-[92vw] h-full border-l border-slate-200/80 bg-white flex flex-col shrink-0 overflow-hidden shadow-2xl select-none z-30 pt-16">
+    <div className="w-full h-full flex flex-col shrink-0 overflow-hidden select-none bg-transparent gap-2">
       {/* ——— Header ——— */}
-      <div className="p-5 sm:p-6 border-b border-slate-200/80 bg-white shrink-0 space-y-3">
+      <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-xs shrink-0 space-y-2.5">
         {/* Row 1: Code + Severity Pill + Status + Close Button */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
@@ -74,7 +74,7 @@ export function IncidentDetail() {
             )}
             <button
               onClick={clearSelection}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
               title="Close detail panel"
               aria-label="Close detail panel"
             >
@@ -84,7 +84,7 @@ export function IncidentDetail() {
         </div>
 
         {/* Row 2: Headline Title */}
-        <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug tracking-tight">
+        <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug tracking-tight">
           {incident.title}
         </h2>
 
@@ -113,7 +113,7 @@ export function IncidentDetail() {
       </div>
 
       {/* ——— Tabs Navigation ——— */}
-      <div className="flex border-b border-slate-200/80 bg-slate-50/70 px-2 shrink-0 relative h-12 items-center">
+      <div className="flex bg-white rounded-xl border border-slate-200/90 shadow-xs px-2 shrink-0 relative h-10 items-center overflow-hidden">
         {TABS.map(tab => {
           const isActive = rightRailTab === tab.key;
           return (
@@ -121,7 +121,7 @@ export function IncidentDetail() {
               key={tab.key}
               onClick={() => setRightRailTab(tab.key)}
               className={`
-                relative flex-1 h-full flex items-center justify-center text-xs sm:text-sm font-semibold cursor-pointer transition-colors whitespace-nowrap px-1
+                relative flex-1 h-full flex items-center justify-center text-xs font-semibold cursor-pointer transition-colors whitespace-nowrap px-1
                 ${isActive
                   ? 'text-blue-600 font-bold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -142,7 +142,7 @@ export function IncidentDetail() {
       </div>
 
       {/* ——— Tab Content Container ——— */}
-      <div className="flex-1 overflow-y-auto p-5 sm:p-6 bg-slate-50/40 space-y-6">
+      <div className="flex-1 overflow-y-auto pr-1 space-y-3">
         {rightRailTab === 'overview' && <OverviewTab incident={incident} />}
         {rightRailTab === 'evidence' && <EvidenceTab incident={incident} />}
         {rightRailTab === 'response' && <ResponseTab incident={incident} />}

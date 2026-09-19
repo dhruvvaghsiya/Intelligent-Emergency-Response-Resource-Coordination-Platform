@@ -51,10 +51,10 @@ export function Navbar() {
         </div>
       </Link>
 
-      {/* Center 70% Width Navigation Dock with Spaced Icons - 95% Semi-Transparent */}
-      <div className="flex-1 flex justify-center items-center px-4 max-w-4xl">
+      {/* Center Navigation Dock with Spaced Icons — Clean compact ends with preserved icon spacing */}
+      <div className="flex-1 flex justify-center items-center px-4">
         <nav
-          className="pointer-events-auto w-full max-w-3xl flex items-center justify-between sm:justify-evenly px-4 py-2 rounded-2xl border border-white/20 shadow-xs"
+          className="pointer-events-auto flex items-center gap-6 sm:gap-10 md:gap-12 lg:gap-14 px-3 py-1.5 rounded-2xl border border-white/20 shadow-xs"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.05)',
             backdropFilter: 'blur(8px)',

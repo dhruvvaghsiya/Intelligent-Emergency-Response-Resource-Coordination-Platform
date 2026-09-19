@@ -83,7 +83,7 @@ export function BottomTerminalDrawer() {
       {/* Vertically Aligned Floating Control Buttons — dynamically shifts when sidebar is open */}
       <div
         className={`absolute z-30 flex flex-col gap-2 transition-all duration-300 ${
-          sidebarOpen ? 'left-[456px]' : 'left-5'
+          sidebarOpen ? 'left-[452px]' : 'left-5'
         } ${
           activeTerminal ? 'bottom-[calc(24vh+14px)]' : 'bottom-5'
         }`}
@@ -151,9 +151,9 @@ export function BottomTerminalDrawer() {
       {activeTerminal && (
         <div
           className={`absolute bottom-0 z-30 pointer-events-none flex flex-col select-none pb-3 transition-all duration-300 animate-in slide-in-from-bottom ${
-            sidebarOpen ? 'left-[440px] pl-4 pr-5' : 'left-0 px-5'
+            sidebarOpen ? 'left-[436px] pl-3 pr-4' : 'left-0 px-4'
           } ${
-            selectedIncidentId ? 'right-[480px] mr-2' : 'right-0'
+            selectedIncidentId ? 'right-[476px] mr-2' : 'right-0'
           }`}
           style={{
             height: '24vh',
