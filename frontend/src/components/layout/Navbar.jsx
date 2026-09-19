@@ -27,10 +27,15 @@ export function Navbar() {
 
   return (
     <header className="absolute top-0 left-0 right-0 h-16 z-40 flex items-center justify-between px-6 pointer-events-none select-none">
-      {/* Brand Logo with Dedicated Frosted Glass Background */}
+      {/* Brand Logo with Dedicated Azure Background */}
       <Link
         to="/ops"
-        className="pointer-events-auto flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white/80 hover:bg-white/95 backdrop-blur-xl border border-white/60 shadow-md transition-all no-underline group shrink-0"
+        className="pointer-events-auto flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl border border-sky-300/70 shadow-sm transition-all no-underline group shrink-0 hover:brightness-95"
+        style={{
+          backgroundColor: 'azure',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)'
+        }}
         title="Resilio Ops"
       >
         <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/25 group-hover:scale-105 transition-transform">
@@ -40,15 +45,22 @@ export function Navbar() {
           <span className="text-base font-bold text-slate-900 tracking-tight">
             Resilio
           </span>
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/80">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 border border-sky-200">
             Ops
           </span>
         </div>
       </Link>
 
-      {/* Center 70% Width Navigation Dock with Spaced Icons */}
+      {/* Center 70% Width Navigation Dock with Spaced Icons - 95% Semi-Transparent */}
       <div className="flex-1 flex justify-center items-center px-4 max-w-4xl">
-        <nav className="pointer-events-auto w-full max-w-3xl flex items-center justify-between sm:justify-evenly px-4 py-1.5 rounded-2xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-md">
+        <nav
+          className="pointer-events-auto w-full max-w-3xl flex items-center justify-between sm:justify-evenly px-4 py-2 rounded-2xl border border-white/20 shadow-xs"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)'
+          }}
+        >
           {NAV_ITEMS.map(item => {
             const isActive = location.pathname === item.path ||
               (item.path === '/ops' && location.pathname.startsWith('/ops'));
@@ -59,16 +71,16 @@ export function Navbar() {
                 <Link
                   to={item.path}
                   className={`
-                    w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 relative no-underline
+                    w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative no-underline
                     ${isActive
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-105'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 hover:scale-105 border border-transparent'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 scale-105 border border-blue-500'
+                      : 'bg-white/80 hover:bg-white text-slate-700 hover:text-blue-600 border border-white/60 shadow-xs hover:shadow-sm hover:scale-105'
                     }
                   `}
                   aria-label={item.label}
                 >
                   <item.icon
-                    size={21}
+                    size={20}
                     className="shrink-0"
                     strokeWidth={isActive ? 2.2 : 1.9}
                   />
@@ -98,7 +110,14 @@ export function Navbar() {
       </div>
 
       {/* Right Controls Island */}
-      <div className="pointer-events-auto flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-md shrink-0">
+      <div
+        className="pointer-events-auto flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border border-white/20 shadow-xs shrink-0"
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)'
+        }}
+      >
         {/* Real-time Status */}
         <div className="relative group flex items-center justify-center">
           <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center cursor-default shadow-xs">
