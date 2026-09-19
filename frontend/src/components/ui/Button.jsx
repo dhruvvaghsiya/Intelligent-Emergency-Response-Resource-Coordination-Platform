@@ -1,33 +1,36 @@
 /* =========================================================================
-   BUTTON — Premium glass / gradient interactive button
-   Variants: primary (gradient + glow), secondary (glass), ghost, danger
+   BUTTON — Clean Standardized Control
+   Variants: primary (Blue 600), secondary (White/Slate 200), ghost (Slate 100), danger (Red)
    ========================================================================= */
 import React from 'react';
-import { motion } from 'framer-motion';
 
 const variants = {
   primary: `
-    text-text-inverse border-transparent font-semibold
-    bg-[linear-gradient(135deg,#5EEAD4_0%,#2DD4BF_55%,#22B8A6_100%)]
-    shadow-[0_1px_0_rgba(255,255,255,.4)_inset,0_8px_20px_-6px_rgba(45,212,191,.55)]
-    hover:shadow-[0_1px_0_rgba(255,255,255,.5)_inset,0_10px_28px_-4px_rgba(45,212,191,.7)]
+    bg-blue-600 text-white font-medium border border-blue-600
+    hover:bg-blue-700 active:bg-blue-800 shadow-sm
   `,
   secondary: `
-    glass text-text-primary
-    hover:bg-white/[0.07] hover:border-border-strong
+    bg-white text-slate-800 font-medium border border-slate-200
+    hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100 shadow-sm
   `,
-  ghost: 'bg-transparent border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-text-primary',
+  ghost: `
+    bg-transparent text-slate-600 font-medium border border-transparent
+    hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200
+  `,
   danger: `
-    text-white border-transparent font-semibold
-    bg-[linear-gradient(135deg,#FF6B6B_0%,#FB4B4B_100%)]
-    shadow-[0_8px_20px_-6px_rgba(251,75,75,.5)]
+    bg-red-50 text-red-700 font-medium border border-red-200
+    hover:bg-red-100 active:bg-red-200
+  `,
+  dangerSolid: `
+    bg-red-600 text-white font-medium border border-red-600
+    hover:bg-red-700 active:bg-red-800 shadow-sm
   `,
 };
 
 const sizes = {
-  default: 'h-[38px] px-4 text-[13.5px]',
-  compact: 'h-[30px] px-2.5 text-[12px]',
-  icon: 'h-[38px] w-[38px] p-0 flex items-center justify-center',
+  default: 'h-10 px-4 text-[14px]',
+  compact: 'h-8 px-3 text-[13px]',
+  icon: 'h-9 w-9 p-0 flex items-center justify-center',
 };
 
 export function Button({
@@ -39,17 +42,13 @@ export function Button({
   ...props
 }) {
   return (
-    <motion.button
-      whileHover={disabled ? {} : { scale: 1.015, y: -1 }}
-      whileTap={disabled ? {} : { scale: 0.97 }}
-      transition={{ duration: 0.15, ease: [0.16, 0.84, 0.32, 1] }}
+    <button
       className={`
-        inline-flex items-center justify-center gap-1.5
-        rounded-[var(--radius-md)] border
-        transition-[background,border-color,box-shadow] duration-[180ms] ease-[var(--ease-default)]
+        inline-flex items-center justify-center gap-2
+        rounded-lg transition-colors duration-150
         cursor-pointer select-none
         disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none
-        focus-visible:outline-1 focus-visible:outline-border-focus focus-visible:outline-offset-2
+        focus-visible:outline-2 focus-visible:outline-blue-600 focus-visible:outline-offset-2
         ${variants[variant] || variants.secondary}
         ${sizes[size] || sizes.default}
         ${className}
@@ -58,6 +57,6 @@ export function Button({
       {...props}
     >
       {children}
-    </motion.button>
+    </button>
   );
 }

@@ -11,7 +11,7 @@ import {
 import { connectSocket, disconnectSocket } from './socket';
 import { MOCK_INCIDENTS, MOCK_UNITS, MOCK_ALERTS, MOCK_HOSPITALS } from '../mocks/fixtures';
 
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
+const USE_MOCKS = import.meta.env?.VITE_USE_MOCKS !== 'false';
 
 function loadStoredUser() {
   try {

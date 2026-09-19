@@ -1,11 +1,10 @@
 /* =========================================================================
-   INCIDENT QUEUE — Left Rail
-   Severity-sorted, 1-line AI summary per row
-   Attention Bar at top for pending confirmations
+   INCIDENT QUEUE — Spacious Clean Incident Feed (Ward Alerts style)
+   Features min 80px item height, py-4 padding, text-lg titles, text-sm metadata.
    ========================================================================= */
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, AlertTriangle, Clock } from 'lucide-react';
+import { Search, AlertTriangle, Clock, Radio, MapPin } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { SeverityChip, IncidentStatusChip, SimBadge, CountChip } from '../ui/Chip';
 import { SEVERITY } from '../../lib/constants';
@@ -52,18 +51,21 @@ export function IncidentQueue() {
   }, [incidents, filters]);
 
   return (
-    <div className="w-[380px] h-full border-r border-border-subtle glass flex flex-col shrink-0 overflow-hidden">
+    <div className="w-[440px] h-full border-r border-slate-200 bg-white flex flex-col shrink-0 overflow-hidden select-none shadow-sm">
       {/* ——— Attention Bar ——— */}
-      {(pendingAlerts.length > 0 || contestedIncidents.length > 0) && (
-        <div className="border-b border-border-subtle bg-white/[0.02] px-4 py-3">
-          <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-text-muted mb-2">
-            Needs attention
+      {(pendingAlerts.length > 0 || contestedIncidents.length > 0 || pendingRecommendations.length > 0) && (
+        <div className="border-b border-slate-100 bg-slate-50/60 px-5 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Radio size={13} className="text-red-600" />
+              Active Operational Attention
+            </span>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {pendingAlerts.filter(a => a.severity === 'CRITICAL').length > 0 && (
               <CountChip
                 count={pendingAlerts.filter(a => a.severity === 'CRITICAL').length}
-                label="critical"
+                label="critical alerts"
                 variant="danger"
               />
             )}
@@ -71,62 +73,65 @@ export function IncidentQueue() {
               <CountChip count={contestedIncidents.length} label="contested" variant="warning" />
             )}
             {pendingRecommendations.length > 0 && (
-              <CountChip count={pendingRecommendations.length} label="pending plans" variant="accent" />
+              <CountChip count={pendingRecommendations.length} label="pending dispatch" variant="accent" />
             )}
           </div>
         </div>
       )}
 
-      {/* ——— Search & filters ——— */}
-      <div className="px-4 py-3 border-b border-border-subtle flex items-center gap-2">
-        <div className="flex-1 relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+      {/* ——— Search & Filters Bar ——— */}
+      <div className="px-5 py-4 border-b border-slate-100 bg-white space-y-3">
+        <div className="relative">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search incidents..."
+            placeholder="Search incident title, location, code..."
             value={filters.search}
             onChange={(e) => setFilter('search', e.target.value)}
             className="
-              w-full h-[34px] pl-9 pr-2.5 bg-black/25 border border-border-subtle rounded-[var(--radius-md)]
-              text-[12.5px] text-text-primary placeholder:text-text-muted
-              focus:border-accent/50 focus:bg-black/40 focus:outline-none
-              transition-all duration-200
+              w-full h-10 pl-10 pr-3.5 bg-slate-50 border border-slate-200 rounded-lg
+              text-sm text-slate-900 placeholder:text-slate-400
+              focus:bg-white focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600
+              transition-colors duration-150
             "
           />
         </div>
-        <div className="flex gap-1">
-          {SEVERITY.slice(0, 3).map(sev => (
-            <button
-              key={sev}
-              onClick={() => {
-                const current = filters.severity;
-                setFilter('severity', current.includes(sev)
-                  ? current.filter(s => s !== sev)
-                  : [...current, sev]
-                );
-              }}
-              className={`
-                h-[34px] px-2 rounded-[var(--radius-md)] text-[10px] font-bold uppercase cursor-pointer
-                border transition-all duration-150
-                ${filters.severity.includes(sev)
-                  ? `${sev === 'CRITICAL' ? 'bg-sev-critical-bg border-sev-critical/40 text-sev-critical' :
-                     sev === 'HIGH' ? 'bg-sev-high-bg border-sev-high/40 text-sev-high' :
-                     'bg-sev-moderate-bg border-sev-moderate/40 text-sev-moderate'}`
-                  : 'bg-transparent border-border-subtle text-text-muted hover:border-border-strong hover:text-text-secondary'
-                }
-              `}
-            >
-              {sev.slice(0, 4)}
-            </button>
-          ))}
+
+        {/* Severity Filter Chips */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-slate-500 mr-1">Filter:</span>
+          {SEVERITY.slice(0, 4).map(sev => {
+            const isSelected = filters.severity.includes(sev);
+            return (
+              <button
+                key={sev}
+                onClick={() => {
+                  const current = filters.severity;
+                  setFilter('severity', current.includes(sev)
+                    ? current.filter(s => s !== sev)
+                    : [...current, sev]
+                  );
+                }}
+                className={`
+                  h-7 px-2.5 rounded-full text-xs font-semibold cursor-pointer border transition-colors
+                  ${isSelected
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                  }
+                `}
+              >
+                {sev.charAt(0) + sev.slice(1).toLowerCase()}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* ——— List ——— */}
-      <div className="flex-1 overflow-y-auto">
+      {/* ——— Incident List ——— */}
+      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 bg-white">
         {filteredIncidents.length === 0 ? (
-          <div className="p-8 text-center text-[13px] text-text-muted">
-            No incidents match the current filters.
+          <div className="p-12 text-center text-sm text-slate-400">
+            No incidents found matching the selected filters.
           </div>
         ) : (
           <AnimatePresence initial={false}>
@@ -143,13 +148,13 @@ export function IncidentQueue() {
         )}
       </div>
 
-      {/* ——— Footer ——— */}
-      <div className="h-[34px] px-4 border-t border-border-subtle bg-white/[0.02] flex items-center justify-between">
-        <span className="text-[11px] text-text-muted font-medium">
-          {filteredIncidents.length} incident{filteredIncidents.length !== 1 ? 's' : ''}
+      {/* ——— Footer Metrics ——— */}
+      <div className="h-11 px-5 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between text-xs text-slate-500 font-medium">
+        <span>
+          Showing <strong className="text-slate-800 font-semibold">{filteredIncidents.length}</strong> active incidents
         </span>
-        <span className="text-[11px] text-text-muted font-mono">
-          {incidents.reduce((s, i) => s + i.report_count, 0)} reports
+        <span>
+          <strong className="text-slate-800 font-semibold">{incidents.reduce((s, i) => s + i.report_count, 0)}</strong> total reports
         </span>
       </div>
     </div>
@@ -160,52 +165,52 @@ function IncidentRow({ incident, index, isSelected, onClick }) {
   return (
     <motion.button
       layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.3), ease: [0.16, 0.84, 0.32, 1] }}
+      transition={{ duration: 0.15 }}
       onClick={onClick}
       className={`
-        relative w-full text-left px-4 py-3 border-b border-border-subtle
-        transition-colors duration-150 cursor-pointer
-        flex flex-col gap-1.5
+        relative w-full text-left py-4 px-5 min-h-[82px]
+        transition-colors duration-100 cursor-pointer
+        flex flex-col justify-center gap-1.5
         ${isSelected
-          ? 'bg-accent/[0.07]'
-          : 'hover:bg-white/[0.035]'
+          ? 'bg-blue-50/80 border-l-[4px] border-l-blue-600 pl-[16px]'
+          : 'hover:bg-slate-50/80'
         }
       `}
     >
-      {isSelected && (
-        <motion.div layoutId="incident-row-active" className="absolute left-0 top-0 bottom-0 w-[3px] bg-accent shadow-[0_0_8px_rgba(45,212,191,0.7)]" />
-      )}
-
-      {/* Row 1: Code, severity, status */}
+      {/* Row 1: Code, Status badges, Severity */}
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[10.5px] text-text-muted">{incident.code}</span>
+        <span className="font-mono text-xs font-semibold text-slate-500">{incident.code}</span>
         <SeverityChip severity={incident.severity} score={incident.severity_score} />
         <IncidentStatusChip status={incident.status} />
         <div className="flex-1" />
         {incident.is_simulated && <SimBadge />}
       </div>
 
-      {/* Row 2: Title */}
-      <div className="text-[13.5px] text-text-primary font-semibold leading-snug line-clamp-1 tracking-tight">
+      {/* Row 2: Main Incident Title (text-lg font-semibold text-slate-900) */}
+      <div className="text-base font-semibold text-slate-900 leading-snug line-clamp-1">
         {incident.title}
       </div>
 
-      {/* Row 3: Meta */}
-      <div className="flex items-center gap-3 text-[11px] text-text-muted">
+      {/* Row 3: Meta details (location, time, report count) */}
+      <div className="flex items-center gap-3 text-sm font-medium text-slate-500">
         <span className="flex items-center gap-1">
-          <Clock size={10} />
+          <Clock size={13} className="text-slate-400" />
           {formatRelativeTime(incident.occurred_at)}
         </span>
+        <span>·</span>
         <span>{incident.report_count} reports</span>
         {incident.assigned_unit_count > 0 && (
-          <span>{incident.assigned_unit_count}/{incident.units_required} units</span>
+          <>
+            <span>·</span>
+            <span>{incident.assigned_unit_count}/{incident.units_required} units</span>
+          </>
         )}
         {incident.has_conflict && (
-          <span className="text-sev-high font-semibold flex items-center gap-0.5">
-            <AlertTriangle size={10} />
+          <span className="text-amber-700 font-semibold flex items-center gap-1 ml-auto text-xs bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+            <AlertTriangle size={12} />
             Contested
           </span>
         )}

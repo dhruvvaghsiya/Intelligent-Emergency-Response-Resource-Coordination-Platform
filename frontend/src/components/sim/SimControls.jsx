@@ -1,17 +1,16 @@
 /* =========================================================================
-   SIMULATION CONTROLS — Bottom drawer for scenario launcher
-   §29: Start/stop scenarios, speed control, clock display
+   SIMULATION CONTROLS — Scenario Launcher & Speed Regulator (Light Theme)
    ========================================================================= */
 import React, { useState } from 'react';
-import { Play, Pause, Square, Zap, Clock, ChevronUp, ChevronDown } from 'lucide-react';
+import { Play, Square, Zap, Clock, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { SimBadge } from '../ui/Chip';
 
 const SCENARIOS = [
-  { id: 'flood_sabarmati', name: 'Flood — Sabarmati', desc: '14 reports, 6 locations, duplicate compression → coverage hole', duration: '4 min' },
-  { id: 'industrial_fire_vatva', name: 'Industrial Fire — Vatva', desc: 'Conflicting reports, belief fusion, severity recompute', duration: '3 min' },
-  { id: 'highway_pileup_sg', name: 'Highway Pileup — SG Hwy', desc: '9 reports in 90s, Hungarian vs greedy dispatch', duration: '3 min' },
-  { id: 'cascade_monsoon', name: 'Cascade — Monsoon', desc: 'Flood → road closure → coverage hole → reallocation', duration: '5 min' },
+  { id: 'flood_sabarmati', name: 'Flood Inundation — Sabarmati Basin', desc: '14 multi-source reports, deduplication clustering → coverage hole in West Zone', duration: '4 min' },
+  { id: 'industrial_fire_vatva', name: 'Chemical Fire — Vatva GIDC', desc: 'Conflicting toxicity reports, belief probability fusion, dynamic severity escalation', duration: '3 min' },
+  { id: 'highway_pileup_sg', name: 'Mass Casualty Collision — SG Highway', desc: '9 reports in 90s, Hungarian matrix dispatch vs greedy heuristic', duration: '3 min' },
+  { id: 'cascade_monsoon', name: 'Cascading Monsoon Emergency', desc: 'Flash flood → power outage → road closures → multi-unit preemption', duration: '5 min' },
 ];
 
 export function SimControls() {
@@ -31,93 +30,100 @@ export function SimControls() {
   };
 
   return (
-    <div className="border-t border-border-subtle bg-surface">
+    <div className="border-t border-slate-200 bg-white shrink-0 z-20 select-none">
       {/* Toggle bar */}
       <button
         onClick={() => setOpen(!open)}
-        className="w-full h-[28px] px-3 flex items-center gap-2 hover:bg-hover transition-colors cursor-pointer"
+        className="w-full h-8 px-4 flex items-center gap-2 hover:bg-slate-50 transition-colors cursor-pointer text-left"
       >
-        <Zap size={10} className="text-accent" />
-        <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">
-          Simulation
+        <Zap size={13} className="text-blue-600" />
+        <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+          Simulation Engine
         </span>
         {running && (
-          <span className="flex items-center gap-1 text-[10px] text-accent font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            {selectedScenario?.name} · {speed}×
+          <span className="flex items-center gap-1.5 text-xs text-blue-700 font-medium pl-2.5 border-l border-slate-200">
+            <span className="w-2 h-2 rounded-full bg-blue-600" />
+            {selectedScenario?.name} · {speed}× Speed
           </span>
         )}
         <div className="flex-1" />
-        {open ? <ChevronDown size={12} className="text-text-muted" /> : <ChevronUp size={12} className="text-text-muted" />}
+        <span className="text-xs text-slate-400 mr-2 hidden sm:inline">
+          {open ? 'Hide Controls' : 'Open Controls'}
+        </span>
+        {open ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronUp size={14} className="text-slate-400" />}
       </button>
 
       {/* Drawer */}
       {open && (
-        <div className="border-t border-border-subtle p-3">
+        <div className="border-t border-slate-200 p-5 bg-slate-50/50">
           {running ? (
-            <div className="space-y-3">
+            <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
               {/* Running scenario */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
-                  <div className="text-[13px] font-medium text-text-primary flex items-center gap-2">
+                  <div className="text-base font-semibold text-slate-900 flex items-center gap-2">
                     {selectedScenario?.name}
                     <SimBadge />
                   </div>
-                  <div className="text-[11px] text-text-muted mt-0.5">{selectedScenario?.desc}</div>
+                  <div className="text-sm text-slate-500 mt-0.5">{selectedScenario?.desc}</div>
                 </div>
 
                 {/* Speed control */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-text-muted">Speed:</span>
-                  {[1, 2, 5, 10].map(s => (
-                    <button
-                      key={s}
-                      onClick={() => setSpeed(s)}
-                      className={`
-                        h-[24px] px-2 rounded text-[11px] font-mono cursor-pointer border transition-colors
-                        ${speed === s
-                          ? 'bg-accent-muted text-accent border-accent/30'
-                          : 'bg-transparent text-text-muted border-border-subtle hover:border-border-strong'
-                        }
-                      `}
-                    >
-                      {s}×
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 font-medium">Speed:</span>
+                  <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-white">
+                    {[1, 2, 5, 10].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setSpeed(s)}
+                        className={`
+                          h-7 px-2.5 text-xs font-semibold cursor-pointer transition-colors
+                          ${speed === s
+                            ? 'bg-blue-600 text-white'
+                            : 'text-slate-600 hover:bg-slate-50'
+                          }
+                        `}
+                      >
+                        {s}×
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <Button variant="danger" size="compact" onClick={handleStop}>
-                  <Square size={12} />
-                  Stop
+                  <Square size={13} />
+                  Stop Run
                 </Button>
               </div>
 
-              {/* Mock progress */}
-              <div className="h-[3px] bg-inset rounded-full overflow-hidden">
-                <div className="h-full bg-accent rounded-full transition-all duration-1000" style={{ width: '35%' }} />
+              {/* Progress bar */}
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-600 rounded-full transition-all duration-1000" style={{ width: '42%' }} />
               </div>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              <div className="text-[11px] text-text-muted uppercase tracking-wider mb-2">
-                Launch a scenario
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Launch an Emergency Response Scenario
               </div>
-              {SCENARIOS.map(scenario => (
-                <div
-                  key={scenario.id}
-                  className="flex items-center gap-3 px-2.5 py-2 bg-inset border border-border-subtle rounded-[4px] hover:border-border-strong transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-medium text-text-primary">{scenario.name}</div>
-                    <div className="text-[11px] text-text-muted truncate">{scenario.desc}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {SCENARIOS.map(scenario => (
+                  <div
+                    key={scenario.id}
+                    className="flex items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-slate-900">{scenario.name}</div>
+                      <div className="text-xs text-slate-500 truncate mt-0.5">{scenario.desc}</div>
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium shrink-0">{scenario.duration}</span>
+                    <Button variant="secondary" size="compact" onClick={() => handleStart(scenario)}>
+                      <Play size={12} className="text-blue-600" />
+                      Run
+                    </Button>
                   </div>
-                  <span className="text-[10px] text-text-muted font-mono shrink-0">{scenario.duration}</span>
-                  <Button variant="primary" size="compact" onClick={() => handleStart(scenario)}>
-                    <Play size={12} />
-                    Start
-                  </Button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>

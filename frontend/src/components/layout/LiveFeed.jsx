@@ -1,50 +1,55 @@
 /* =========================================================================
-   LIVE FEED — Collapsible bottom ticker
-   §14.3: Live Feed strip + Sim controls (admin only)
+   LIVE FEED — Collapsible bottom event ticker (Light Theme)
    ========================================================================= */
-import React from 'react';
-import { ChevronUp, ChevronDown, Radio } from 'lucide-react';
-import { useStore } from '../../lib/store';
-import { SEVERITY_CONFIG } from '../../lib/constants';
-import { formatTime } from '../../lib/format';
-import { Button } from '../ui/Button';
+ import React from 'react';
+ import { ChevronUp, ChevronDown, Radio } from 'lucide-react';
+ import { useStore } from '../../lib/store';
+ import { SEVERITY_CONFIG } from '../../lib/constants';
+ import { formatTime } from '../../lib/format';
 
 export function LiveFeed() {
   const { liveFeed, liveFeedExpanded, toggleLiveFeed } = useStore();
 
   return (
-    <div className="border-t border-border-subtle bg-surface shrink-0">
+    <div className="border-t border-slate-200 bg-white shrink-0 z-20">
       {/* Toggle bar */}
       <button
         onClick={toggleLiveFeed}
-        className="w-full h-[28px] px-3 flex items-center gap-2 hover:bg-hover transition-colors cursor-pointer"
+        className="w-full h-8 px-4 flex items-center gap-2.5 hover:bg-slate-50 transition-colors cursor-pointer text-left select-none"
       >
-        <Radio size={10} className="text-accent animate-pulse" />
-        <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">
-          Live Feed
+        <Radio size={12} className="text-blue-600 shrink-0" />
+        <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+          Event Stream
         </span>
-        <span className="text-[10px] text-text-muted font-mono">
+        <span className="text-xs text-slate-400 font-mono">
           ({liveFeed.length})
         </span>
         <div className="flex-1" />
-        {liveFeedExpanded ? <ChevronDown size={12} className="text-text-muted" /> : <ChevronUp size={12} className="text-text-muted" />}
+        <span className="text-xs text-slate-400 mr-2 hidden sm:inline">
+          {liveFeedExpanded ? 'Collapse' : 'Expand Stream'}
+        </span>
+        {liveFeedExpanded ? (
+          <ChevronDown size={14} className="text-slate-400" />
+        ) : (
+          <ChevronUp size={14} className="text-slate-400" />
+        )}
       </button>
 
       {/* Feed items */}
       {liveFeedExpanded && (
-        <div className="max-h-[160px] overflow-y-auto border-t border-border-subtle">
+        <div className="max-h-[160px] overflow-y-auto border-t border-slate-100 divide-y divide-slate-100 bg-slate-50/50">
           {liveFeed.map(item => {
             const config = SEVERITY_CONFIG[item.severity] || SEVERITY_CONFIG.INFO;
             return (
               <div
                 key={item.id}
-                className="flex items-center gap-2 px-3 py-1 border-b border-border-subtle last:border-b-0 hover:bg-hover transition-colors"
+                className="flex items-center gap-3 px-4 py-2 hover:bg-white transition-colors"
               >
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.color.replace('text-', 'bg-')}`} />
-                <span className="font-mono text-[10px] text-text-muted shrink-0 w-[56px]">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${config.color.replace('text-', 'bg-')}`} />
+                <span className="font-mono text-xs text-slate-400 shrink-0 w-14">
                   {formatTime(item.ts)}
                 </span>
-                <span className="text-[12px] text-text-secondary flex-1 truncate">
+                <span className="text-sm text-slate-700 flex-1 truncate">
                   {item.text}
                 </span>
               </div>

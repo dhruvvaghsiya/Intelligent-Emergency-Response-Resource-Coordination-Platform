@@ -1,22 +1,24 @@
 /* =========================================================================
-   ANALYTICS PAGE — §28 Operational KPIs
-   Every chart answers a question a commander would ask in a debrief.
+   ANALYTICS PAGE — Operational Telemetry & SLAs (Light Theme)
    ========================================================================= */
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { analyticsApi } from '../lib/api';
 import { formatDuration } from '../lib/format';
-import { TrendingUp, Clock, Users, Shield, Activity, Layers, Brain } from 'lucide-react';
+import { TrendingUp, Clock, Users, Shield, Activity, Layers, Brain, BarChart3 } from 'lucide-react';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-raised border border-border-strong px-3 py-2 rounded-[4px] shadow-overlay">
-        <p className="text-[12px] text-text-primary font-medium">{label}</p>
+      <div className="bg-white border border-slate-200 px-4 py-3 rounded-xl shadow-lg">
+        <p className="text-xs font-semibold text-slate-900 mb-1">{label}</p>
         {payload.map((p, i) => (
-          <p key={i} className="text-[11px] text-text-secondary font-mono">
-            {p.name}: {typeof p.value === 'number' && p.value > 100 ? formatDuration(p.value) : p.value}
+          <p key={i} className="text-xs text-slate-600 flex items-center justify-between gap-4">
+            <span className="capitalize">{p.name}:</span>
+            <strong className="text-slate-900 font-semibold">
+              {typeof p.value === 'number' && p.value > 100 ? formatDuration(p.value) : p.value}
+            </strong>
           </p>
         ))}
       </div>
@@ -40,7 +42,11 @@ export function AnalyticsPage() {
 
   const loading = overviewQ.isLoading || responseTimesQ.isLoading || utilizationQ.isLoading;
   if (loading) {
-    return <div className="flex-1 flex items-center justify-center text-[13px] text-text-muted">Loading analytics…</div>;
+    return (
+      <div className="flex-1 flex items-center justify-center text-sm text-slate-400 bg-slate-50">
+        Loading analytics telemetry…
+      </div>
+    );
   }
 
   const overview = overviewQ.data || {};
@@ -61,89 +67,113 @@ export function AnalyticsPage() {
   const overallResponseP90 = percentile(allP90, 0.9);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <div className="max-w-[1200px] mx-auto">
-        <h1 className="text-[21px] font-semibold text-text-primary mb-4">Operational Analytics</h1>
+    <div className="flex-1 overflow-y-auto p-8 bg-slate-50 select-none">
+      <div className="max-w-[1300px] mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <BarChart3 size={24} className="text-blue-600" />
+              Operational Analytics & SLA Metrics
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Dispatch Latencies, Response Time Percentiles, & Apparatus Capacity
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-xs">
+            Window: 24h Rolling
+          </span>
+        </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <KPICard icon={Layers} label="Total Incidents" value={overview.incident_count ?? '—'} />
+        {/* KPI Cards Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KPICard icon={Layers} label="Active Incidents" value={overview.incident_count ?? '—'} />
           <KPICard icon={Activity} label="Reports Ingested" value={overview.report_count ?? '—'} />
-          <KPICard icon={Users} label="Units Busy" value={`${unitsBusy}/${unitsTotal}`} />
-          <KPICard icon={Shield} label="Compression" value={overview.duplicate_compression_ratio != null ? `${overview.duplicate_compression_ratio.toFixed(1)}:1` : '—'} subtitle="reports/incidents" accent />
-          <KPICard icon={Clock} label="Response p50" value={overallResponseP50 != null ? formatDuration(overallResponseP50) : '—'} />
-          <KPICard icon={Clock} label="Response p90" value={overallResponseP90 != null ? formatDuration(overallResponseP90) : '—'} />
-          <KPICard icon={TrendingUp} label="Recommendation Accept" value={recommendations.acceptance_rate != null ? `${(recommendations.acceptance_rate * 100).toFixed(0)}%` : '—'} />
+          <KPICard icon={Users} label="Fleet Utilization" value={`${unitsBusy}/${unitsTotal}`} />
+          <KPICard icon={Shield} label="Deduplication Ratio" value={overview.duplicate_compression_ratio != null ? `${overview.duplicate_compression_ratio.toFixed(1)}:1` : '—'} subtitle="reports per incident" accent />
+          <KPICard icon={Clock} label="Response Median (p50)" value={overallResponseP50 != null ? formatDuration(overallResponseP50) : '—'} />
+          <KPICard icon={Clock} label="Tail Latency (p90)" value={overallResponseP90 != null ? formatDuration(overallResponseP90) : '—'} />
+          <KPICard icon={TrendingUp} label="Plan Acceptance" value={recommendations.acceptance_rate != null ? `${(recommendations.acceptance_rate * 100).toFixed(0)}%` : '—'} />
           <KPICard icon={Brain} label="Model Disagreement" value={overview.model_operator_disagreement_rate != null ? `${(overview.model_operator_disagreement_rate * 100).toFixed(0)}%` : '—'} />
         </div>
 
-        {/* Charts row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Response time chart */}
-          <div className="bg-surface border border-border-subtle rounded-[4px] p-4">
-            <h3 className="text-[12px] font-medium uppercase tracking-wider text-text-muted mb-3">
-              Response Times by Incident Type (seconds)
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center justify-between">
+              <span>Response Times by Incident Type (Seconds)</span>
+              <span className="text-xs font-normal text-slate-400">p50 (Blue) · p90 (Slate)</span>
             </h3>
             {responseData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={responseData} barCategoryGap="30%">
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6A7788' }} axisLine={{ stroke: '#232B35' }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#6A7788' }} axisLine={false} tickLine={false} />
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={responseData} barCategoryGap="28%">
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={{ stroke: '#E2E8F0' }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="p50" fill="#1FA7A0" radius={[2, 2, 0, 0]} name="p50" />
-                  <Bar dataKey="p90" fill="#333F4D" radius={[2, 2, 0, 0]} name="p90" />
+                  <Bar dataKey="p50" fill="#2563EB" radius={[4, 4, 0, 0]} name="p50" />
+                  <Bar dataKey="p90" fill="#CBD5E1" radius={[4, 4, 0, 0]} name="p90" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[220px] flex items-center justify-center text-[12px] text-text-muted">No arrivals recorded yet</div>
+              <div className="h-[240px] flex items-center justify-center text-sm text-slate-400">
+                No incident arrivals recorded yet
+              </div>
             )}
           </div>
 
-          {/* Unit utilization */}
-          <div className="bg-surface border border-border-subtle rounded-[4px] p-4">
-            <h3 className="text-[12px] font-medium uppercase tracking-wider text-text-muted mb-3">
-              Unit Utilization by Type (%)
+          {/* Unit utilization chart */}
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center justify-between">
+              <span>Apparatus Utilization Ratio (%)</span>
+              <span className="text-xs font-normal text-slate-400">Target &lt; 75%</span>
             </h3>
             {utilizationData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={utilizationData} barCategoryGap="30%">
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6A7788' }} axisLine={{ stroke: '#232B35' }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#6A7788' }} axisLine={false} tickLine={false} />
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={utilizationData} barCategoryGap="28%">
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={{ stroke: '#E2E8F0' }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="ratio" fill="#5B8DEF" radius={[2, 2, 0, 0]} name="Busy %" />
+                  <Bar dataKey="ratio" fill="#2563EB" radius={[4, 4, 0, 0]} name="Busy %" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[220px] flex items-center justify-center text-[12px] text-text-muted">No unit data</div>
+              <div className="h-[240px] flex items-center justify-center text-sm text-slate-400">
+                No apparatus telemetry available
+              </div>
             )}
           </div>
         </div>
 
-        {/* Shortages */}
-        <div className="bg-surface border border-border-subtle rounded-[4px] p-4 mb-6">
-          <h3 className="text-[12px] font-medium uppercase tracking-wider text-text-muted mb-3">
-            High-Severity Incident Concentration by Ward
+        {/* Shortages & Sector Density */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">
+            High-Severity Incident Concentration by Municipal Ward
           </h3>
           {shortages.length > 0 ? (
-            <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {shortages.map(s => (
-                <div key={s.ward} className="flex items-center justify-between text-[12px]">
-                  <span className="text-text-secondary">{s.ward}</span>
-                  <span className="font-mono text-text-primary font-semibold">{s.high_severity_incident_count}</span>
+                <div key={s.ward} className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
+                  <span className="text-sm font-medium text-slate-800">{s.ward}</span>
+                  <span className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                    {s.high_severity_incident_count} Critical
+                  </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-[12px] text-text-muted">No high-severity incidents recorded</div>
+            <div className="text-sm text-slate-400 py-3 text-center">
+              No regional resource shortages identified
+            </div>
           )}
         </div>
 
         {/* Additional metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard label="Merged Incidents" value={overview.merged_incident_count ?? '—'} />
-          <MetricCard label="Suggestions Total" value={recommendations.total_suggestions ?? '—'} />
-          <MetricCard label="Suggestions Confirmed" value={recommendations.confirmed ?? '—'} />
-          <MetricCard label="Report Count" value={overview.report_count ?? '—'} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard label="Compressed Duplicates" value={overview.merged_incident_count ?? '—'} />
+          <MetricCard label="Dispatch Plans Computed" value={recommendations.total_suggestions ?? '—'} />
+          <MetricCard label="Operator Confirms" value={recommendations.confirmed ?? '—'} />
+          <MetricCard label="Total Ingestion Events" value={overview.report_count ?? '—'} />
         </div>
       </div>
     </div>
@@ -152,24 +182,24 @@ export function AnalyticsPage() {
 
 function KPICard({ icon: Icon, label, value, subtitle, accent = false }) {
   return (
-    <div className="bg-surface border border-border-subtle rounded-[4px] px-3 py-3">
-      <div className="flex items-center gap-1.5 mb-1">
-        <Icon size={12} className="text-text-muted" />
-        <span className="text-[10px] text-text-muted uppercase tracking-wider">{label}</span>
+    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <div className="flex items-center gap-2 mb-2">
+        <Icon size={16} className="text-slate-400" />
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
       </div>
-      <div className={`font-mono text-[21px] font-semibold ${accent ? 'text-accent' : 'text-text-primary'}`}>
+      <div className={`text-2xl font-bold ${accent ? 'text-blue-600' : 'text-slate-900'}`}>
         {value}
       </div>
-      {subtitle && <div className="text-[10px] text-text-muted">{subtitle}</div>}
+      {subtitle && <div className="text-xs text-slate-400 mt-1">{subtitle}</div>}
     </div>
   );
 }
 
-function MetricCard({ label, value, color = 'text-text-primary' }) {
+function MetricCard({ label, value }) {
   return (
-    <div className="bg-surface border border-border-subtle rounded-[4px] px-3 py-3">
-      <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{label}</div>
-      <div className={`font-mono text-[21px] font-semibold ${color}`}>{value}</div>
+    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+      <div className="text-xs text-slate-500 font-medium mb-1">{label}</div>
+      <div className="text-xl font-bold text-slate-900">{value}</div>
     </div>
   );
 }

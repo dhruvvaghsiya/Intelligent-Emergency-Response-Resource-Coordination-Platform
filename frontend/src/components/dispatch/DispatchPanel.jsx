@@ -1,20 +1,17 @@
 /* =========================================================================
-   DISPATCH PANEL — §W5 Resource Allocation Engine
-   Shows 3 strategy plans (BALANCED, FASTEST_RESPONSE, MINIMAL_DISRUPTION)
-   with cost breakdown, Approve/Modify/Reject triad, preemption warnings
+   DISPATCH PANEL — Resource Allocation Strategy Cockpit (Light Theme)
    ========================================================================= */
 import React, { useState } from 'react';
 import { Check, X, Edit3, Clock, AlertTriangle, Zap, Shield, ChevronDown, ChevronUp } from 'lucide-react';
-import { Panel, PanelSection } from '../ui/Panel';
+import { PanelSection } from '../ui/Panel';
 import { Button } from '../ui/Button';
-import { SeverityChip } from '../ui/Chip';
-import { formatDuration, formatDistance } from '../../lib/format';
+import { formatDuration } from '../../lib/format';
 import { MOCK_DISPATCH_PLANS } from '../../mocks/fixtures';
 
 const STRATEGY_CONFIG = {
-  BALANCED: { label: 'Balanced', icon: Shield, color: 'text-accent', desc: 'Best trade-off between speed and disruption' },
-  FASTEST_RESPONSE: { label: 'Fastest Response', icon: Zap, color: 'text-sev-high', desc: 'Minimizes total ETA at any cost' },
-  MINIMAL_DISRUPTION: { label: 'Minimal Disruption', icon: Clock, color: 'text-sev-info', desc: 'Avoids preempting busy units' },
+  BALANCED: { label: 'Balanced Plan', icon: Shield, color: 'text-blue-700 bg-blue-50 border-blue-200', desc: 'Optimal equilibrium between ETA and secondary network disruption' },
+  FASTEST_RESPONSE: { label: 'Fastest Response', icon: Zap, color: 'text-orange-700 bg-orange-50 border-orange-200', desc: 'Minimizes first unit on scene at all costs' },
+  MINIMAL_DISRUPTION: { label: 'Minimal Disruption', icon: Clock, color: 'text-emerald-700 bg-emerald-50 border-emerald-200', desc: 'Avoids preempting units currently responding' },
 };
 
 export function DispatchPanel({ incidentId }) {
@@ -27,22 +24,22 @@ export function DispatchPanel({ incidentId }) {
 
   if (plans.length === 0) {
     return (
-      <PanelSection title="Dispatch Recommendation">
-        <div className="text-[13px] text-text-muted py-3 text-center">
-          No dispatch plans generated for this incident.
+      <PanelSection title="Dispatch Optimization">
+        <div className="text-sm text-slate-400 py-3 text-center">
+          No automated dispatch plans generated for this incident.
         </div>
       </PanelSection>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <PanelSection title={`Dispatch Plans (${plans.length})`}>
-        <p className="text-[11px] text-text-muted mb-3">
-          Compare plans by total cost (seconds-equivalent). Lower is better.
+    <div className="space-y-4">
+      <PanelSection title={`Recommended Dispatch Plans (${plans.length})`}>
+        <p className="text-sm text-slate-500 mb-3">
+          Compare candidate plans scored by composite cost penalty (lower is better):
         </p>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           {plans.map(plan => {
             const strategy = STRATEGY_CONFIG[plan.strategy] || STRATEGY_CONFIG.BALANCED;
             const isExpanded = expandedPlan === plan.id;
@@ -53,58 +50,67 @@ export function DispatchPanel({ incidentId }) {
               <div
                 key={plan.id}
                 className={`
-                  border rounded-[4px] overflow-hidden transition-colors
-                  ${isApproved ? 'border-accent bg-accent-muted/20' :
-                    !plan.feasible ? 'border-border-subtle opacity-60' :
-                    'border-border-subtle hover:border-border-strong'}
+                  border rounded-xl overflow-hidden transition-all duration-150
+                  ${isApproved ? 'border-blue-300 bg-blue-50/50 shadow-sm' :
+                    !plan.feasible ? 'border-slate-200 bg-slate-50/70 opacity-70' :
+                    'border-slate-200 bg-white hover:border-slate-300 shadow-sm'}
                 `}
               >
                 {/* Plan header */}
                 <button
                   onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}
-                  className="w-full px-3 py-2 flex items-center gap-2 cursor-pointer"
+                  className="w-full p-4 flex items-center gap-3 cursor-pointer text-left select-none"
                 >
-                  <StrategyIcon size={14} className={strategy.color} />
-                  <span className={`text-[13px] font-medium ${strategy.color}`}>{strategy.label}</span>
-                  {!plan.feasible && (
-                    <span className="text-[10px] text-sev-high font-medium uppercase">INFEASIBLE</span>
-                  )}
-                  {plan.requires_preemption && (
-                    <span className="text-[10px] text-sev-moderate font-medium uppercase flex items-center gap-0.5">
-                      <AlertTriangle size={10} />PREEMPTION
-                    </span>
-                  )}
-                  <div className="flex-1" />
-                  <span className="font-mono text-[15px] font-semibold text-text-primary">
-                    {formatDuration(plan.total_cost)}
-                  </span>
-                  <span className="text-[10px] text-text-muted">cost</span>
-                  {isExpanded ? <ChevronUp size={14} className="text-text-muted" /> : <ChevronDown size={14} className="text-text-muted" />}
+                  <div className={`p-2 rounded-lg border ${strategy.color}`}>
+                    <StrategyIcon size={16} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-slate-900">{strategy.label}</span>
+                      {!plan.feasible && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+                          Infeasible
+                        </span>
+                      )}
+                      {plan.requires_preemption && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+                          <AlertTriangle size={12} /> Preemption
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-right mr-1">
+                    <div className="text-base font-bold text-slate-900">
+                      {formatDuration(plan.total_cost)}
+                    </div>
+                    <div className="text-xs text-slate-400">composite cost</div>
+                  </div>
+
+                  {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
                 </button>
 
                 {/* Expanded details */}
                 {isExpanded && (
-                  <div className="px-3 pb-3 border-t border-border-subtle">
-                    <p className="text-[11px] text-text-muted mt-2 mb-2">{strategy.desc}</p>
+                  <div className="px-4 pb-4 pt-1 border-t border-slate-100 bg-slate-50/50">
+                    <p className="text-xs text-slate-600 mb-3 font-sans leading-relaxed">{strategy.desc}</p>
 
                     {/* Unit moves */}
-                    <div className="space-y-1.5 mb-3">
+                    <div className="space-y-2 mb-3">
                       {plan.moves.map((move, i) => (
-                        <div key={i} className="flex items-center gap-2 px-2 py-1.5 bg-inset rounded-[4px] border border-border-subtle">
-                          <span className="font-mono text-[12px] font-semibold text-text-primary w-[48px]">
+                        <div key={i} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 shadow-xs">
+                          <span className="font-mono text-sm font-bold text-slate-900 w-12 shrink-0">
                             {move.unit_call_sign}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] text-text-secondary">
-                                ETA: <span className="font-mono font-medium text-accent">{formatDuration(move.eta_seconds)}</span>
-                              </span>
-                              <span className="text-[10px] text-text-muted font-mono">{move.eta_method.replace(/_/g, ' ')}</span>
+                            <div className="text-sm text-slate-800">
+                              ETA: <strong className="font-semibold text-blue-600">{formatDuration(move.eta_seconds)}</strong>
+                              <span className="text-xs text-slate-400 font-mono ml-2">[{move.eta_method.replace(/_/g, ' ')}]</span>
                             </div>
-                            <div className="text-[10px] text-text-muted">{move.impact_note}</div>
+                            <div className="text-xs text-slate-500 mt-0.5">{move.impact_note}</div>
                           </div>
                           {move.preemption_regret > 0 && (
-                            <span className="text-[10px] text-sev-high font-mono">
+                            <span className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0">
                               +{formatDuration(move.preemption_regret)} regret
                             </span>
                           )}
@@ -114,36 +120,37 @@ export function DispatchPanel({ incidentId }) {
 
                     {/* Unmet requirements */}
                     {plan.unmet_requirements.length > 0 && (
-                      <div className="mb-3 px-2 py-1.5 bg-sev-high-bg/50 border border-sev-high/20 rounded-[4px]">
-                        <span className="text-[10px] text-sev-high font-medium uppercase tracking-wider">Unmet:</span>
-                        <span className="text-[11px] text-sev-high ml-1">
-                          {plan.unmet_requirements.join(', ')}
-                        </span>
+                      <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                        <strong>Unmet: </strong>{plan.unmet_requirements.join(', ')}
                       </div>
                     )}
 
-                    {/* Approve/Reject/Modify */}
+                    {/* Action buttons */}
                     {!isApproved && plan.feasible && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pt-2">
                         <Button
                           variant="primary"
                           size="compact"
                           onClick={() => setApprovedPlan(plan.id)}
                         >
-                          <Check size={12} />
-                          Approve
+                          <Check size={14} />
+                          Approve Plan
                         </Button>
-                        <Button variant="ghost" size="compact" onClick={() => {}}>
-                          <Edit3 size={12} />
-                          Modify
+                        <Button
+                          variant="secondary"
+                          size="compact"
+                          onClick={() => {}}
+                        >
+                          <Edit3 size={14} />
+                          Adjust
                         </Button>
                         <Button
                           variant="ghost"
                           size="compact"
-                          className="text-sev-critical"
+                          className="text-red-600 hover:bg-red-50"
                           onClick={() => setShowReject(showReject === plan.id ? null : plan.id)}
                         >
-                          <X size={12} />
+                          <X size={14} />
                           Reject
                         </Button>
                       </div>
@@ -151,23 +158,24 @@ export function DispatchPanel({ incidentId }) {
 
                     {/* Reject with reason */}
                     {showReject === plan.id && (
-                      <div className="mt-2 flex gap-2">
+                      <div className="mt-3 flex gap-2">
                         <input
                           type="text"
                           placeholder="Reason for rejection..."
                           value={rejectReason}
                           onChange={e => setRejectReason(e.target.value)}
-                          className="flex-1 h-[28px] px-2 bg-inset border border-border-subtle rounded-[4px] text-[12px] text-text-primary placeholder:text-text-muted focus:border-border-focus focus:outline-none"
+                          className="flex-1 h-8 px-3 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none"
                         />
                         <Button variant="danger" size="compact" onClick={() => setShowReject(null)}>
-                          Confirm Reject
+                          Confirm
                         </Button>
                       </div>
                     )}
 
                     {isApproved && (
-                      <div className="mt-2 px-2 py-1.5 bg-accent-muted/30 border border-accent/30 rounded-[4px] text-[11px] text-accent font-medium">
-                        ✓ Plan approved — units dispatching
+                      <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800 font-medium flex items-center gap-2">
+                        <Check size={16} className="text-emerald-600" />
+                        Plan approved — units are dispatching
                       </div>
                     )}
                   </div>
@@ -179,12 +187,14 @@ export function DispatchPanel({ incidentId }) {
       </PanelSection>
 
       {/* Hungarian vs Greedy comparison badge */}
-      <div className="px-2.5 py-2 bg-inset border border-border-subtle rounded-[4px]">
-        <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Optimization Method</div>
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] text-text-primary">Hungarian assignment</span>
-          <span className="text-[11px] font-mono font-medium text-accent">−3:20 vs greedy</span>
+      <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center justify-between shadow-sm">
+        <div>
+          <div className="text-xs text-slate-500 font-medium">Optimization Algorithm</div>
+          <div className="text-sm font-semibold text-slate-900">Hungarian Matrix Assignment</div>
         </div>
+        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+          −3:20 vs Greedy Baseline
+        </span>
       </div>
     </div>
   );
