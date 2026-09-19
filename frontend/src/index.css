@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/* ========================================================================
+   PRAHARI DESIGN SYSTEM — §14.2 Design Tokens
+   All tokens from the README frozen contract mapped to CSS variables
+   and Tailwind v4 theme.
+   ======================================================================== */
+
+@theme {
+  /* ——— Base: cool graphite, not black ——— */
+  --color-canvas: #0E1217;
+  --color-surface: #151A21;
+  --color-raised: #1C232C;
+  --color-inset: #10151B;
+  --color-hover: #222B36;
+  --color-selected: #1B2A3A;
+
+  /* ——— Borders ——— */
+  --color-border-subtle: #232B35;
+  --color-border-strong: #333F4D;
+  --color-border-focus: #1FA7A0;
+
+  /* ——— Text ——— */
+  --color-text-primary: #E7ECF2;
+  --color-text-secondary: #9BA7B6;
+  --color-text-muted: #6A7788;
+  --color-text-inverse: #0E1217;
+
+  /* ——— Accent: desaturated teal ——— */
+  --color-accent: #1FA7A0;
+  --color-accent-hover: #26BDB5;
+  --color-accent-muted: #12403F;
+
+  /* ——— Severity ramp (🔒 must match map + alert colours) ——— */
+  --color-sev-critical: #E5484D;
+  --color-sev-critical-bg: #2A1315;
+  --color-sev-high: #EF6C1A;
+  --color-sev-high-bg: #2A1A0E;
+  --color-sev-moderate: #E3B341;
+  --color-sev-moderate-bg: #26210E;
+  --color-sev-low: #3DA160;
+  --color-sev-low-bg: #10251A;
+  --color-sev-info: #5B8DEF;
+  --color-sev-info-bg: #131C2E;
+
+  /* ——— Operational status ——— */
+  --color-status-available: #3DA160;
+  --color-status-busy: #E3B341;
+  --color-status-enroute: #5B8DEF;
+  --color-status-onscene: #1FA7A0;
+  --color-status-offline: #6A7788;
+  --color-status-stale: #EF6C1A;
+
+  /* ——— Typography ——— */
+  --font-sans: "IBM Plex Sans", "IBM Plex Sans Devanagari", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* ——— Spacing: 4px grid (base multiplier for p-1=4px, p-2=8px, etc.) ——— */
+  --spacing: 0.25rem;
+
+  /* ——— Border radius ——— */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-pill: 999px;
+
+  /* ——— Shadows ——— */
+  --shadow-overlay: 0 8px 24px rgba(0,0,0,.45);
+
+  /* ——— Animation ——— */
+  --duration-instant: 80ms;
+  --duration-fast: 140ms;
+  --duration-state: 220ms;
+  --ease-default: cubic-bezier(.2,.6,.2,1);
+}
+
+/* ——— Global resets ——— */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-text-primary);
+  background-color: var(--color-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ——— Scrollbar styling ——— */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-subtle);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+
+/* ——— Focus ring (accessibility floor) ——— */
+:focus-visible {
+  outline: 1px solid var(--color-border-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(31, 167, 160, 0.3);
+}
+
+/* ——— Reduced motion ——— */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ——— MapLibre container ——— */
+.maplibregl-map {
+  font-family: var(--font-ui);
+}
+
+/* ——— Utility: tabular figures for numeric data ——— */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* .font-mono is handled by Tailwind v4 via --font-mono in @theme */
+
+/* ——— Animation keyframes ——— */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-slide-in {
+  animation: fadeSlideIn var(--duration-state) var(--ease-default) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight var(--duration-fast) var(--ease-default) forwards;
+}
