@@ -7,15 +7,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { IncidentQueue } from '../components/incident/IncidentQueue';
 import { IncidentDetail } from '../components/incident/IncidentDetail';
 import { SituationMap } from '../components/map/SituationMap';
-import { LiveFeed } from '../components/layout/LiveFeed';
-import { SimControls } from '../components/sim/SimControls';
+import { BottomTerminalDrawer } from '../components/layout/BottomTerminalDrawer';
 import { useStore } from '../lib/store';
 
 export function OpsPage() {
   const { selectedIncidentId, sidebarOpen } = useStore();
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden relative">
       <div className="flex-1 flex overflow-hidden relative">
         {/* Centre — Situation Map (100% full screen view, uninterrupted) */}
         <SituationMap />
@@ -37,13 +36,10 @@ export function OpsPage() {
 
         {/* Right rail — Incident Detail (conditional) */}
         {selectedIncidentId && <IncidentDetail />}
+
+        {/* Bottom Left Vertically-Stacked Buttons & 10-12% Height Terminal Console Drawer */}
+        <BottomTerminalDrawer />
       </div>
-
-      {/* Bottom — Live Feed */}
-      <LiveFeed />
-
-      {/* Simulation controls */}
-      <SimControls />
     </div>
   );
 }
