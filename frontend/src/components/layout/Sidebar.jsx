@@ -6,13 +6,13 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Shield, Map, BarChart3, Clock, Brain,
-  LogOut, Layers, FileText, Bell, CheckCircle2, WifiOff
+  LogOut, Truck, FileText, Bell, CheckCircle2, WifiOff
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
 
 const NAV_ITEMS = [
   { path: '/ops', label: 'Situation Ops', icon: Map },
-  { path: '/resources', label: 'Fleet & Hospitals', icon: Layers },
+  { path: '/resources', label: 'Fleet & Hospitals', icon: Truck },
   { path: '/alerts', label: 'Alert Center', icon: Bell, badge: true },
   { path: '/analytics', label: 'Analytics & SLAs', icon: BarChart3 },
   { path: '/replay', label: 'Incident Replay', icon: Clock },

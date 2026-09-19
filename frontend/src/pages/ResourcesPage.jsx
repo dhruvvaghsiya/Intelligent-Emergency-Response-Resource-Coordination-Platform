@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../lib/store';
 import { StatusDot, SimBadge } from '../components/ui/Chip';
-import { Layers, CheckCircle2 } from 'lucide-react';
+import { Truck, CheckCircle2 } from 'lucide-react';
 import { formatRelativeTime, formatCoords } from '../lib/format';
 import { STATUS_CONFIG } from '../lib/constants';
 
@@ -25,7 +25,7 @@ export function ResourcesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <Layers size={24} className="text-blue-600" />
+              <Truck size={24} className="text-blue-600" />
               Fleet & Healthcare Facility Registry
             </h1>
             <p className="text-sm text-slate-500 mt-1">

@@ -129,6 +129,38 @@
 .maplibregl-map {
   font-family: var(--font-sans);
 }
+
+/* Force all MapLibre markers to be strictly absolute at (0,0) in the container */
+.maplibregl-marker {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  will-change: transform;
+}
+
+/* Incident Circle Marker Animations & Hover Transitions */
+@keyframes incident-pulse-anim {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.incident-marker:hover .incident-core-circle {
+  transform: scale(1.22) !important;
+}
+
+.incident-marker:hover .incident-tooltip {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translate(-50%, -10px) !important;
+}
+
 .maplibregl-ctrl-attrib {
   background: rgba(255, 255, 255, 0.9) !important;
   border: 1px solid #E2E8F0 !important;

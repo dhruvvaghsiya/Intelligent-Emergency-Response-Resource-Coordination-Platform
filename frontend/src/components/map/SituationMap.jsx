@@ -111,55 +111,113 @@ const SEV_RADIUS = {
   INFO: 8,
 };
 
-function incidentMarkerEl(incident, isSelected, showLabels = true) {
+function incidentMarkerEl(incident, isSelected) {
   const color = SEV_COLORS[incident.severity] || SEV_COLORS.INFO;
-  const radius = SEV_RADIUS[incident.severity] || 10;
+  const r = SEV_RADIUS[incident.severity] || 11;
+  const d = r * 2;
+  const inner = Math.max(5, Math.round(r * 0.45));
 
+  const speed = incident.severity === 'CRITICAL' ? '1.2s'
+    : incident.severity === 'HIGH' ? '1.8s'
+    : incident.severity === 'MODERATE' ? '2.2s'
+    : '2.6s';
+
+  // CRITICAL: Do NOT set position:relative on el!
+  // MapLibre's marker element must remain position:absolute at (0,0) of the canvas container
+  // so that MapLibre's transform places it precisely at its geographic coordinates.
   const el = document.createElement('div');
-  el.className = 'group cursor-pointer select-none relative';
+  el.className = `incident-marker ${isSelected ? 'incident-marker--selected' : ''}`;
+  el.style.width = `${d}px`;
+  el.style.height = `${d}px`;
+  el.style.cursor = 'pointer';
+
   el.innerHTML = `
-    <div class="relative flex items-center justify-center">
-      ${incident.severity === 'CRITICAL' ? `
-        <span class="animate-ping absolute inset-0 rounded-full opacity-60 pointer-events-none" style="background-color:${color};"></span>
-      ` : ''}
-      <div class="rounded-full border-2 transition-transform duration-150 flex items-center justify-center shadow-sm ${isSelected ? 'scale-125 ring-2 ring-offset-1 ring-blue-600' : 'group-hover:scale-110'}"
-        style="width:${radius * 2}px;height:${radius * 2}px;border-color:${color};background-color:${color}26;">
-        <span class="rounded-full" style="width:${Math.max(4, radius - 4)}px;height:${Math.max(4, radius - 4)}px;background-color:${color};"></span>
-      </div>
+    <!-- Pulse Ring -->
+    <div class="incident-pulse-ring" style="
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: ${d}px;
+      height: ${d}px;
+      border-radius: 50%;
+      background: ${color};
+      animation: incident-pulse-anim ${speed} cubic-bezier(0, 0, 0.2, 1) infinite;
+      pointer-events: none;
+    "></div>
+
+    <!-- Core Circle -->
+    <div class="incident-core-circle" style="
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: ${d}px;
+      height: ${d}px;
+      border-radius: 50%;
+      border: 2.5px solid ${color};
+      background: ${color}26;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18)${isSelected ? ', 0 0 0 4px rgba(37,99,235,0.45)' : ''};
+      transform: ${isSelected ? 'scale(1.25)' : 'scale(1)'};
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    ">
+      <span style="
+        width: ${inner}px;
+        height: ${inner}px;
+        border-radius: 50%;
+        background: ${color};
+        display: block;
+      "></span>
     </div>
 
-    ${showLabels ? `
-      <div class="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 whitespace-nowrap pointer-events-auto transition-all duration-150 ${
-        isSelected
-          ? 'scale-105 z-30'
-          : 'group-hover:scale-105 z-20 group-hover:z-30'
-      }">
-        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/95 backdrop-blur-xs border shadow-sm transition-all ${
-          isSelected
-            ? 'border-blue-500 ring-2 ring-blue-500/25 shadow-md'
-            : 'border-slate-200 group-hover:border-slate-300 group-hover:shadow-md'
-        }">
-          <span class="w-2 h-2 rounded-full shrink-0" style="background-color:${color};"></span>
-          <span class="text-xs font-semibold text-slate-800 max-w-[180px] truncate">${incident.title}</span>
-          <span class="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded" style="background-color:${color}18;color:${color};">
-            ${incident.severity}
-          </span>
-        </div>
+    <!-- Hover Info Tooltip (above the circle) -->
+    <div class="incident-tooltip" style="
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translate(-50%, -6px);
+      margin-bottom: 6px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      white-space: nowrap;
+      z-index: 50;
+    ">
+      <div style="
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(8px);
+        border: 1px solid ${isSelected ? '#3B82F6' : '#CBD5E1'};
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14)${isSelected ? ', 0 0 0 2px rgba(59,130,246,0.25)' : ''};
+      ">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${color}; flex-shrink: 0;"></span>
+        <span style="font-size: 12px; font-weight: 600; color: #0F172A; max-width: 220px; overflow: hidden; text-overflow: ellipsis;">${incident.title}</span>
+        <span style="
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 2px 6px;
+          border-radius: 4px;
+          background: ${color}18;
+          color: ${color};
+        ">${incident.severity}</span>
       </div>
-    ` : `
-      <div class="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-semibold text-slate-800 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-md z-50">
-        <span style="color:${color}">●</span> ${incident.title}
-      </div>
-    `}
+    </div>
   `;
-  el.title = `${incident.title} (${incident.severity})`;
   return el;
 }
 
 function unitMarkerEl(unit) {
   const color = STATUS_COLORS[unit.status] || STATUS_COLORS.OFFLINE;
   const el = document.createElement('div');
-  el.className = 'group cursor-default relative select-none';
+  // CRITICAL: Do NOT use 'relative' here! Markers must be absolute in canvas container
+  el.className = 'unit-marker group cursor-default select-none';
   el.innerHTML = `
     <div class="flex items-center gap-1">
       <div class="w-0 h-0 border-l-[5px] border-r-[5px] border-b-[11px] border-l-transparent border-r-transparent drop-shadow-sm"
@@ -180,7 +238,7 @@ export function SituationMap() {
   const incidentMarkersRef = useRef(new Map());
   const unitMarkersRef = useRef(new Map());
   const [mapReady, setMapReady] = useState(false);
-  const [showLabels, setShowLabels] = useState(true);
+
   const [basemap, setBasemap] = useState('satellite'); // By default satellite view
   const [showLayersPopup, setShowLayersPopup] = useState(false);
   const layersPopupRef = useRef(null);
@@ -265,12 +323,12 @@ export function SituationMap() {
       if (existing) {
         existing.remove();
       }
-      const el = incidentMarkerEl(incident, isSelected, showLabels);
+      const el = incidentMarkerEl(incident, isSelected);
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         selectIncident(incident.id);
       });
-      const marker = new Marker({ element: el, anchor: 'center' })
+      const marker = new Marker({ element: el, anchor: 'center', subpixelPositioning: true })
         .setLngLat([incident.location.lng, incident.location.lat])
         .addTo(map);
       markers.set(incident.id, marker);
@@ -282,7 +340,7 @@ export function SituationMap() {
         markers.delete(id);
       }
     }
-  }, [incidents, mapLayers.incidents, selectedIncidentId, showLabels, mapReady, selectIncident]);
+  }, [incidents, mapLayers.incidents, selectedIncidentId, mapReady, selectIncident]);
 
   // ── Unit markers ──
   useEffect(() => {
@@ -300,7 +358,7 @@ export function SituationMap() {
       const existing = markers.get(unit.id);
       if (existing) existing.remove();
       const el = unitMarkerEl(unit);
-      const marker = new Marker({ element: el, anchor: 'center' })
+      const marker = new Marker({ element: el, anchor: 'center', subpixelPositioning: true })
         .setLngLat([unit.location.lng, unit.location.lat])
         .addTo(map);
       markers.set(unit.id, marker);
@@ -420,17 +478,6 @@ export function SituationMap() {
                   Operational Layers
                 </div>
                 <div className="space-y-1.5">
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={showLabels}
-                      onChange={() => setShowLabels(!showLabels)}
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-blue-600 cursor-pointer"
-                    />
-                    <span className="text-sm text-slate-700 group-hover:text-slate-900 font-medium">
-                      Incident Labels
-                    </span>
-                  </label>
                   {['incidents', 'units', 'coverage', 'closures'].map(layer => (
                     <label key={layer} className="flex items-center gap-2 cursor-pointer group">
                       <input
