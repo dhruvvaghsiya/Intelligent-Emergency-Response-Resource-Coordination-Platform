@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     """AI service configuration. All env vars are prefixed-free per §13.9."""
 
     # ── LLM Configuration ──
-    llm_provider: Literal["gemini", "openai", "mock"] = "mock"
+    llm_provider: Literal["gemini", "openai", "groq", "mock"] = "mock"
     llm_api_key: str = ""
     llm_model: str = "gemini-1.5-flash"
 
