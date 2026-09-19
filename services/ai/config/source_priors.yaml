@@ -1,0 +1,48 @@
+# PRAHARI AI Service — Source Reliability Priors
+# See README §23 for the full specification.
+#
+# These are DESIGN-TIME ESTIMATES, not learned from data.
+# In production, they would be calibrated from resolved-incident outcomes.
+# Each value represents the probability that a report from this source
+# accurately describes reality.
+#
+# Rationale is provided for every value — this transparency is a feature.
+
+source_priors:
+  FIELD_UNIT:      0.93   # Trained observer, on scene, identified by badge/callsign
+  OPERATOR_MANUAL: 0.90   # Professional entering data at the console with context
+  GOV_DEPARTMENT:  0.88   # Official channel, verified sender, but may be delayed
+  HOSPITAL:        0.88   # Professional medical staff, accurate on medical facts
+  IOT_SENSOR:      0.82   # Precise but narrow scope — a heat sensor 40m away sees nothing
+  CCTV_ANALYTICS:  0.72   # Computer vision is good at detection, poor at severity assessment
+  EMERGENCY_CALL:  0.62   # First-hand witness but panicked, prone to exaggeration of scale
+  SYSTEM_DERIVED:  0.60   # Our own cascade/derived predictions — deliberately conservative
+  CITIZEN_APP:     0.55   # Voluntary reporter, location-verified via GPS, but unvetted
+  CITIZEN_SMS:     0.50   # No GPS verification, no identity, but genuine effort to report
+  SOCIAL_MEDIA:    0.35   # Unverified, amplification-prone, may be hearsay or outdated
+
+# ─── Decay Constants (τ in seconds, per attribute) ───────────────────────────
+# Controls how quickly old evidence loses weight.
+# A medical emergency decays fast (situation changes rapidly);
+# a flood's water depth changes slowly.
+decay_tau:
+  default:              900    # 15 minutes — general default
+  people_trapped:       600    # 10 min — critical, changes fast as rescue proceeds
+  casualties_reported:  1200   # 20 min — slower to change, but updates arrive
+  fatalities_reported:  3600   # 60 min — rarely revised once confirmed
+  fire_active:          480    # 8 min — fires grow/shrink rapidly
+  smoke_heavy:          600    # 10 min
+  structural_damage:    7200   # 2 hr — structural state is slow-moving
+  chemical_hazard:      1800   # 30 min — hazmat situations evolve, but not rapidly
+  gas_leak:             900    # 15 min
+  water_depth_high:     3600   # 60 min — flood waters rise/recede slowly
+  road_blocked:         1800   # 30 min — road clearance takes time
+  power_down:           3600   # 60 min — power restoration is slow
+  crowd_large:          600    # 10 min — crowds disperse or grow quickly
+  spread_risk_high:     900    # 15 min — spread risk is dynamic
+  access_restricted:    1800   # 30 min
+
+# ─── Conflict Detection Threshold (θ) ───────────────────────────────────────
+# If supporting_weight ≥ θ AND refuting_weight ≥ θ, mark CONTESTED
+# regardless of the net belief. This prevents averaging away a real disagreement.
+conflict_theta: 0.8

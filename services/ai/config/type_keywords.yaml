@@ -1,0 +1,273 @@
+# PRAHARI AI Service — Keyword Rules for Incident Type Classification
+# See README §16.4: deterministic fallback when LLM/classifier is unavailable.
+#
+# Each type maps to a list of keyword groups. If ANY group is fully matched
+# (all keywords in the group appear in the text), the type is suggested.
+# Groups are ordered by specificity — first match wins.
+# Confidence is assigned based on match quality (exact phrase > individual words).
+
+type_keywords:
+  FIRE_STRUCTURE:
+    keywords:
+      - ["fire", "building"]
+      - ["fire", "house"]
+      - ["fire", "apartment"]
+      - ["fire", "shop"]
+      - ["fire", "office"]
+      - ["fire", "floor"]
+      - ["blaze", "building"]
+      - ["flames", "structure"]
+      - ["aag", "building"]         # Hindi: आग
+      - ["aag", "ghar"]             # Hindi: आग घर
+    single_keywords: ["fire", "blaze", "flames", "aag", "burning"]
+    base_confidence: 0.65
+
+  FIRE_INDUSTRIAL:
+    keywords:
+      - ["fire", "factory"]
+      - ["fire", "industrial"]
+      - ["fire", "chemical"]
+      - ["fire", "warehouse"]
+      - ["fire", "plant"]
+      - ["explosion", "factory"]
+      - ["blast", "industrial"]
+    single_keywords: []
+    base_confidence: 0.70
+
+  FIRE_VEHICLE:
+    keywords:
+      - ["fire", "car"]
+      - ["fire", "vehicle"]
+      - ["fire", "truck"]
+      - ["fire", "bus"]
+      - ["car", "burning"]
+      - ["vehicle", "flames"]
+    single_keywords: []
+    base_confidence: 0.70
+
+  FLOOD:
+    keywords:
+      - ["flood"]
+      - ["flooding"]
+      - ["water", "rising"]
+      - ["submerged"]
+      - ["inundation"]
+      - ["paani", "bhar"]            # Hindi: पानी भर
+      - ["pur", "paani"]             # Gujarati: પૂર પાણી
+    single_keywords: ["flood", "flooding", "submerged", "inundation"]
+    base_confidence: 0.75
+
+  WATERLOGGING:
+    keywords:
+      - ["waterlogging"]
+      - ["water", "logging"]
+      - ["water", "stagnant"]
+      - ["water", "accumulated"]
+      - ["road", "water"]
+      - ["street", "flooded"]
+    single_keywords: ["waterlogging"]
+    base_confidence: 0.70
+
+  ROAD_ACCIDENT:
+    keywords:
+      - ["accident"]
+      - ["crash"]
+      - ["collision"]
+      - ["hit", "run"]
+      - ["vehicle", "accident"]
+      - ["car", "crash"]
+      - ["truck", "accident"]
+      - ["pileup"]
+      - ["pile", "up"]
+      - ["overturned"]
+      - ["durghatna"]                # Hindi: दुर्घटना
+      - ["takkar"]                   # Hindi: टक्कर
+    single_keywords: ["accident", "crash", "collision", "pileup", "overturned"]
+    base_confidence: 0.70
+
+  MEDICAL_EMERGENCY:
+    keywords:
+      - ["heart", "attack"]
+      - ["cardiac"]
+      - ["stroke"]
+      - ["unconscious"]
+      - ["not", "breathing"]
+      - ["chest", "pain"]
+      - ["seizure"]
+      - ["bleeding", "heavily"]
+      - ["medical", "emergency"]
+      - ["ambulance", "needed"]
+    single_keywords: ["cardiac", "stroke", "seizure", "unconscious"]
+    base_confidence: 0.65
+
+  BUILDING_COLLAPSE:
+    keywords:
+      - ["building", "collapse"]
+      - ["structure", "collapse"]
+      - ["wall", "collapse"]
+      - ["roof", "collapse"]
+      - ["building", "fell"]
+      - ["collapsed"]
+      - ["rubble"]
+    single_keywords: ["collapse", "collapsed", "rubble"]
+    base_confidence: 0.75
+
+  GAS_LEAK:
+    keywords:
+      - ["gas", "leak"]
+      - ["gas", "smell"]
+      - ["lpg", "leak"]
+      - ["cylinder", "leak"]
+      - ["gas", "pipeline"]
+      - ["strong", "smell", "gas"]
+    single_keywords: []
+    base_confidence: 0.70
+
+  CHEMICAL_SPILL:
+    keywords:
+      - ["chemical", "spill"]
+      - ["chemical", "leak"]
+      - ["toxic", "spill"]
+      - ["hazardous", "material"]
+      - ["hazmat"]
+      - ["chemical", "plant"]
+      - ["toxic", "fumes"]
+    single_keywords: ["hazmat"]
+    base_confidence: 0.70
+
+  ELECTRICAL_HAZARD:
+    keywords:
+      - ["electric", "shock"]
+      - ["electrocution"]
+      - ["power", "line", "down"]
+      - ["wire", "down"]
+      - ["transformer", "blast"]
+      - ["short", "circuit"]
+      - ["electrical", "fire"]
+      - ["sparking"]
+    single_keywords: ["electrocution"]
+    base_confidence: 0.70
+
+  CROWD_INCIDENT:
+    keywords:
+      - ["stampede"]
+      - ["crowd", "crush"]
+      - ["crowd", "panic"]
+      - ["overcrowding"]
+      - ["crowd", "surge"]
+      - ["bhagdad"]                  # Hindi: भगदड़
+    single_keywords: ["stampede"]
+    base_confidence: 0.75
+
+  RESCUE_TRAPPED:
+    keywords:
+      - ["trapped"]
+      - ["stuck", "inside"]
+      - ["cannot", "get", "out"]
+      - ["pinned"]
+      - ["stuck", "elevator"]
+      - ["rescue", "needed"]
+      - ["people", "inside"]
+    single_keywords: ["trapped", "pinned"]
+    base_confidence: 0.65
+
+  INFRASTRUCTURE_FAILURE:
+    keywords:
+      - ["bridge", "damage"]
+      - ["road", "cave"]
+      - ["sinkhole"]
+      - ["pipeline", "burst"]
+      - ["water", "main", "break"]
+      - ["sewage", "overflow"]
+      - ["infrastructure", "failure"]
+    single_keywords: ["sinkhole"]
+    base_confidence: 0.65
+
+# ─── Attribute Extraction Patterns ───────────────────────────────────────────
+# Regex-based fallback for attribute extraction when LLM is unavailable.
+# Each pattern maps to an evidence attribute from the closed registry.
+attribute_patterns:
+  people_trapped:
+    patterns:
+      - "(?i)\\b(trapped|stuck\\s+inside|cannot\\s+get\\s+out|pinned|people\\s+inside|locked\\s+in)\\b"
+      - "(?i)\\b(rescue\\s+needed|need\\s+rescue)\\b"
+    default_probability: 0.70
+
+  casualties_reported:
+    patterns:
+      - "(?i)\\b(injur|casualt|hurt|wound|victim)\\b"
+      - "(?i)\\b(\\d+)\\s*(people|persons?)\\s*(injured|hurt|wounded)\\b"
+      - "(?i)\\b(bleeding|fracture|broken)\\b"
+    default_probability: 0.65
+
+  fatalities_reported:
+    patterns:
+      - "(?i)\\b(dead|death|died|killed|fatal|deceased|lifeless|body|bodies)\\b"
+      - "(?i)\\b(no\\s+pulse|not\\s+breathing)\\b"
+    default_probability: 0.60
+
+  fire_active:
+    patterns:
+      - "(?i)\\b(fire|flames?|blaze|burning|ablaze|engulfed|inferno|aag)\\b"
+      - "(?i)\\b(on\\s+fire|caught\\s+fire)\\b"
+    default_probability: 0.75
+
+  smoke_heavy:
+    patterns:
+      - "(?i)\\b(heavy\\s+smoke|thick\\s+smoke|black\\s+smoke|dense\\s+smoke|smoke\\s+everywhere)\\b"
+      - "(?i)\\b(smoke\\s+billowing|smoke\\s+rising|choking\\s+smoke)\\b"
+    default_probability: 0.70
+
+  structural_damage:
+    patterns:
+      - "(?i)\\b(collapse|crumbl|damage|crack|tilt|lean|structur.*fail)\\b"
+      - "(?i)\\b(wall.*(?:fell|down|crack)|roof.*(?:cave|collapse))\\b"
+    default_probability: 0.65
+
+  chemical_hazard:
+    patterns:
+      - "(?i)\\b(chemical|toxic|hazardous|hazmat|corrosive|acid|ammonia|chlorine)\\b"
+      - "(?i)\\b(chemical\\s+(?:spill|leak|drum|tank))\\b"
+    default_probability: 0.70
+
+  gas_leak:
+    patterns:
+      - "(?i)\\b(gas\\s+leak|smell.*gas|lpg|gas\\s+cylinder|propane|methane)\\b"
+      - "(?i)\\b(strong\\s+smell|hissing\\s+sound)\\b"
+    default_probability: 0.70
+
+  water_depth_high:
+    patterns:
+      - "(?i)\\b(water.*(?:waist|knee|chest|neck|above)|submerge|flood.*deep)\\b"
+      - "(?i)\\b(water\\s*level.*(?:high|rising|dangerous))\\b"
+    default_probability: 0.65
+
+  road_blocked:
+    patterns:
+      - "(?i)\\b(road.*block|road.*close|street.*block|traffic.*stop|no.*passage)\\b"
+      - "(?i)\\b(route.*block|path.*block|cannot.*pass)\\b"
+    default_probability: 0.70
+
+  power_down:
+    patterns:
+      - "(?i)\\b(power.*(?:out|cut|down|failure)|blackout|no\\s+electricity)\\b"
+      - "(?i)\\b(light.*(?:gone|out)|transformer.*(?:blow|fail|down))\\b"
+    default_probability: 0.70
+
+  crowd_large:
+    patterns:
+      - "(?i)\\b(large\\s+crowd|huge\\s+crowd|thousands|hundreds\\s+of\\s+people|mob|gathering)\\b"
+      - "(?i)\\b(overcrowd|packed|swarm)\\b"
+    default_probability: 0.60
+
+  spread_risk_high:
+    patterns:
+      - "(?i)\\b(spread|spreading|expanding|growing|intensif|escalat|getting\\s+worse)\\b"
+      - "(?i)\\b(wind.*(?:strong|spreading)|fire.*spread)\\b"
+    default_probability: 0.55
+
+  access_restricted:
+    patterns:
+      - "(?i)\\b(access.*(?:block|restrict|difficult|impossible)|cannot.*reach|unreachable)\\b"
+      - "(?i)\\b(narrow.*(?:lane|street)|no.*road.*access)\\b"
+    default_probability: 0.65
