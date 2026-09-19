@@ -54,6 +54,18 @@ export function buildApp() {
   app.use('/api/v1', healthRouter); // /health is also PUBLIC at /api/v1/health
   app.use(healthRouter); // and bare /health for container/orchestrator liveness probes
 
+  app.get('/', (req, res) => {
+    res.json({
+      name: 'Resilio Emergency Response Platform API',
+      status: 'operational',
+      version: '1.0.0',
+      endpoints: {
+        health: '/health',
+        api_v1: '/api/v1'
+      }
+    });
+  });
+
   app.use((req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found', request_id: req.requestId } });
   });
