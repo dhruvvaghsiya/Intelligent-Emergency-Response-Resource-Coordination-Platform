@@ -6,14 +6,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ShieldCheck, Radio, Bell, Map, BarChart3, Clock, Brain,
-  LogOut, WifiOff, Truck, FileText
+  LogOut, WifiOff, HeartHandshake, FileText
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { Button } from '../ui/Button';
 
 const NAV_ITEMS = [
   { path: '/ops', label: 'Situation', icon: Map },
-  { path: '/resources', label: 'Resources', icon: Truck },
+  { path: '/resources', label: 'Resources', icon: HeartHandshake },
   { path: '/alerts', label: 'Alerts', icon: Bell },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/replay', label: 'Replay', icon: Clock },
