@@ -2,13 +2,24 @@ import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { logger } from './logger.js';
+import { isOriginAllowed } from '../utils/cors.js';
 
 let io = null;
 let lastHeartbeat = Date.now();
 
 export function initRealtime(httpServer) {
   io = new Server(httpServer, {
-    cors: { origin: env.CORS_ORIGINS, credentials: true },
+    cors: {
+      origin: (origin, callback) => {
+        if (isOriginAllowed(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`Socket CORS blocked for origin: ${origin}`));
+        }
+      },
+      credentials: true,
+      methods: ['GET', 'POST'],
+    },
   });
 
   io.use((socket, next) => {
