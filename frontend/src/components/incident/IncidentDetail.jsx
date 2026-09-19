@@ -3,6 +3,7 @@
    §14.3: Tabs: Overview · Evidence · Response · Related · Timeline
    ========================================================================= */
 import React from 'react';
+import { motion } from 'framer-motion';
 import { X, MapPin, Clock, Users, ChevronRight, ExternalLink, AlertTriangle, Crosshair } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { Button } from '../ui/Button';
@@ -32,12 +33,12 @@ export function IncidentDetail() {
   const typeConfig = INCIDENT_TYPE_CONFIG[incident.type] || INCIDENT_TYPE_CONFIG.UNKNOWN;
 
   return (
-    <div className="w-[420px] h-full border-l border-border-subtle bg-surface flex flex-col shrink-0 overflow-hidden animate-slide-in-right">
+    <div className="w-[420px] h-full border-l border-border-subtle glass flex flex-col shrink-0 overflow-hidden animate-slide-in-right">
       {/* ——— Header ——— */}
-      <div className="px-3 py-2.5 border-b border-border-subtle bg-inset">
-        <div className="flex items-center justify-between mb-1">
+      <div className="px-4 py-3.5 border-b border-border-subtle bg-white/[0.02]">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[12px] text-text-muted">{incident.code}</span>
+            <span className="font-mono text-[11px] text-text-muted">{incident.code}</span>
             <SeverityChip severity={incident.severity} score={incident.severity_score} />
             <IncidentStatusChip status={incident.status} />
           </div>
@@ -49,7 +50,7 @@ export function IncidentDetail() {
             </Button>
           </div>
         </div>
-        <h2 className="text-[15px] font-medium text-text-primary leading-tight mb-1.5">
+        <h2 className="text-[16px] font-semibold text-text-primary leading-tight mb-2 tracking-tight">
           {incident.title}
         </h2>
         <div className="flex items-center gap-3 text-[11px] text-text-muted">
@@ -71,27 +72,34 @@ export function IncidentDetail() {
       </div>
 
       {/* ——— Tabs ——— */}
-      <div className="flex border-b border-border-subtle">
+      <div className="flex border-b border-border-subtle px-1 relative">
         {TABS.map(tab => (
           <button
             key={tab.key}
             onClick={() => setRightRailTab(tab.key)}
             className={`
-              flex-1 h-[32px] text-[12px] font-medium text-center cursor-pointer
-              transition-colors duration-[80ms] border-b-2
+              relative flex-1 h-[38px] text-[12px] font-semibold text-center cursor-pointer
+              transition-colors duration-150
               ${rightRailTab === tab.key
-                ? 'text-accent border-b-accent bg-accent-muted/30'
-                : 'text-text-muted border-b-transparent hover:text-text-secondary hover:bg-hover'
+                ? 'text-accent'
+                : 'text-text-muted hover:text-text-secondary'
               }
             `}
           >
             {tab.label}
+            {rightRailTab === tab.key && (
+              <motion.div
+                layoutId="detail-tab-underline"
+                className="absolute left-2 right-2 -bottom-px h-[2px] bg-accent rounded-full shadow-[0_0_8px_rgba(45,212,191,0.7)]"
+                transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+              />
+            )}
           </button>
         ))}
       </div>
 
       {/* ——— Tab Content ——— */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto p-4">
         {rightRailTab === 'overview' && <OverviewTab incident={incident} />}
         {rightRailTab === 'evidence' && <EvidenceTab incident={incident} />}
         {rightRailTab === 'response' && <ResponseTab incident={incident} />}
@@ -175,9 +183,9 @@ function BeliefBar({ belief }) {
 
 function StatCard({ label, value, small = false }) {
   return (
-    <div className="bg-inset rounded-[4px] px-2 py-1.5 border border-border-subtle">
-      <div className="text-[10px] text-text-muted uppercase tracking-wider">{label}</div>
-      <div className={`font-mono font-semibold text-text-primary ${small ? 'text-[13px]' : 'text-[17px]'}`}>
+    <div className="glass rounded-[var(--radius-md)] px-3 py-2.5">
+      <div className="text-[9.5px] text-text-muted uppercase tracking-wider font-semibold">{label}</div>
+      <div className={`font-mono font-bold text-text-primary ${small ? 'text-[13px]' : 'text-[18px]'}`}>
         {value}
       </div>
     </div>

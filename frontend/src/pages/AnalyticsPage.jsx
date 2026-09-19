@@ -3,10 +3,11 @@
    Every chart answers a question a commander would ask in a debrief.
    ========================================================================= */
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, PieChart } from 'recharts';
-import { MOCK_ANALYTICS } from '../mocks/fixtures';
+import { useQuery } from '@tanstack/react-query';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { analyticsApi } from '../lib/api';
 import { formatDuration } from '../lib/format';
-import { TrendingUp, TrendingDown, Clock, Users, Shield, Activity, Layers, Brain } from 'lucide-react';
+import { TrendingUp, Clock, Users, Shield, Activity, Layers, Brain } from 'lucide-react';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -24,20 +25,40 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+function percentile(values, p) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+}
+
 export function AnalyticsPage() {
-  const data = MOCK_ANALYTICS;
+  const overviewQ = useQuery({ queryKey: ['analytics', 'overview'], queryFn: analyticsApi.overview, refetchInterval: 30000 });
+  const responseTimesQ = useQuery({ queryKey: ['analytics', 'response-times'], queryFn: analyticsApi.responseTimes, refetchInterval: 30000 });
+  const utilizationQ = useQuery({ queryKey: ['analytics', 'utilization'], queryFn: analyticsApi.utilization, refetchInterval: 30000 });
+  const shortagesQ = useQuery({ queryKey: ['analytics', 'shortages'], queryFn: analyticsApi.shortages, refetchInterval: 30000 });
+  const recommendationsQ = useQuery({ queryKey: ['analytics', 'recommendations'], queryFn: analyticsApi.recommendations, refetchInterval: 30000 });
 
-  const responseData = [
-    { name: 'Time to Triage', p50: data.time_to_triage.p50, p90: data.time_to_triage.p90 },
-    { name: 'Time to Dispatch', p50: data.time_to_dispatch.p50, p90: data.time_to_dispatch.p90 },
-    { name: 'Time to Arrival', p50: data.time_to_arrival.p50, p90: data.time_to_arrival.p90 },
-  ];
+  const loading = overviewQ.isLoading || responseTimesQ.isLoading || utilizationQ.isLoading;
+  if (loading) {
+    return <div className="flex-1 flex items-center justify-center text-[13px] text-text-muted">Loading analytics…</div>;
+  }
 
-  const etaData = [
-    { name: 'Mean Error', value: data.eta_accuracy.mean_error },
-    { name: 'p50 Error', value: data.eta_accuracy.p50_error },
-    { name: 'p90 Error', value: data.eta_accuracy.p90_error },
-  ];
+  const overview = overviewQ.data || {};
+  const responseTimes = responseTimesQ.data || {};
+  const utilization = utilizationQ.data || {};
+  const shortages = shortagesQ.data || [];
+  const recommendations = recommendationsQ.data || {};
+
+  const allP50 = Object.values(responseTimes).map(v => v.p50_s).filter(v => v != null);
+  const allP90 = Object.values(responseTimes).map(v => v.p90_s).filter(v => v != null);
+  const responseData = Object.entries(responseTimes).map(([type, v]) => ({ name: type.replace(/_/g, ' '), p50: v.p50_s, p90: v.p90_s }));
+
+  const utilizationData = Object.entries(utilization).map(([type, v]) => ({ name: type.replace(/_/g, ' '), ratio: Math.round(v.ratio * 100), busy: v.busy, total: v.total }));
+
+  const unitsTotal = Object.values(utilization).reduce((sum, v) => sum + v.total, 0);
+  const unitsBusy = Object.values(utilization).reduce((sum, v) => sum + v.busy, 0);
+  const overallResponseP50 = percentile(allP50, 0.5);
+  const overallResponseP90 = percentile(allP90, 0.9);
 
   return (
     <div className="flex-1 overflow-y-auto p-4">
@@ -46,14 +67,14 @@ export function AnalyticsPage() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <KPICard icon={Layers} label="Active Incidents" value={data.active_incidents} />
-          <KPICard icon={Activity} label="Reports Today" value={data.total_reports_today} />
-          <KPICard icon={Users} label="Units Available" value={`${data.units_available}/${data.units_total}`} />
-          <KPICard icon={Shield} label="Compression" value={`${data.compression_ratio.toFixed(1)}:1`} subtitle="reports/incidents" accent />
-          <KPICard icon={Clock} label="Response p50" value={formatDuration(data.time_to_arrival.p50)} />
-          <KPICard icon={Clock} label="Response p90" value={formatDuration(data.time_to_arrival.p90)} />
-          <KPICard icon={TrendingUp} label="Recommendation Accept" value={`${(data.recommendation_acceptance * 100).toFixed(0)}%`} />
-          <KPICard icon={Brain} label="Correlation Precision" value={`${(data.correlation_precision * 100).toFixed(0)}%`} />
+          <KPICard icon={Layers} label="Total Incidents" value={overview.incident_count ?? '—'} />
+          <KPICard icon={Activity} label="Reports Ingested" value={overview.report_count ?? '—'} />
+          <KPICard icon={Users} label="Units Busy" value={`${unitsBusy}/${unitsTotal}`} />
+          <KPICard icon={Shield} label="Compression" value={overview.duplicate_compression_ratio != null ? `${overview.duplicate_compression_ratio.toFixed(1)}:1` : '—'} subtitle="reports/incidents" accent />
+          <KPICard icon={Clock} label="Response p50" value={overallResponseP50 != null ? formatDuration(overallResponseP50) : '—'} />
+          <KPICard icon={Clock} label="Response p90" value={overallResponseP90 != null ? formatDuration(overallResponseP90) : '—'} />
+          <KPICard icon={TrendingUp} label="Recommendation Accept" value={recommendations.acceptance_rate != null ? `${(recommendations.acceptance_rate * 100).toFixed(0)}%` : '—'} />
+          <KPICard icon={Brain} label="Model Disagreement" value={overview.model_operator_disagreement_rate != null ? `${(overview.model_operator_disagreement_rate * 100).toFixed(0)}%` : '—'} />
         </div>
 
         {/* Charts row */}
@@ -61,41 +82,68 @@ export function AnalyticsPage() {
           {/* Response time chart */}
           <div className="bg-surface border border-border-subtle rounded-[4px] p-4">
             <h3 className="text-[12px] font-medium uppercase tracking-wider text-text-muted mb-3">
-              Response Times (seconds)
+              Response Times by Incident Type (seconds)
             </h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={responseData} barCategoryGap="30%">
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6A7788' }} axisLine={{ stroke: '#232B35' }} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#6A7788' }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="p50" fill="#1FA7A0" radius={[2, 2, 0, 0]} name="p50" />
-                <Bar dataKey="p90" fill="#333F4D" radius={[2, 2, 0, 0]} name="p90" />
-              </BarChart>
-            </ResponsiveContainer>
+            {responseData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={responseData} barCategoryGap="30%">
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6A7788' }} axisLine={{ stroke: '#232B35' }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#6A7788' }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="p50" fill="#1FA7A0" radius={[2, 2, 0, 0]} name="p50" />
+                  <Bar dataKey="p90" fill="#333F4D" radius={[2, 2, 0, 0]} name="p90" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[220px] flex items-center justify-center text-[12px] text-text-muted">No arrivals recorded yet</div>
+            )}
           </div>
 
-          {/* ETA accuracy */}
+          {/* Unit utilization */}
           <div className="bg-surface border border-border-subtle rounded-[4px] p-4">
             <h3 className="text-[12px] font-medium uppercase tracking-wider text-text-muted mb-3">
-              ETA Accuracy (seconds error)
+              Unit Utilization by Type (%)
             </h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={etaData} barCategoryGap="30%">
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6A7788' }} axisLine={{ stroke: '#232B35' }} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#6A7788' }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value" fill="#5B8DEF" radius={[2, 2, 0, 0]} name="Error (s)" />
-              </BarChart>
-            </ResponsiveContainer>
+            {utilizationData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={utilizationData} barCategoryGap="30%">
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6A7788' }} axisLine={{ stroke: '#232B35' }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#6A7788' }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="ratio" fill="#5B8DEF" radius={[2, 2, 0, 0]} name="Busy %" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[220px] flex items-center justify-center text-[12px] text-text-muted">No unit data</div>
+            )}
           </div>
+        </div>
+
+        {/* Shortages */}
+        <div className="bg-surface border border-border-subtle rounded-[4px] p-4 mb-6">
+          <h3 className="text-[12px] font-medium uppercase tracking-wider text-text-muted mb-3">
+            High-Severity Incident Concentration by Ward
+          </h3>
+          {shortages.length > 0 ? (
+            <div className="space-y-1.5">
+              {shortages.map(s => (
+                <div key={s.ward} className="flex items-center justify-between text-[12px]">
+                  <span className="text-text-secondary">{s.ward}</span>
+                  <span className="font-mono text-text-primary font-semibold">{s.high_severity_incident_count}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[12px] text-text-muted">No high-severity incidents recorded</div>
+          )}
         </div>
 
         {/* Additional metrics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard label="Resource Utilization" value={`${(data.resource_utilization * 100).toFixed(0)}%`} color={data.resource_utilization > 0.8 ? 'text-sev-high' : 'text-accent'} />
-          <MetricCard label="Coverage Hole Minutes" value={data.coverage_hole_minutes} color={data.coverage_hole_minutes > 30 ? 'text-sev-high' : 'text-status-available'} />
-          <MetricCard label="Escalation Rate" value={`${(data.escalation_rate * 100).toFixed(0)}%`} color="text-sev-moderate" />
-          <MetricCard label="Model Disagreement" value={`${(data.model_operator_disagreement * 100).toFixed(0)}%`} color={data.model_operator_disagreement > 0.2 ? 'text-sev-high' : 'text-accent'} />
+          <MetricCard label="Merged Incidents" value={overview.merged_incident_count ?? '—'} />
+          <MetricCard label="Suggestions Total" value={recommendations.total_suggestions ?? '—'} />
+          <MetricCard label="Suggestions Confirmed" value={recommendations.confirmed ?? '—'} />
+          <MetricCard label="Report Count" value={overview.report_count ?? '—'} />
         </div>
       </div>
     </div>

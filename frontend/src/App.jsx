@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Topbar } from './components/layout/Topbar';
 import { StaleBanner } from './components/layout/StaleBanner';
@@ -26,7 +26,12 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   const isAuthenticated = useStore(s => s.isAuthenticated);
+  const restoreSession = useStore(s => s.restoreSession);
   useKeyboardShortcuts();
+
+  useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
 
   return (
     <BrowserRouter>

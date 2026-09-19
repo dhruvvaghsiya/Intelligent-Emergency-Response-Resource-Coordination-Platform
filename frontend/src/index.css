@@ -1,106 +1,122 @@
 @import "tailwindcss";
 
 /* ========================================================================
-   PRAHARI DESIGN SYSTEM — §14.2 Design Tokens
-   All tokens from the README frozen contract mapped to CSS variables
-   and Tailwind v4 theme.
+   PRAHARI DESIGN SYSTEM v2 — Glass / aurora dark command console
    ======================================================================== */
 
 @theme {
-  /* ——— Base: cool graphite, not black ——— */
-  --color-canvas: #0E1217;
-  --color-surface: #151A21;
-  --color-raised: #1C232C;
-  --color-inset: #10151B;
-  --color-hover: #222B36;
-  --color-selected: #1B2A3A;
+  /* ——— Base: deep space graphite with a cool blue undertone ——— */
+  --color-canvas: #060809;
+  --color-surface: #0F1318;
+  --color-raised: #161B22;
+  --color-inset: #0A0D11;
+  --color-hover: #1D242D;
+  --color-selected: #17293344;
 
   /* ——— Borders ——— */
-  --color-border-subtle: #232B35;
-  --color-border-strong: #333F4D;
-  --color-border-focus: #1FA7A0;
+  --color-border-subtle: #FFFFFF14;
+  --color-border-strong: #FFFFFF26;
+  --color-border-focus: #2DD4BF;
 
   /* ——— Text ——— */
-  --color-text-primary: #E7ECF2;
-  --color-text-secondary: #9BA7B6;
-  --color-text-muted: #6A7788;
-  --color-text-inverse: #0E1217;
+  --color-text-primary: #F3F6F9;
+  --color-text-secondary: #9AA7B5;
+  --color-text-muted: #64707D;
+  --color-text-inverse: #06110F;
 
-  /* ——— Accent: desaturated teal ——— */
-  --color-accent: #1FA7A0;
-  --color-accent-hover: #26BDB5;
-  --color-accent-muted: #12403F;
+  /* ——— Accent: teal → cyan → indigo gradient family ——— */
+  --color-accent: #2DD4BF;
+  --color-accent-hover: #5EEAD4;
+  --color-accent-muted: #10393480;
+  --color-accent-2: #6366F1;
 
   /* ——— Severity ramp (🔒 must match map + alert colours) ——— */
-  --color-sev-critical: #E5484D;
-  --color-sev-critical-bg: #2A1315;
-  --color-sev-high: #EF6C1A;
-  --color-sev-high-bg: #2A1A0E;
-  --color-sev-moderate: #E3B341;
-  --color-sev-moderate-bg: #26210E;
-  --color-sev-low: #3DA160;
-  --color-sev-low-bg: #10251A;
-  --color-sev-info: #5B8DEF;
-  --color-sev-info-bg: #131C2E;
+  --color-sev-critical: #FB4B4B;
+  --color-sev-critical-bg: #3A141680;
+  --color-sev-high: #FF8A3D;
+  --color-sev-high-bg: #3A210E80;
+  --color-sev-moderate: #FACC42;
+  --color-sev-moderate-bg: #34290C80;
+  --color-sev-low: #4ADE80;
+  --color-sev-low-bg: #10331F80;
+  --color-sev-info: #60A5FA;
+  --color-sev-info-bg: #14213A80;
 
   /* ——— Operational status ——— */
-  --color-status-available: #3DA160;
-  --color-status-busy: #E3B341;
-  --color-status-enroute: #5B8DEF;
-  --color-status-onscene: #1FA7A0;
-  --color-status-offline: #6A7788;
-  --color-status-stale: #EF6C1A;
+  --color-status-available: #4ADE80;
+  --color-status-busy: #FACC42;
+  --color-status-enroute: #60A5FA;
+  --color-status-onscene: #2DD4BF;
+  --color-status-offline: #64707D;
+  --color-status-stale: #FF8A3D;
 
   /* ——— Typography ——— */
-  --font-sans: "IBM Plex Sans", "IBM Plex Sans Devanagari", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "Inter", "IBM Plex Sans Devanagari", system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* ——— Spacing: 4px grid (base multiplier for p-1=4px, p-2=8px, etc.) ——— */
+  /* ——— Spacing: 4px grid ——— */
   --spacing: 0.25rem;
 
-  /* ——— Border radius ——— */
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
+  /* ——— Border radius: softer, more premium ——— */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
   --radius-pill: 999px;
 
-  /* ——— Shadows ——— */
-  --shadow-overlay: 0 8px 24px rgba(0,0,0,.45);
+  /* ——— Shadows & glows ——— */
+  --shadow-overlay: 0 20px 60px -12px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.04);
+  --shadow-card: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -16px rgba(0,0,0,.5);
+  --glow-accent: 0 0 0 1px rgba(45,212,191,.25), 0 8px 24px -6px rgba(45,212,191,.35);
+  --glow-accent-lg: 0 0 60px -10px rgba(45,212,191,.45);
 
   /* ——— Animation ——— */
   --duration-instant: 80ms;
-  --duration-fast: 140ms;
-  --duration-state: 220ms;
-  --ease-default: cubic-bezier(.2,.6,.2,1);
+  --duration-fast: 160ms;
+  --duration-state: 260ms;
+  --ease-default: cubic-bezier(.16,.84,.32,1);
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
 }
 
-/* ——— Global resets ——— */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* ——— Global resets ———
+   Wrapped in @layer base so Tailwind's utility layer (p-*, m-*, etc.)
+   can still override these — unlayered CSS always wins over layered
+   CSS regardless of specificity, which silently killed all spacing utilities. */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-html, body, #root {
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-}
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
 
-body {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 18px;
-  color: var(--color-text-primary);
-  background-color: var(--color-canvas);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    background-color: var(--color-canvas);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  ::selection {
+    background: rgba(45, 212, 191, 0.28);
+    color: var(--color-text-primary);
+  }
 }
 
 /* ——— Scrollbar styling ——— */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -108,19 +124,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border-subtle);
-  border-radius: 3px;
+  background: var(--color-border-strong);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-strong);
+  background: var(--color-accent);
 }
 
 /* ——— Focus ring (accessibility floor) ——— */
 :focus-visible {
   outline: 1px solid var(--color-border-focus);
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px rgba(31, 167, 160, 0.3);
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.22);
 }
 
 /* ——— Reduced motion ——— */
@@ -134,54 +150,156 @@ body {
 
 /* ——— MapLibre container ——— */
 .maplibregl-map {
-  font-family: var(--font-ui);
+  font-family: var(--font-sans);
 }
+.maplibregl-ctrl-attrib {
+  background: rgba(15, 19, 24, 0.7) !important;
+  backdrop-filter: blur(6px);
+  color: var(--color-text-muted) !important;
+}
+.maplibregl-ctrl-attrib a { color: var(--color-text-secondary) !important; }
 
 /* ——— Utility: tabular figures for numeric data ——— */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* .font-mono is handled by Tailwind v4 via --font-mono in @theme */
+/* ========================================================================
+   GLASS SURFACES
+   ======================================================================== */
+.glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--color-border-subtle);
+}
 
-/* ——— Animation keyframes ——— */
+.glass-strong {
+  background: linear-gradient(180deg, rgba(22,27,34,0.92), rgba(15,19,24,0.88));
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-card);
+}
+
+.glass-panel {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border-subtle);
+}
+
+/* ========================================================================
+   GRADIENT TEXT / ACCENTS
+   ======================================================================== */
+.text-gradient {
+  background: linear-gradient(120deg, #5EEAD4 0%, #2DD4BF 45%, #6366F1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glow-ring {
+  box-shadow: var(--glow-accent);
+}
+
+/* ========================================================================
+   AURORA BACKGROUND — animated mesh gradient
+   ======================================================================== */
+.aurora-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-canvas);
+}
+
+.aurora-bg::before,
+.aurora-bg::after {
+  content: "";
+  position: absolute;
+  width: 140%;
+  height: 140%;
+  top: -20%;
+  left: -20%;
+  background:
+    radial-gradient(circle at 25% 30%, rgba(45,212,191,0.20) 0%, transparent 45%),
+    radial-gradient(circle at 75% 25%, rgba(99,102,241,0.18) 0%, transparent 45%),
+    radial-gradient(circle at 50% 75%, rgba(45,212,191,0.12) 0%, transparent 50%);
+  animation: auroraDrift 22s ease-in-out infinite alternate;
+  filter: blur(40px);
+}
+
+.aurora-bg::after {
+  animation-duration: 30s;
+  animation-direction: alternate-reverse;
+  opacity: 0.7;
+}
+
+@keyframes auroraDrift {
+  0%   { transform: translate(0%, 0%) rotate(0deg) scale(1); }
+  50%  { transform: translate(4%, -3%) rotate(8deg) scale(1.08); }
+  100% { transform: translate(-3%, 4%) rotate(-6deg) scale(1.04); }
+}
+
+.grain-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ========================================================================
+   ANIMATION KEYFRAMES
+   ======================================================================== */
 @keyframes fadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse-ring {
-  0% {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-  100% {
-    transform: scale(2.2);
-    opacity: 0;
-  }
+  0%   { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 @keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes softGlowPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(45,212,191,.25), 0 0 20px -4px rgba(45,212,191,.35); }
+  50%      { box-shadow: 0 0 0 1px rgba(45,212,191,.4), 0 0 34px -2px rgba(45,212,191,.55); }
 }
 
 .animate-fade-slide-in {
   animation: fadeSlideIn var(--duration-state) var(--ease-default) forwards;
 }
 
+.animate-fade-slide-up {
+  animation: fadeSlideUp var(--duration-state) var(--ease-default) forwards;
+}
+
 .animate-slide-in-right {
   animation: slideInRight var(--duration-fast) var(--ease-default) forwards;
+}
+
+.animate-glow-pulse {
+  animation: softGlowPulse 2.6s ease-in-out infinite;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
 }

@@ -1,19 +1,18 @@
 /* =========================================================================
-   INCIDENT QUEUE — Left Rail (360px)
-   §14.3: Severity-sorted, 1-line AI summary per row
+   INCIDENT QUEUE — Left Rail
+   Severity-sorted, 1-line AI summary per row
    Attention Bar at top for pending confirmations
    ========================================================================= */
-import React, { useMemo, useState } from 'react';
-import { Search, Filter, ChevronDown, AlertTriangle, Clock, Crosshair } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, AlertTriangle, Clock } from 'lucide-react';
 import { useStore } from '../../lib/store';
-import { SeverityChip, IncidentStatusChip, SimBadge, ContestedBadge, CountChip } from '../ui/Chip';
-import { Button } from '../ui/Button';
-import { SEVERITY, INCIDENT_TYPE_CONFIG } from '../../lib/constants';
-import { formatRelativeTime, formatDuration } from '../../lib/format';
+import { SeverityChip, IncidentStatusChip, SimBadge, CountChip } from '../ui/Chip';
+import { SEVERITY } from '../../lib/constants';
+import { formatRelativeTime } from '../../lib/format';
 
 export function IncidentQueue() {
   const { incidents, selectedIncidentId, selectIncident, filters, setFilter, alerts } = useStore();
-  const [searchOpen, setSearchOpen] = useState(false);
 
   // Pending actions
   const pendingAlerts = alerts.filter(a => !a.acked_at);
@@ -53,11 +52,11 @@ export function IncidentQueue() {
   }, [incidents, filters]);
 
   return (
-    <div className="w-[360px] h-full border-r border-border-subtle bg-surface flex flex-col shrink-0 overflow-hidden">
+    <div className="w-[380px] h-full border-r border-border-subtle glass flex flex-col shrink-0 overflow-hidden">
       {/* ——— Attention Bar ——— */}
       {(pendingAlerts.length > 0 || contestedIncidents.length > 0) && (
-        <div className="border-b border-border-subtle bg-inset px-3 py-2">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-text-muted mb-1.5">
+        <div className="border-b border-border-subtle bg-white/[0.02] px-4 py-3">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-text-muted mb-2">
             Needs attention
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -79,19 +78,19 @@ export function IncidentQueue() {
       )}
 
       {/* ——— Search & filters ——— */}
-      <div className="px-3 py-2 border-b border-border-subtle flex items-center gap-2">
+      <div className="px-4 py-3 border-b border-border-subtle flex items-center gap-2">
         <div className="flex-1 relative">
-          <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
             placeholder="Search incidents..."
             value={filters.search}
             onChange={(e) => setFilter('search', e.target.value)}
             className="
-              w-full h-[28px] pl-7 pr-2 bg-inset border border-border-subtle rounded-[4px]
-              text-[12px] text-text-primary placeholder:text-text-muted
-              focus:border-border-focus focus:outline-none
-              transition-colors
+              w-full h-[34px] pl-9 pr-2.5 bg-black/25 border border-border-subtle rounded-[var(--radius-md)]
+              text-[12.5px] text-text-primary placeholder:text-text-muted
+              focus:border-accent/50 focus:bg-black/40 focus:outline-none
+              transition-all duration-200
             "
           />
         </div>
@@ -107,13 +106,13 @@ export function IncidentQueue() {
                 );
               }}
               className={`
-                h-[28px] px-1.5 rounded-[4px] text-[10px] font-semibold uppercase cursor-pointer
-                border transition-colors
+                h-[34px] px-2 rounded-[var(--radius-md)] text-[10px] font-bold uppercase cursor-pointer
+                border transition-all duration-150
                 ${filters.severity.includes(sev)
                   ? `${sev === 'CRITICAL' ? 'bg-sev-critical-bg border-sev-critical/40 text-sev-critical' :
                      sev === 'HIGH' ? 'bg-sev-high-bg border-sev-high/40 text-sev-high' :
                      'bg-sev-moderate-bg border-sev-moderate/40 text-sev-moderate'}`
-                  : 'bg-transparent border-border-subtle text-text-muted hover:border-border-strong'
+                  : 'bg-transparent border-border-subtle text-text-muted hover:border-border-strong hover:text-text-secondary'
                 }
               `}
             >
@@ -126,24 +125,27 @@ export function IncidentQueue() {
       {/* ——— List ——— */}
       <div className="flex-1 overflow-y-auto">
         {filteredIncidents.length === 0 ? (
-          <div className="p-6 text-center text-[13px] text-text-muted">
+          <div className="p-8 text-center text-[13px] text-text-muted">
             No incidents match the current filters.
           </div>
         ) : (
-          filteredIncidents.map(incident => (
-            <IncidentRow
-              key={incident.id}
-              incident={incident}
-              isSelected={incident.id === selectedIncidentId}
-              onClick={() => selectIncident(incident.id)}
-            />
-          ))
+          <AnimatePresence initial={false}>
+            {filteredIncidents.map((incident, i) => (
+              <IncidentRow
+                key={incident.id}
+                incident={incident}
+                index={i}
+                isSelected={incident.id === selectedIncidentId}
+                onClick={() => selectIncident(incident.id)}
+              />
+            ))}
+          </AnimatePresence>
         )}
       </div>
 
       {/* ——— Footer ——— */}
-      <div className="h-[28px] px-3 border-t border-border-subtle bg-inset flex items-center justify-between">
-        <span className="text-[11px] text-text-muted">
+      <div className="h-[34px] px-4 border-t border-border-subtle bg-white/[0.02] flex items-center justify-between">
+        <span className="text-[11px] text-text-muted font-medium">
           {filteredIncidents.length} incident{filteredIncidents.length !== 1 ? 's' : ''}
         </span>
         <span className="text-[11px] text-text-muted font-mono">
@@ -154,25 +156,32 @@ export function IncidentQueue() {
   );
 }
 
-function IncidentRow({ incident, isSelected, onClick }) {
-  const typeConfig = INCIDENT_TYPE_CONFIG[incident.type] || INCIDENT_TYPE_CONFIG.UNKNOWN;
-
+function IncidentRow({ incident, index, isSelected, onClick }) {
   return (
-    <button
+    <motion.button
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.3), ease: [0.16, 0.84, 0.32, 1] }}
       onClick={onClick}
       className={`
-        w-full text-left px-3 py-2 border-b border-border-subtle
-        transition-colors duration-[80ms] cursor-pointer
-        flex flex-col gap-1
+        relative w-full text-left px-4 py-3 border-b border-border-subtle
+        transition-colors duration-150 cursor-pointer
+        flex flex-col gap-1.5
         ${isSelected
-          ? 'bg-selected border-l-2 border-l-accent'
-          : 'hover:bg-hover border-l-2 border-l-transparent'
+          ? 'bg-accent/[0.07]'
+          : 'hover:bg-white/[0.035]'
         }
       `}
     >
+      {isSelected && (
+        <motion.div layoutId="incident-row-active" className="absolute left-0 top-0 bottom-0 w-[3px] bg-accent shadow-[0_0_8px_rgba(45,212,191,0.7)]" />
+      )}
+
       {/* Row 1: Code, severity, status */}
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[11px] text-text-muted">{incident.code}</span>
+        <span className="font-mono text-[10.5px] text-text-muted">{incident.code}</span>
         <SeverityChip severity={incident.severity} score={incident.severity_score} />
         <IncidentStatusChip status={incident.status} />
         <div className="flex-1" />
@@ -180,7 +189,7 @@ function IncidentRow({ incident, isSelected, onClick }) {
       </div>
 
       {/* Row 2: Title */}
-      <div className="text-[13px] text-text-primary font-medium leading-tight line-clamp-1">
+      <div className="text-[13.5px] text-text-primary font-semibold leading-snug line-clamp-1 tracking-tight">
         {incident.title}
       </div>
 
@@ -195,12 +204,12 @@ function IncidentRow({ incident, isSelected, onClick }) {
           <span>{incident.assigned_unit_count}/{incident.units_required} units</span>
         )}
         {incident.has_conflict && (
-          <span className="text-sev-high font-medium flex items-center gap-0.5">
+          <span className="text-sev-high font-semibold flex items-center gap-0.5">
             <AlertTriangle size={10} />
             Contested
           </span>
         )}
       </div>
-    </button>
+    </motion.button>
   );
 }

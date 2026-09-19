@@ -1,8 +1,9 @@
 /* =========================================================================
-   MODAL — §14.2 Component Rules
+   MODAL — glass dialog with spring entrance
    Only for destructive/irreversible confirmation and the override dialog.
    ========================================================================= */
 import React, { useEffect, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from './Button';
 
@@ -26,39 +27,49 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }) {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   const sizes = {
-    sm: 'max-w-[400px]',
-    md: 'max-w-[560px]',
-    lg: 'max-w-[720px]',
+    sm: 'max-w-[420px]',
+    md: 'max-w-[580px]',
+    lg: 'max-w-[740px]',
   };
 
   return (
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
-      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
-    >
-      <div
-        className={`
-          w-full ${sizes[size]} mx-4
-          bg-raised border border-border-strong rounded-[6px]
-          shadow-overlay animate-fade-slide-in
-        `}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between h-[44px] px-4 border-b border-border-subtle">
-          <h3 className="text-[15px] font-medium text-text-primary">{title}</h3>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
-            <X size={16} />
-          </Button>
-        </div>
-        {/* Content */}
-        <div className="p-4">
-          {children}
-        </div>
-      </div>
-    </div>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          ref={overlayRef}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md"
+          onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ duration: 0.22, ease: [0.16, 0.84, 0.32, 1] }}
+            className={`
+              w-full ${sizes[size]} mx-4
+              glass-strong rounded-[var(--radius-lg)]
+              shadow-[var(--shadow-overlay)]
+            `}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between h-[52px] px-5 border-b border-border-subtle">
+              <h3 className="text-[15.5px] font-semibold text-text-primary tracking-tight">{title}</h3>
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+                <X size={16} />
+              </Button>
+            </div>
+            {/* Content */}
+            <div className="p-5">
+              {children}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
