@@ -52,26 +52,11 @@
   --color-status-stale: #EF6C1A;
 
   /* ——— Typography ——— */
-  --font-ui: "IBM Plex Sans", "IBM Plex Sans Devanagari", system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", "IBM Plex Sans Devanagari", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  --text-micro: 11px;
-  --text-small: 12px;
-  --text-body: 13px;
-  --text-lead: 15px;
-  --text-h3: 17px;
-  --text-h2: 21px;
-  --text-data: 28px;
-
-  /* ——— Spacing: 4px grid ——— */
-  --spacing-1: 4px;
-  --spacing-2: 8px;
-  --spacing-3: 12px;
-  --spacing-4: 16px;
-  --spacing-5: 20px;
-  --spacing-6: 24px;
-  --spacing-8: 32px;
-  --spacing-10: 40px;
+  /* ——— Spacing: 4px grid (base multiplier for p-1=4px, p-2=8px, etc.) ——— */
+  --spacing: 0.25rem;
 
   /* ——— Border radius ——— */
   --radius-sm: 2px;
@@ -81,13 +66,6 @@
 
   /* ——— Shadows ——— */
   --shadow-overlay: 0 8px 24px rgba(0,0,0,.45);
-
-  /* ——— Layout ——— */
-  --width-rail-left: 360px;
-  --width-rail-right: 420px;
-  --height-topbar: 48px;
-  --height-row: 28px;
-  --height-control: 32px;
 
   /* ——— Animation ——— */
   --duration-instant: 80ms;
@@ -110,8 +88,8 @@ html, body, #root {
 }
 
 body {
-  font-family: var(--font-ui);
-  font-size: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 13px;
   line-height: 18px;
   color: var(--color-text-primary);
   background-color: var(--color-canvas);
@@ -164,10 +142,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ——— Utility: monospace for IDs, ETAs, coords ——— */
-.font-mono {
-  font-family: var(--font-mono);
-}
+/* .font-mono is handled by Tailwind v4 via --font-mono in @theme */
 
 /* ——— Animation keyframes ——— */
 @keyframes fadeSlideIn {
