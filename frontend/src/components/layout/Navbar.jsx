@@ -26,17 +26,21 @@ export function Navbar() {
   const unackedAlerts = (alerts || []).filter(a => !a.acked_at);
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200/80 z-40 flex items-center justify-between px-6 shrink-0 select-none shadow-2xs text-slate-900">
-      {/* Brand Logo */}
-      <Link to="/ops" className="flex items-center gap-3 no-underline group shrink-0" title="Resilio Ops">
-        <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/25">
-          <ShieldCheck size={22} strokeWidth={2.4} />
+    <header className="absolute top-0 left-0 right-0 h-16 z-40 flex items-center justify-between px-6 pointer-events-none select-none">
+      {/* Brand Logo with Dedicated Frosted Glass Background */}
+      <Link
+        to="/ops"
+        className="pointer-events-auto flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white/80 hover:bg-white/95 backdrop-blur-xl border border-white/60 shadow-md transition-all no-underline group shrink-0"
+        title="Resilio Ops"
+      >
+        <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/25 group-hover:scale-105 transition-transform">
+          <ShieldCheck size={19} strokeWidth={2.4} />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-slate-900 tracking-tight whitespace-nowrap">
+        <div className="flex items-center gap-1.5 pr-1">
+          <span className="text-base font-bold text-slate-900 tracking-tight">
             Resilio
           </span>
-          <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/80">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/80">
             Ops
           </span>
         </div>
@@ -44,7 +48,7 @@ export function Navbar() {
 
       {/* Center 70% Width Navigation Dock with Spaced Icons */}
       <div className="flex-1 flex justify-center items-center px-4 max-w-4xl">
-        <nav className="w-full max-w-3xl flex items-center justify-between sm:justify-evenly px-6 py-1.5 bg-slate-50/90 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-2xs">
+        <nav className="pointer-events-auto w-full max-w-3xl flex items-center justify-between sm:justify-evenly px-4 py-1.5 rounded-2xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-md">
           {NAV_ITEMS.map(item => {
             const isActive = location.pathname === item.path ||
               (item.path === '/ops' && location.pathname.startsWith('/ops'));
@@ -58,15 +62,15 @@ export function Navbar() {
                     w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 relative no-underline
                     ${isActive
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-105'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-white hover:shadow-xs hover:scale-105 border border-transparent'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 hover:scale-105 border border-transparent'
                     }
                   `}
                   aria-label={item.label}
                 >
                   <item.icon
-                    size={22}
+                    size={21}
                     className="shrink-0"
-                    strokeWidth={isActive ? 2.2 : 1.8}
+                    strokeWidth={isActive ? 2.2 : 1.9}
                   />
 
                   {/* Badge Indicator */}
@@ -93,11 +97,11 @@ export function Navbar() {
         </nav>
       </div>
 
-      {/* Right Controls */}
-      <div className="flex items-center gap-3 shrink-0">
+      {/* Right Controls Island */}
+      <div className="pointer-events-auto flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-md shrink-0">
         {/* Real-time Status */}
         <div className="relative group flex items-center justify-center">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center cursor-default shadow-2xs">
+          <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center cursor-default shadow-xs">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600" />
@@ -113,10 +117,10 @@ export function Navbar() {
         <div className="relative group flex items-center justify-center">
           <Link
             to="/report"
-            className="h-10 px-3.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200/80 text-blue-700 text-xs font-bold flex items-center gap-1.5 transition-all no-underline shadow-2xs"
+            className="h-8 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200/80 text-blue-700 text-xs font-bold flex items-center gap-1.5 transition-all no-underline shadow-xs"
             aria-label="Report Incident"
           >
-            <FileText size={17} className="shrink-0 text-blue-600" />
+            <FileText size={15} className="shrink-0 text-blue-600" />
             <span className="hidden lg:inline whitespace-nowrap">+ Report</span>
           </Link>
           <div className="absolute top-full mt-3 right-0 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 text-slate-800 text-xs font-semibold rounded-xl whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 shadow-xl z-50">
@@ -127,9 +131,9 @@ export function Navbar() {
 
         {/* User Cockpit */}
         {user && (
-          <div className="flex items-center gap-2 pl-3 border-l border-slate-200 shrink-0">
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-200/80 shrink-0">
             <div className="relative group flex items-center justify-center">
-              <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center shrink-0 cursor-default">
+              <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center shrink-0 cursor-default">
                 {user.name ? user.name.slice(0, 2).toUpperCase() : 'OP'}
               </div>
               <div className="absolute top-full mt-3 right-0 px-3.5 py-2 bg-white/95 backdrop-blur-md border border-slate-200/90 text-slate-800 rounded-xl whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 shadow-xl z-50 text-left">
@@ -141,11 +145,11 @@ export function Navbar() {
 
             <button
               onClick={logout}
-              className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0 cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0 cursor-pointer"
               title="Sign Out"
               aria-label="Logout"
             >
-              <LogOut size={18} />
+              <LogOut size={16} />
             </button>
           </div>
         )}

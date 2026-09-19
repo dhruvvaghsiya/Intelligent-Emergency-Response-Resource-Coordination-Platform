@@ -48,7 +48,7 @@ export function IncidentDetail() {
   const tagStyle = SEVERITY_TAG_STYLES[incident.severity] || 'text-slate-700 bg-slate-100 border-slate-200';
 
   return (
-    <div className="w-[480px] max-w-[92vw] h-full border-l border-slate-200/80 bg-white flex flex-col shrink-0 overflow-hidden shadow-2xl select-none z-30">
+    <div className="w-[480px] max-w-[92vw] h-full border-l border-slate-200/80 bg-white flex flex-col shrink-0 overflow-hidden shadow-2xl select-none z-30 pt-16">
       {/* ——— Header ——— */}
       <div className="p-5 sm:p-6 border-b border-slate-200/80 bg-white shrink-0 space-y-3">
         {/* Row 1: Code + Severity Pill + Status + Close Button */}

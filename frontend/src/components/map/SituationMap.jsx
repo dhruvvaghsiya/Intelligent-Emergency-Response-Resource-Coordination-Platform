@@ -378,7 +378,7 @@ export function SituationMap() {
 
       {/* Floating 3-Line Sidebar Menu Toggle Button on Map (Only visible when sidebar is closed) */}
       {!sidebarOpen && (
-        <div className="absolute top-4 left-4 z-20">
+        <div className="absolute top-20 left-4 z-20">
           <button
             type="button"
             onClick={toggleSidebar}
@@ -395,7 +395,7 @@ export function SituationMap() {
       )}
 
       {/* Map floating controls */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+      <div className="absolute top-20 right-4 flex flex-col gap-2 z-10">
         <div className="bg-white border border-slate-200 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] flex flex-col overflow-hidden">
           <button
             onClick={() => mapRef.current?.zoomIn()}
