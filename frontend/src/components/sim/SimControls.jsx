@@ -1,7 +1,7 @@
 /* =========================================================================
    SIMULATION CONTROLS — Scenario Launcher & Speed Regulator (Light Theme)
    ========================================================================= */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Play, Square, Zap, Clock, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { SimBadge } from '../ui/Chip';
