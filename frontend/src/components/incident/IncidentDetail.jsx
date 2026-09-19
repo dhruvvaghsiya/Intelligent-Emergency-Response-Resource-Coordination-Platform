@@ -12,6 +12,8 @@ import { INCIDENT_TYPE_CONFIG, SEVERITY_CONFIG } from '../../lib/constants';
 import { formatTime, formatRelativeTime, formatDuration, formatProbability, formatAttribute, formatCoords } from '../../lib/format';
 import { EvidenceLedger } from '../evidence/EvidenceLedger';
 import { SeverityPanel } from '../evidence/SeverityPanel';
+import { DispatchPanel } from '../dispatch/DispatchPanel';
+import { ReallocationModal } from '../dispatch/ReallocationModal';
 
 const TABS = [
   { key: 'overview',  label: 'Overview' },
@@ -189,6 +191,8 @@ function EvidenceTab({ incident }) {
 
 // ——— RESPONSE TAB ———
 function ResponseTab({ incident }) {
+  const [showReallocation, setShowReallocation] = React.useState(false);
+
   return (
     <div className="space-y-3">
       <PanelSection title={`Assigned units (${incident.assigned_unit_count}/${incident.units_required})`}>
@@ -232,6 +236,27 @@ function ResponseTab({ incident }) {
           </div>
         </PanelSection>
       )}
+
+      {/* Dispatch recommendations */}
+      {incident.has_pending_recommendation && (
+        <DispatchPanel incidentId={incident.id} />
+      )}
+
+      {/* Reallocation button */}
+      {incident.severity === 'CRITICAL' && incident.assigned_unit_count < incident.units_required && (
+        <div className="mt-2">
+          <Button variant="secondary" className="w-full" onClick={() => setShowReallocation(true)}>
+            <AlertTriangle size={14} />
+            Open Reallocation Advisor
+          </Button>
+        </div>
+      )}
+
+      <ReallocationModal
+        isOpen={showReallocation}
+        onClose={() => setShowReallocation(false)}
+        incidentCode={incident.code}
+      />
     </div>
   );
 }

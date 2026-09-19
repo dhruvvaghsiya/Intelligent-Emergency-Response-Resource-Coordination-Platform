@@ -1,7 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Topbar } from './components/layout/Topbar';
+import { StaleBanner } from './components/layout/StaleBanner';
 import { ToastProvider } from './components/ui/Toast';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useStore } from './lib/store';
 
 // Pages
@@ -23,6 +25,7 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   const isAuthenticated = useStore(s => s.isAuthenticated);
+  useKeyboardShortcuts();
 
   return (
     <BrowserRouter>
@@ -30,6 +33,7 @@ export default function App() {
         <div className="h-screen w-screen flex flex-col bg-canvas overflow-hidden">
           {/* Topbar — shown when authenticated */}
           {isAuthenticated && <Topbar />}
+          {isAuthenticated && <StaleBanner />}
 
           {/* Routes */}
           <Routes>
