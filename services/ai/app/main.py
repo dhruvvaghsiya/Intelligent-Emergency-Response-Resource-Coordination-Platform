@@ -80,11 +80,12 @@ app.add_middleware(
 
 # ── Register routers ──
 from app.routers.health import router as health_router
+from app.routers.extract import router as extract_router
 
 app.include_router(health_router)
+app.include_router(extract_router)
 
 # Additional routers will be registered as they are built:
-# from app.routers.extract import router as extract_router
 # from app.routers.classify import router as classify_router
 # from app.routers.embed import router as embed_router
 # from app.routers.correlate import router as correlate_router
