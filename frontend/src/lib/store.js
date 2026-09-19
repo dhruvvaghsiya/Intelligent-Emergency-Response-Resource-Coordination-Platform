@@ -304,6 +304,11 @@ export const useStore = create((set, get) => ({
   rightRailTab: 'overview', // 'overview' | 'evidence' | 'response' | 'related' | 'timeline'
   setRightRailTab: (tab) => set({ rightRailTab: tab }),
 
+  // ——— Sidebar state ———
+  sidebarOpen: false, // Hidden by default; opens via hamburger menu toggle
+  toggleSidebar: () => set(state => ({ sidebarOpen: !state.sidebarOpen })),
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+
   // ——— Simulation ———
   simStatus: { running: false, scenario: null, speed: 1, clock: null },
 }));

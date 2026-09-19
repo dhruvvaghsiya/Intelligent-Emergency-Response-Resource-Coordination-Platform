@@ -1,6 +1,6 @@
 /* =========================================================================
    NAVBAR — Expanded 70% Navigation Bar with Premium Google Light Tooltips
-   Wide spacing, enlarged 22px icons, sleek floating light/glass tooltips.
+   Clean layout, enlarged 22px icons, and sleek floating light/glass tooltips.
    ========================================================================= */
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';

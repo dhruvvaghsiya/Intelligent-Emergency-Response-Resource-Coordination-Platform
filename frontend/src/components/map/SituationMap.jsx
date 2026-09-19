@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Map as MapLibreMap, Marker, setWorkerCount } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Minus, Plus, Crosshair, Layers, Globe, Map as MapIcon } from 'lucide-react';
+import { Minus, Plus, Crosshair, Layers, Globe, Map as MapIcon, Menu } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { Button } from '../ui/Button';
 import { CoverageRadar } from './CoverageRadar';
@@ -187,6 +187,7 @@ export function SituationMap() {
   const {
     incidents, units, selectedIncidentId, selectIncident,
     mapLayers, toggleMapLayer, mapViewport, setMapViewport,
+    sidebarOpen, toggleSidebar,
   } = useStore();
 
   // ── Close layers popup on click outside ──
@@ -317,8 +318,23 @@ export function SituationMap() {
     <div className="flex-1 relative bg-slate-100 overflow-hidden">
       <div ref={mapContainer} className="w-full h-full" />
 
-      {/* Coverage overlay */}
-      <CoverageRadar visible={mapLayers.coverage} map={mapReady ? mapRef.current : null} />
+      {/* Floating 3-Line Sidebar Menu Toggle Button on Map (Only visible when sidebar is closed) */}
+      {!sidebarOpen && (
+        <div className="absolute top-4 left-4 z-20">
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="
+              w-10 h-10 rounded-xl backdrop-blur-md transition-all cursor-pointer flex items-center justify-center border
+              bg-white/40 border-white/50 text-slate-800 hover:bg-white/75 hover:border-white/80 hover:text-slate-900 shadow-md hover:scale-105
+            "
+            title="Open Incident Sidebar (3-Line)"
+            aria-label="Open Incident Sidebar"
+          >
+            <Menu size={20} strokeWidth={2.2} />
+          </button>
+        </div>
+      )}
 
       {/* Map floating controls */}
       <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
