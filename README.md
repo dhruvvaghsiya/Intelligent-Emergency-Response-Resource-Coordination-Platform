@@ -1,5 +1,7 @@
 # 🚨 RESILIO — Intelligent Emergency Response & Resource Coordination Platform
 
+> 🌐 **Live Platform**: [https://resilio-one-blue.vercel.app/ops](https://resilio-one-blue.vercel.app/ops)
+
 **Resilio** (from Latin *resilire*: "to spring back / resilient") is a real-time command-and-control system that turns a chaotic flood of emergency reports — 108 calls, citizen app submissions, SMS, social media, IoT sensors, CCTV analytics, hospital and government feeds — into a **single, trustworthy operating picture**, and then tells commanders *exactly which unit to send where, and why.*
 
 Built for Ahmedabad's Area of Interest, but the pipeline is city-agnostic: swap the AOI bounding box and it runs anywhere.
@@ -92,6 +94,10 @@ Roles are frozen and enforced end-to-end: `ADMIN, COMMANDER, DISPATCHER, ANALYST
 ---
 
 ## Quickstart
+
+**Live Demo**: [https://resilio-one-blue.vercel.app/ops](https://resilio-one-blue.vercel.app/ops)
+
+To run locally:
 
 ```bash
 # 1. Backend (Node 20+, MongoDB running locally)
