@@ -94,7 +94,7 @@ function BeliefDetail({ belief }) {
       {/* Dual bar — supporting vs refuting */}
       <div className="space-y-1.5 mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500 w-12">Supporting</span>
+          <span className="text-xs font-medium text-slate-500 w-20 shrink-0">Supporting</span>
           <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-600 rounded-full transition-all duration-200"
@@ -106,7 +106,7 @@ function BeliefDetail({ belief }) {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500 w-12">Refuting</span>
+          <span className="text-xs font-medium text-slate-500 w-20 shrink-0">Refuting</span>
           <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-red-500 rounded-full transition-all duration-200"

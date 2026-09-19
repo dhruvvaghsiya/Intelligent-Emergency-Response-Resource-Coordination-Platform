@@ -1,13 +1,12 @@
 /* =========================================================================
-   INCIDENT DETAIL — Spacious Telemetry & Operational Action Rail (480px)
-   Features p-6 breathing room, clean tabs, soft belief progress bars.
+   INCIDENT DETAIL — Google Material Inspired Operational Action Drawer (480px)
+   Minimalist design, increased typography, touch-friendly controls & generous spacing.
    ========================================================================= */
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin, Clock, Users, ChevronRight, ExternalLink, AlertTriangle } from 'lucide-react';
+import { X, MapPin, Clock, Users, ChevronRight, ExternalLink, AlertTriangle, FileText, Shield } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { Button } from '../ui/Button';
-import { SeverityChip, IncidentStatusChip, SimBadge, DegradedBadge, ContestedBadge } from '../ui/Chip';
 import { PanelSection } from '../ui/Panel';
 import { formatTime, formatRelativeTime, formatDuration, formatAttribute, formatCoords } from '../../lib/format';
 import { EvidenceLedger } from '../evidence/EvidenceLedger';
@@ -23,56 +22,98 @@ const TABS = [
   { key: 'timeline',  label: 'Timeline' },
 ];
 
+const SEVERITY_DOT_COLORS = {
+  CRITICAL: 'bg-red-500',
+  HIGH: 'bg-orange-500',
+  MODERATE: 'bg-amber-500',
+  LOW: 'bg-emerald-500',
+  INFO: 'bg-blue-500',
+};
+
+const SEVERITY_TAG_STYLES = {
+  CRITICAL: 'text-red-700 bg-red-50/90 border-red-200/70',
+  HIGH: 'text-orange-700 bg-orange-50/90 border-orange-200/70',
+  MODERATE: 'text-amber-700 bg-amber-50/90 border-amber-200/70',
+  LOW: 'text-emerald-700 bg-emerald-50/90 border-emerald-200/70',
+  INFO: 'text-blue-700 bg-blue-50/90 border-blue-200/70',
+};
+
 export function IncidentDetail() {
   const { selectedIncidentId, incidents, clearSelection, rightRailTab, setRightRailTab } = useStore();
   const incident = incidents.find(i => i.id === selectedIncidentId);
 
   if (!incident) return null;
 
+  const dotBg = SEVERITY_DOT_COLORS[incident.severity] || 'bg-slate-400';
+  const tagStyle = SEVERITY_TAG_STYLES[incident.severity] || 'text-slate-700 bg-slate-100 border-slate-200';
+
   return (
-    <div className="w-[480px] h-full border-l border-slate-200 bg-white flex flex-col shrink-0 overflow-hidden shadow-lg select-none">
+    <div className="w-[480px] max-w-[92vw] h-full border-l border-slate-200/80 bg-white flex flex-col shrink-0 overflow-hidden shadow-2xl select-none z-30">
       {/* ——— Header ——— */}
-      <div className="p-6 border-b border-slate-100 bg-white">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-semibold text-slate-500">{incident.code}</span>
-            <SeverityChip severity={incident.severity} score={incident.severity_score} />
-            <IncidentStatusChip status={incident.status} />
+      <div className="p-5 sm:p-6 border-b border-slate-200/80 bg-white shrink-0 space-y-3">
+        {/* Row 1: Code + Severity Pill + Status + Close Button */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-xs font-bold text-slate-400 tracking-wider">
+              {incident.code}
+            </span>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${tagStyle}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${dotBg}`} />
+              {incident.severity?.toLowerCase()} {incident.severity_score && `· ${incident.severity_score}`}
+            </span>
+            <span className="text-xs font-semibold text-slate-500 capitalize px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/70">
+              {incident.status?.replace(/_/g, ' ').toLowerCase()}
+            </span>
           </div>
+
           <div className="flex items-center gap-1.5">
-            {incident.is_simulated && <SimBadge />}
-            {incident.ai?.degraded && <DegradedBadge />}
-            <Button variant="ghost" size="compact" onClick={clearSelection} aria-label="Close detail panel" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-700">
+            {incident.is_simulated && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
+                Simulated
+              </span>
+            )}
+            <button
+              onClick={clearSelection}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+              title="Close detail panel"
+              aria-label="Close detail panel"
+            >
               <X size={18} />
-            </Button>
+            </button>
           </div>
         </div>
 
-        <h2 className="text-xl font-bold text-slate-900 leading-snug mb-2 tracking-tight">
+        {/* Row 2: Headline Title */}
+        <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug tracking-tight">
           {incident.title}
         </h2>
 
-        <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
+        {/* Row 3: Location & Time Details */}
+        <div className="flex items-center gap-4 text-xs sm:text-sm font-semibold text-slate-600 flex-wrap pt-0.5">
           <span className="flex items-center gap-1.5">
-            <MapPin size={14} className="text-slate-400" />
+            <MapPin size={15} className="text-slate-400 shrink-0" />
             {incident.address || formatCoords(incident.location)}
           </span>
+          <span className="text-slate-300">·</span>
           <span className="flex items-center gap-1.5">
-            <Clock size={14} className="text-slate-400" />
+            <Clock size={15} className="text-slate-400 shrink-0" />
             {formatRelativeTime(incident.occurred_at)}
           </span>
         </div>
 
-        {/* Contested attributes */}
+        {/* Contested Warnings */}
         {incident.beliefs?.filter(b => b.state === 'CONTESTED').map(b => (
-          <div key={b.attribute} className="mt-3">
-            <ContestedBadge attribute={b.attribute} />
+          <div key={b.attribute} className="mt-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+              <AlertTriangle size={13} className="text-amber-600 shrink-0" />
+              <span>Contested ({formatAttribute(b.attribute)})</span>
+            </span>
           </div>
         ))}
       </div>
 
       {/* ——— Tabs Navigation ——— */}
-      <div className="flex border-b border-slate-200 bg-slate-50/50 px-3 relative">
+      <div className="flex border-b border-slate-200/80 bg-slate-50/70 px-2 shrink-0 relative h-12 items-center">
         {TABS.map(tab => {
           const isActive = rightRailTab === tab.key;
           return (
@@ -80,19 +121,19 @@ export function IncidentDetail() {
               key={tab.key}
               onClick={() => setRightRailTab(tab.key)}
               className={`
-                relative flex-1 h-11 text-sm font-medium text-center cursor-pointer transition-colors
+                relative flex-1 h-full flex items-center justify-center text-xs sm:text-sm font-semibold cursor-pointer transition-colors whitespace-nowrap px-1
                 ${isActive
-                  ? 'text-blue-600 font-semibold'
+                  ? 'text-blue-600 font-bold'
                   : 'text-slate-600 hover:text-slate-900'
                 }
               `}
             >
-              {tab.label}
+              <span className="py-1">{tab.label}</span>
               {isActive && (
                 <motion.div
                   layoutId="detail-tab-underline"
-                  className="absolute left-2 right-2 -bottom-px h-[2px] bg-blue-600 rounded-full"
-                  transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                  className="absolute left-1 right-1 bottom-0 h-0.5 bg-blue-600 rounded-t-md z-10"
+                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                 />
               )}
             </button>
@@ -100,8 +141,8 @@ export function IncidentDetail() {
         })}
       </div>
 
-      {/* ——— Tab Content ——— */}
-      <div className="flex-1 overflow-y-auto p-6 bg-white space-y-6">
+      {/* ——— Tab Content Container ——— */}
+      <div className="flex-1 overflow-y-auto p-5 sm:p-6 bg-slate-50/40 space-y-6">
         {rightRailTab === 'overview' && <OverviewTab incident={incident} />}
         {rightRailTab === 'evidence' && <EvidenceTab incident={incident} />}
         {rightRailTab === 'response' && <ResponseTab incident={incident} />}
@@ -118,25 +159,27 @@ function OverviewTab({ incident }) {
     <div className="space-y-6">
       {/* Description */}
       <PanelSection title="Incident Summary">
-        <p className="text-sm text-slate-700 leading-relaxed font-sans">{incident.description}</p>
-        {incident.ai?.briefing && (
-          <div className="mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <div className="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-2">
-              <span>AI Synthesized Briefing</span>
-              {incident.ai.degraded && <DegradedBadge />}
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
+          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">{incident.description}</p>
+          {incident.ai?.briefing && (
+            <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-200/70 space-y-1.5">
+              <div className="text-xs font-bold text-blue-700 flex items-center gap-2">
+                <Shield size={14} className="text-blue-600" />
+                <span>AI Synthesized Briefing</span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">{incident.ai.briefing}</p>
             </div>
-            <p className="text-sm text-slate-700 leading-relaxed font-sans">{incident.ai.briefing}</p>
-          </div>
-        )}
+          )}
+        </div>
       </PanelSection>
 
-      {/* Severity */}
+      {/* Severity Model */}
       <SeverityPanel assessment={incident.severity_assessment} incidentId={incident.id} />
 
       {/* Beliefs summary */}
       {incident.beliefs && incident.beliefs.length > 0 && (
         <PanelSection title="Probabilistic State Beliefs">
-          <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
             {incident.beliefs.map(belief => (
               <BeliefBar key={belief.attribute} belief={belief} />
             ))}
@@ -145,8 +188,8 @@ function OverviewTab({ incident }) {
       )}
 
       {/* Quick stats */}
-      <PanelSection title="Response Units">
-        <div className="grid grid-cols-3 gap-3">
+      <PanelSection title="Response Units Overview">
+        <div className="grid grid-cols-3 gap-3.5">
           <StatCard label="Reports" value={incident.report_count} />
           <StatCard label="Units Dispatched" value={`${incident.assigned_unit_count}/${incident.units_required}`} />
           <StatCard label="Ward" value={incident.ward || '—'} small />
@@ -162,12 +205,12 @@ function BeliefBar({ belief }) {
 
   return (
     <div className="flex items-center gap-3">
-      <span className={`text-sm w-32 truncate ${isContested ? 'text-amber-800 font-semibold' : 'text-slate-700 font-medium'}`}>
+      <span className={`text-xs sm:text-sm w-36 truncate ${isContested ? 'text-amber-800 font-bold' : 'text-slate-700 font-semibold'}`}>
         {formatAttribute(belief.attribute)}
       </span>
-      <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+      <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
         <div
-          className={`h-full rounded-full transition-all duration-200 ${
+          className={`h-full rounded-full transition-all duration-300 ${
             isContested ? 'bg-amber-500' :
             belief.probability > 0.6 ? 'bg-blue-600' :
             belief.probability < 0.4 ? 'bg-slate-400' : 'bg-amber-500'
@@ -175,19 +218,19 @@ function BeliefBar({ belief }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="font-mono text-xs text-slate-500 w-9 text-right font-medium">
+      <span className="font-mono text-xs text-slate-500 w-10 text-right font-bold">
         {pct}%
       </span>
-      {isContested && <AlertTriangle size={14} className="text-amber-600 shrink-0" />}
+      {isContested && <AlertTriangle size={15} className="text-amber-600 shrink-0" />}
     </div>
   );
 }
 
 function StatCard({ label, value, small = false }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-      <div className="text-xs text-slate-500 font-medium mb-1">{label}</div>
-      <div className={`font-semibold text-slate-900 ${small ? 'text-base' : 'text-xl'}`}>
+    <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs text-center">
+      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">{label}</div>
+      <div className={`font-bold text-slate-900 ${small ? 'text-sm sm:text-base' : 'text-lg sm:text-xl'}`}>
         {value}
       </div>
     </div>
@@ -202,26 +245,28 @@ function EvidenceTab({ incident }) {
 // ——— RESPONSE TAB ———
 function ResponseTab({ incident }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PanelSection title={`Assigned Fleet (${incident.assigned_unit_count}/${incident.units_required})`}>
         {incident.assignments && incident.assignments.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             {incident.assignments.map(asg => (
-              <div key={asg.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-1.5">
+              <div key={asg.id} className="bg-white border border-slate-200/80 rounded-2xl p-4.5 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between mb-1">
                   <span className="font-mono text-sm font-bold text-slate-900">{asg.unit_call_sign}</span>
-                  <IncidentStatusChip status={asg.status} />
+                  <span className="text-xs font-semibold text-slate-600 px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200/80 capitalize">
+                    {asg.status?.replace(/_/g, ' ').toLowerCase()}
+                  </span>
                 </div>
                 {asg.eta_seconds != null && asg.status === 'EN_ROUTE' && (
-                  <div className="text-sm text-slate-600">
-                    ETA: <strong className="font-semibold text-blue-600">{formatDuration(asg.eta_seconds)}</strong>
+                  <div className="text-xs sm:text-sm text-slate-600 font-medium">
+                    ETA: <strong className="font-bold text-blue-600">{formatDuration(asg.eta_seconds)}</strong>
                     {asg.eta_method === 'HAVERSINE_FALLBACK' && (
                       <span className="text-xs text-amber-700 ml-1.5 font-medium">(estimated)</span>
                     )}
                   </div>
                 )}
                 {asg.rationale && asg.rationale.length > 0 && (
-                  <div className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-100">
+                  <div className="text-xs text-slate-500 pt-2 border-t border-slate-100">
                     {asg.rationale.join(' · ')}
                   </div>
                 )}
@@ -229,9 +274,11 @@ function ResponseTab({ incident }) {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-500 py-3">
-            No units assigned yet. Review dispatch options below.
-          </p>
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 text-center">
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+              No units assigned yet. Review dispatch options below.
+            </p>
+          </div>
         )}
       </PanelSection>
 
@@ -239,7 +286,7 @@ function ResponseTab({ incident }) {
         <PanelSection title="Required Capabilities">
           <div className="flex flex-wrap gap-2">
             {incident.required_capabilities.map((cap, i) => (
-              <span key={i} className="px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700">
+              <span key={i} className="px-3 py-1 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 shadow-2xs">
                 {cap.replace(/_/g, ' ')}
               </span>
             ))}
@@ -247,7 +294,7 @@ function ResponseTab({ incident }) {
         </PanelSection>
       )}
 
-      {/* Dispatch recommendations — reachable for any non-terminal, understaffed incident */}
+      {/* Dispatch recommendations */}
       {!['CLOSED', 'MERGED', 'FALSE_ALARM', 'RESOLVED'].includes(incident.status) &&
         incident.assigned_unit_count < incident.units_required && (
         <DispatchPanel incidentId={incident.id} />
@@ -278,16 +325,16 @@ function TimelineTab({ incident }) {
   ].sort((a, b) => new Date(b.ts) - new Date(a.ts));
 
   return (
-    <div className="space-y-0 relative">
+    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-0 relative">
       {events.map((evt, i) => (
         <div key={i} className="flex gap-4 py-3 border-b border-slate-100 last:border-b-0">
           <div className="flex flex-col items-center">
-            <div className="w-2.5 h-2.5 rounded-full bg-blue-600 mt-1" />
-            {i < events.length - 1 && <div className="w-[1px] flex-1 bg-slate-200 mt-1" />}
+            <div className="w-3 h-3 rounded-full bg-blue-600 mt-1 shadow-2xs" />
+            {i < events.length - 1 && <div className="w-[1.5px] flex-1 bg-slate-200 mt-1" />}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm text-slate-800 font-medium leading-snug">{evt.text}</div>
-            <div className="text-xs text-slate-400 font-mono mt-0.5">{formatTime(evt.ts)}</div>
+            <div className="text-xs sm:text-sm text-slate-800 font-semibold leading-snug">{evt.text}</div>
+            <div className="text-[11px] text-slate-400 font-mono mt-0.5 font-medium">{formatTime(evt.ts)}</div>
           </div>
         </div>
       ))}

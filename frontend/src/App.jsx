@@ -50,7 +50,7 @@ export default function App() {
         alerts: MOCK_ALERTS,
         hospitals: MOCK_HOSPITALS,
         connectionStatus: 'connected',
-        selectedIncidentId: MOCK_INCIDENTS[0]?.id || null,
+        selectedIncidentId: null,
       });
     }
 
