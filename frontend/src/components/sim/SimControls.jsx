@@ -2,16 +2,17 @@
    SIMULATION CONTROLS — Bottom drawer for scenario launcher
    §29: Start/stop scenarios, speed control, clock display
    ========================================================================= */
-import React, { useState } from 'react';
-import { Play, Pause, Square, Zap, Clock, ChevronUp, ChevronDown } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Play, Square, Zap, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { SimBadge } from '../ui/Chip';
+import { adminApi } from '../../lib/api';
 
+// Duration (seconds) matches the last event's `t` in backend/src/modules/admin/scenarios.js —
+// only scenarios defined there actually run; there is no server-side handler for anything else.
 const SCENARIOS = [
-  { id: 'flood_sabarmati', name: 'Flood — Sabarmati', desc: '14 reports, 6 locations, duplicate compression → coverage hole', duration: '4 min' },
-  { id: 'industrial_fire_vatva', name: 'Industrial Fire — Vatva', desc: 'Conflicting reports, belief fusion, severity recompute', duration: '3 min' },
-  { id: 'highway_pileup_sg', name: 'Highway Pileup — SG Hwy', desc: '9 reports in 90s, Hungarian vs greedy dispatch', duration: '3 min' },
-  { id: 'cascade_monsoon', name: 'Cascade — Monsoon', desc: 'Flood → road closure → coverage hole → reallocation', duration: '5 min' },
+  { id: 'flood_sabarmati', name: 'Flood — Sabarmati', desc: '14 reports, 6 locations, duplicate compression → coverage hole', durationSeconds: 160 },
+  { id: 'industrial_fire_vatva', name: 'Industrial Fire — Vatva', desc: 'Conflicting reports, belief fusion, severity recompute', durationSeconds: 95 },
 ];
 
 export function SimControls() {
@@ -19,15 +20,54 @@ export function SimControls() {
   const [running, setRunning] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState(null);
   const [speed, setSpeed] = useState(5);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState('');
+  const startedAtRef = useRef(null);
 
-  const handleStart = (scenario) => {
-    setSelectedScenario(scenario);
-    setRunning(true);
+  useEffect(() => {
+    adminApi.simStatus().then(status => {
+      if (status.running) {
+        const scenario = SCENARIOS.find(s => s.name === status.name) || null;
+        setSelectedScenario(scenario);
+        setSpeed(status.speed || 5);
+        startedAtRef.current = status.started_at ? new Date(status.started_at).getTime() : Date.now();
+        setRunning(true);
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!running || !selectedScenario) return;
+    const tick = setInterval(() => {
+      const elapsedRealMs = Date.now() - startedAtRef.current;
+      const elapsedSimSeconds = (elapsedRealMs / 1000) * speed;
+      const pct = Math.min(100, (elapsedSimSeconds / selectedScenario.durationSeconds) * 100);
+      setProgress(pct);
+      if (pct >= 100) setRunning(false);
+    }, 500);
+    return () => clearInterval(tick);
+  }, [running, selectedScenario, speed]);
+
+  const handleStart = async (scenario) => {
+    setError('');
+    try {
+      await adminApi.startScenario(scenario.id, speed);
+      startedAtRef.current = Date.now();
+      setProgress(0);
+      setSelectedScenario(scenario);
+      setRunning(true);
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || 'Failed to start scenario');
+    }
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
+    try {
+      await adminApi.stopSim();
+    } catch { /* best-effort */ }
     setRunning(false);
     setSelectedScenario(null);
+    setProgress(0);
   };
 
   return (
@@ -92,9 +132,9 @@ export function SimControls() {
                 </Button>
               </div>
 
-              {/* Mock progress */}
+              {/* Real progress, derived from elapsed time vs scenario duration */}
               <div className="h-[3px] bg-inset rounded-full overflow-hidden">
-                <div className="h-full bg-accent rounded-full transition-all duration-1000" style={{ width: '35%' }} />
+                <div className="h-full bg-accent rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
               </div>
             </div>
           ) : (
@@ -102,6 +142,9 @@ export function SimControls() {
               <div className="text-[11px] text-text-muted uppercase tracking-wider mb-2">
                 Launch a scenario
               </div>
+              {error && (
+                <div className="text-[11px] text-sev-critical mb-1.5">{error}</div>
+              )}
               {SCENARIOS.map(scenario => (
                 <div
                   key={scenario.id}
@@ -111,7 +154,7 @@ export function SimControls() {
                     <div className="text-[12px] font-medium text-text-primary">{scenario.name}</div>
                     <div className="text-[11px] text-text-muted truncate">{scenario.desc}</div>
                   </div>
-                  <span className="text-[10px] text-text-muted font-mono shrink-0">{scenario.duration}</span>
+                  <span className="text-[10px] text-text-muted font-mono shrink-0">{Math.round(scenario.durationSeconds / 60)} min</span>
                   <Button variant="primary" size="compact" onClick={() => handleStart(scenario)}>
                     <Play size={12} />
                     Start

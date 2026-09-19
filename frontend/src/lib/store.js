@@ -156,11 +156,22 @@ export const useStore = create((set, get) => ({
   // ——— Incidents (live overlay) ———
   incidents: [],
   selectedIncidentId: null,
-  selectIncident: (id) => set({ selectedIncidentId: id }),
+  selectIncident: (id) => {
+    set({ selectedIncidentId: id });
+    get().fetchIncidentDetail(id);
+  },
   clearSelection: () => set({ selectedIncidentId: null }),
   getSelectedIncident: () => {
     const state = get();
     return state.incidents.find(i => i.id === state.selectedIncidentId) || null;
+  },
+  fetchIncidentDetail: async (id) => {
+    try {
+      const detail = await incidentsApi.get(id);
+      set(state => ({ incidents: upsertById(state.incidents, detail) }));
+    } catch (err) {
+      console.warn('fetchIncidentDetail failed', err);
+    }
   },
   fetchIncidents: async () => {
     try {

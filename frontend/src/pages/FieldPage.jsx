@@ -2,12 +2,13 @@
    FIELD PAGE — Simplified mobile-first responder view
    §W9: Shows assigned incidents, status updates, offline queue
    ========================================================================= */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, Send, CheckCircle, Navigation, Radio, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { SeverityChip, IncidentStatusChip, SimBadge } from '../components/ui/Chip';
 import { Panel, PanelSection } from '../components/ui/Panel';
 import { useStore } from '../lib/store';
+import { fieldApi } from '../lib/api';
 import { formatRelativeTime, formatDuration } from '../lib/format';
 
 export function FieldPage() {
@@ -15,11 +16,40 @@ export function FieldPage() {
   const [selectedUnit, setSelectedUnit] = useState(units[0]?.id);
   const [reportText, setReportText] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
+  const [statusError, setStatusError] = useState('');
+
+  useEffect(() => {
+    if (!selectedUnit && units.length > 0) setSelectedUnit(units[0].id);
+  }, [units, selectedUnit]);
 
   const unit = units.find(u => u.id === selectedUnit);
   const assignedIncidents = unit?.current_assignment_id
     ? incidents.filter(i => i.assignments?.some(a => a.unit_id === selectedUnit))
     : [];
+
+  const sendStatusUpdate = async (status) => {
+    if (!unit?.current_assignment_id) return;
+    setStatusUpdating(true);
+    setStatusError('');
+    try {
+      const [result] = await fieldApi.sync({
+        actions: [{
+          type: 'STATUS_UPDATE',
+          idempotency_key: crypto.randomUUID(),
+          captured_at: new Date().toISOString(),
+          payload: { assignment_id: unit.current_assignment_id, status },
+        }],
+      });
+      if (result?.applied !== 'applied') {
+        setStatusError(result?.reason || 'Status update was not applied');
+      }
+    } catch (err) {
+      setStatusError(err?.response?.data?.error?.message || 'Failed to sync status');
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
 
   return (
     <div className="flex-1 overflow-y-auto bg-canvas">
@@ -65,19 +95,37 @@ export function FieldPage() {
 
             {/* Quick status buttons */}
             <div className="flex gap-2 mt-3">
-              <Button variant="primary" size="compact" className="flex-1">
+              <Button
+                variant="primary" size="compact" className="flex-1"
+                disabled={!unit.current_assignment_id || statusUpdating}
+                onClick={() => sendStatusUpdate('EN_ROUTE')}
+              >
                 <Navigation size={12} />
                 En Route
               </Button>
-              <Button variant="secondary" size="compact" className="flex-1">
+              <Button
+                variant="secondary" size="compact" className="flex-1"
+                disabled={!unit.current_assignment_id || statusUpdating}
+                onClick={() => sendStatusUpdate('ON_SCENE')}
+              >
                 <MapPin size={12} />
                 On Scene
               </Button>
-              <Button variant="secondary" size="compact" className="flex-1">
+              <Button
+                variant="secondary" size="compact" className="flex-1"
+                disabled={!unit.current_assignment_id || statusUpdating}
+                onClick={() => sendStatusUpdate('COMPLETED')}
+              >
                 <CheckCircle size={12} />
                 Complete
               </Button>
             </div>
+            {!unit.current_assignment_id && (
+              <p className="text-[11px] text-text-muted mt-2">No active assignment to update.</p>
+            )}
+            {statusError && (
+              <p className="text-[11px] text-sev-critical mt-2">{statusError}</p>
+            )}
           </Panel>
         )}
 
