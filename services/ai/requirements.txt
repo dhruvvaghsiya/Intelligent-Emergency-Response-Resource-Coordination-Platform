@@ -1,0 +1,28 @@
+# PRAHARI AI Service — Dependencies
+# Python 3.11+ / FastAPI / sentence-transformers / scikit-learn
+
+# ── Core framework ──
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# ── LLM providers ──
+google-generativeai==0.8.4
+openai==1.58.1
+
+# ── ML / NLP ──
+sentence-transformers==3.3.1
+scikit-learn==1.6.1
+numpy==2.2.1
+torch==2.5.1
+
+# ── Utilities ──
+pyyaml==6.0.2
+httpx==0.28.1
+orjson==3.10.13
+
+# ── Testing ──
+pytest==8.3.4
+pytest-asyncio==0.25.0
