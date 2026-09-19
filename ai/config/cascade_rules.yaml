@@ -1,0 +1,138 @@
+# PRAHARI AI Service — Cascade Rules
+# See README W5 (§7, §16.1): typed causal rule graph.
+#
+# A cascade prediction is ONLY allowed to exist if it mutates a concrete
+# system state (road segment cost, coverage hex, or a derived incident).
+# No free-floating prophecies.
+#
+# Rules are evaluated when an incident's beliefs cross the specified threshold.
+# Effects are time-boxed with TTL and auto-expire.
+
+cascade_rules:
+  # ─── Flood → Road Blockage ────────────────────────────────────────────────
+  - rule_id: "FLOOD_BLOCKS_ROADS"
+    trigger:
+      incident_types: ["FLOOD", "WATERLOGGING"]
+      belief_conditions:
+        water_depth_high:
+          min_probability: 0.6
+    effect:
+      type: "ROAD_BLOCK"
+      description: "Flood water blocks road segments within the incident area"
+      radius_m: 500
+      confidence: 0.80
+      ttl_s: 10800        # 3 hours — flood waters recede slowly
+      rationale_template: >
+        Flood at {location} with water depth belief {probability:.0%} is likely
+        blocking road segments within {radius_m}m. Affected segments will show
+        increased travel times for units routing through this area.
+
+  # ─── Industrial Fire → Chemical Plume Zone ────────────────────────────────
+  - rule_id: "INDUSTRIAL_FIRE_PLUME"
+    trigger:
+      incident_types: ["FIRE_INDUSTRIAL", "CHEMICAL_SPILL"]
+      belief_conditions:
+        chemical_hazard:
+          min_probability: 0.5
+    effect:
+      type: "DERIVED_INCIDENT"
+      description: "Chemical plume zone downwind of industrial fire"
+      radius_m: 800
+      confidence: 0.60
+      ttl_s: 7200          # 2 hours
+      derived_type: "CHEMICAL_SPILL"
+      rationale_template: >
+        Industrial fire at {location} with chemical hazard belief {probability:.0%}
+        may produce a toxic plume zone. Area within {radius_m}m flagged as
+        DERIVED_RISK requiring monitoring. Affected population should shelter in place.
+
+  # ─── Gas Leak → Access Degradation ────────────────────────────────────────
+  - rule_id: "GAS_LEAK_ACCESS"
+    trigger:
+      incident_types: ["GAS_LEAK"]
+      belief_conditions:
+        gas_leak:
+          min_probability: 0.6
+    effect:
+      type: "ACCESS_DEGRADED"
+      description: "Gas leak creates exclusion zone degrading access"
+      radius_m: 300
+      confidence: 0.75
+      ttl_s: 5400          # 1.5 hours
+      rationale_template: >
+        Confirmed gas leak at {location} (belief {probability:.0%}) creates a
+        safety exclusion zone. Units should avoid direct approach from downwind
+        direction. Access routes through this area will have degraded ETAs.
+
+  # ─── Building Collapse → Road Block ───────────────────────────────────────
+  - rule_id: "COLLAPSE_BLOCKS_ROAD"
+    trigger:
+      incident_types: ["BUILDING_COLLAPSE"]
+      belief_conditions:
+        structural_damage:
+          min_probability: 0.5
+    effect:
+      type: "ROAD_BLOCK"
+      description: "Debris from building collapse blocks adjacent roads"
+      radius_m: 200
+      confidence: 0.85
+      ttl_s: 14400         # 4 hours — debris clearance takes time
+      rationale_template: >
+        Building collapse at {location} with structural damage belief {probability:.0%}
+        is likely producing debris blocking adjacent road segments within {radius_m}m.
+
+  # ─── Major Fire → Demand Spike ────────────────────────────────────────────
+  - rule_id: "FIRE_DEMAND_SPIKE"
+    trigger:
+      incident_types: ["FIRE_STRUCTURE", "FIRE_INDUSTRIAL"]
+      belief_conditions:
+        spread_risk_high:
+          min_probability: 0.5
+        fire_active:
+          min_probability: 0.7
+    effect:
+      type: "DEMAND_SPIKE"
+      description: "Spreading fire may generate additional medical and rescue demand"
+      radius_m: 1000
+      confidence: 0.55
+      ttl_s: 3600          # 1 hour
+      rationale_template: >
+        Active fire at {location} with spread risk {probability:.0%} may generate
+        additional medical and rescue demand in the surrounding {radius_m}m area.
+        Recommend pre-positioning available units nearby.
+
+  # ─── Crowd Incident → Access Restricted ───────────────────────────────────
+  - rule_id: "CROWD_RESTRICTS_ACCESS"
+    trigger:
+      incident_types: ["CROWD_INCIDENT"]
+      belief_conditions:
+        crowd_large:
+          min_probability: 0.6
+    effect:
+      type: "ACCESS_DEGRADED"
+      description: "Large crowd restricts emergency vehicle access"
+      radius_m: 400
+      confidence: 0.70
+      ttl_s: 3600          # 1 hour
+      rationale_template: >
+        Large crowd at {location} (belief {probability:.0%}) is restricting
+        emergency vehicle access within {radius_m}m. ETAs through this area
+        will be degraded. Consider alternate routing.
+
+  # ─── Power Down → Infrastructure Cascade ──────────────────────────────────
+  - rule_id: "POWER_DOWN_CASCADE"
+    trigger:
+      incident_types: ["ELECTRICAL_HAZARD", "INFRASTRUCTURE_FAILURE"]
+      belief_conditions:
+        power_down:
+          min_probability: 0.7
+    effect:
+      type: "DEMAND_SPIKE"
+      description: "Power outage may trigger elevator rescues and medical device failures"
+      radius_m: 1500
+      confidence: 0.45
+      ttl_s: 7200          # 2 hours
+      rationale_template: >
+        Power outage at {location} (belief {probability:.0%}) may trigger secondary
+        incidents: elevator entrapments, medical device failures, traffic signal
+        outages. Monitor area within {radius_m}m for new reports.

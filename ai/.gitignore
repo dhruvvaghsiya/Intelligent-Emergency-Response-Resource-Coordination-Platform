@@ -1,0 +1,57 @@
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ─── Virtual environments ───
+venv/
+.venv/
+env/
+
+# ─── IDE ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── ML Models (large binary files) ───
+models/*.pkl
+models/*.bin
+models/*.pt
+ai/models/*.pkl
+ai/models/*.bin
+ai/models/*.pt
+
+# ─── Environment ───
+# Ignore root .env, keep only .env inside ai folder
+.env
+!ai/.env
+!.env.example
+!ai/.env.example
+
+# ─── Node ───
+node_modules/
+npm-debug.log*
+
+# ─── Logs ───
+*.log
+
+# ─── pytest ───
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ─── Misc ───
+*.bak
+*.tmp
