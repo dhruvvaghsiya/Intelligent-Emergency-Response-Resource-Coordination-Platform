@@ -184,7 +184,7 @@ export function FieldPage() {
         )}
 
         {/* Assigned incidents */}
-        <PanelSection title="Assigned Incidents" className="mb-4">
+        <Panel title="Assigned Incidents" className="mb-4">
           {lookupLoading ? (
             <div className="bg-surface border border-border-subtle rounded-[4px] p-4 text-center text-[13px] text-text-muted">
               Looking up assignment…
