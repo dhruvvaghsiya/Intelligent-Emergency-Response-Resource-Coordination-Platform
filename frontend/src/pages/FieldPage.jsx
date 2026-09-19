@@ -3,19 +3,24 @@
    §W9: Shows assigned incidents, status updates, offline queue
    ========================================================================= */
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, Send, CheckCircle, Navigation, Radio, AlertTriangle } from 'lucide-react';
+import { MapPin, Send, CheckCircle, Navigation, Radio, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { SeverityChip, IncidentStatusChip, SimBadge } from '../components/ui/Chip';
 import { Panel, PanelSection } from '../components/ui/Panel';
 import { useStore } from '../lib/store';
-import { fieldApi } from '../lib/api';
-import { formatRelativeTime, formatDuration } from '../lib/format';
+import { fieldApi, incidentsApi } from '../lib/api';
+import { EVIDENCE_ATTRIBUTE } from '../lib/constants';
+import { formatAttribute } from '../lib/format';
 
 export function FieldPage() {
   const { units, incidents } = useStore();
   const [selectedUnit, setSelectedUnit] = useState(units[0]?.id);
-  const [reportText, setReportText] = useState('');
+  const [assignedIncidentId, setAssignedIncidentId] = useState(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [attribute, setAttribute] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [statusError, setStatusError] = useState('');
 
@@ -24,9 +29,34 @@ export function FieldPage() {
   }, [units, selectedUnit]);
 
   const unit = units.find(u => u.id === selectedUnit);
-  const assignedIncidents = unit?.current_assignment_id
-    ? incidents.filter(i => i.assignments?.some(a => a.unit_id === selectedUnit))
-    : [];
+
+  // The unit's own record only carries `current_assignment_id`, not which incident it
+  // belongs to — the incident list only has summary fields. Cross-reference against the
+  // (few) non-terminal incidents that currently have an assigned unit to find the match.
+  useEffect(() => {
+    setAssignedIncidentId(null);
+    if (!unit?.current_assignment_id) return;
+    let cancelled = false;
+    const candidates = incidents.filter(i =>
+      i.assigned_unit_count > 0 && !['CLOSED', 'MERGED', 'FALSE_ALARM'].includes(i.status)
+    );
+    (async () => {
+      setLookupLoading(true);
+      for (const inc of candidates) {
+        try {
+          const detail = await incidentsApi.get(inc.id);
+          if (detail.assignments?.some(a => a.id === unit.current_assignment_id)) {
+            if (!cancelled) setAssignedIncidentId(inc.id);
+            return;
+          }
+        } catch { /* skip unreadable incident */ }
+      }
+      if (!cancelled) setLookupLoading(false);
+    })().finally(() => { if (!cancelled) setLookupLoading(false); });
+    return () => { cancelled = true; };
+  }, [unit?.current_assignment_id, incidents]);
+
+  const assignedIncident = incidents.find(i => i.id === assignedIncidentId) || null;
 
   const sendStatusUpdate = async (status) => {
     if (!unit?.current_assignment_id) return;
@@ -48,6 +78,31 @@ export function FieldPage() {
       setStatusError(err?.response?.data?.error?.message || 'Failed to sync status');
     } finally {
       setStatusUpdating(false);
+    }
+  };
+
+  const submitObservation = async () => {
+    if (!assignedIncidentId || !attribute) return;
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      const [result] = await fieldApi.sync({
+        actions: [{
+          type: 'OBSERVATION',
+          idempotency_key: crypto.randomUUID(),
+          captured_at: new Date().toISOString(),
+          payload: { incident_id: assignedIncidentId, attribute, asserted_probability: 0.9 },
+        }],
+      });
+      if (result?.applied === 'applied') {
+        setSubmitted(true);
+      } else {
+        setSubmitError(result?.reason || 'Observation was not recorded');
+      }
+    } catch (err) {
+      setSubmitError(err?.response?.data?.error?.message || 'Failed to submit report');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -131,21 +186,21 @@ export function FieldPage() {
 
         {/* Assigned incidents */}
         <PanelSection title="Assigned Incidents" className="mb-4">
-          {assignedIncidents.length > 0 ? (
-            <div className="space-y-2">
-              {assignedIncidents.map(inc => (
-                <div key={inc.id} className="bg-surface border border-border-subtle rounded-[4px] p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-[11px] text-text-muted">{inc.code}</span>
-                    <SeverityChip severity={inc.severity} score={inc.severity_score} />
-                  </div>
-                  <div className="text-[13px] font-medium text-text-primary mb-1">{inc.title}</div>
-                  <div className="text-[11px] text-text-muted flex items-center gap-1">
-                    <MapPin size={10} />
-                    {inc.address}
-                  </div>
-                </div>
-              ))}
+          {lookupLoading ? (
+            <div className="bg-surface border border-border-subtle rounded-[4px] p-4 text-center text-[13px] text-text-muted">
+              Looking up assignment…
+            </div>
+          ) : assignedIncident ? (
+            <div className="bg-surface border border-border-subtle rounded-[4px] p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-mono text-[11px] text-text-muted">{assignedIncident.code}</span>
+                <SeverityChip severity={assignedIncident.severity} score={assignedIncident.severity_score} />
+              </div>
+              <div className="text-[13px] font-medium text-text-primary mb-1">{assignedIncident.title}</div>
+              <div className="text-[11px] text-text-muted flex items-center gap-1">
+                <MapPin size={10} />
+                {assignedIncident.address || 'Location unavailable'}
+              </div>
             </div>
           ) : (
             <div className="bg-surface border border-border-subtle rounded-[4px] p-4 text-center text-[13px] text-text-muted">
@@ -160,22 +215,35 @@ export function FieldPage() {
             <div className="text-center py-4">
               <CheckCircle size={32} className="text-status-available mx-auto mb-2" />
               <p className="text-[13px] text-text-primary font-medium">Report submitted</p>
-              <Button variant="ghost" size="compact" className="mt-2" onClick={() => setSubmitted(false)}>
+              <Button variant="ghost" size="compact" className="mt-2" onClick={() => { setSubmitted(false); setAttribute(''); }}>
                 New report
               </Button>
             </div>
+          ) : !assignedIncident ? (
+            <p className="text-[12px] text-text-muted py-2">
+              Field reports confirm a condition on your currently assigned incident — you'll be able to submit one once you have an active assignment.
+            </p>
           ) : (
             <div className="space-y-3">
-              <textarea
-                value={reportText}
-                onChange={e => setReportText(e.target.value)}
-                placeholder="Describe what you observe: fire status, casualties, access conditions, hazards..."
-                rows={3}
-                className="w-full px-3 py-2 bg-inset border border-border-subtle rounded-[4px] text-[13px] text-text-primary placeholder:text-text-muted focus:border-border-focus focus:outline-none resize-none"
-              />
-              <Button variant="primary" className="w-full" onClick={() => setSubmitted(true)} disabled={!reportText}>
+              <div>
+                <label className="block text-[11px] text-text-muted uppercase tracking-wider mb-1">
+                  What do you observe at {assignedIncident.code}?
+                </label>
+                <select
+                  value={attribute}
+                  onChange={e => setAttribute(e.target.value)}
+                  className="w-full h-[36px] px-3 bg-inset border border-border-subtle rounded-[4px] text-[13px] text-text-primary focus:border-border-focus focus:outline-none"
+                >
+                  <option value="">Select a condition to confirm...</option>
+                  {EVIDENCE_ATTRIBUTE.map(attr => (
+                    <option key={attr} value={attr}>{formatAttribute(attr)}</option>
+                  ))}
+                </select>
+              </div>
+              {submitError && <p className="text-[12px] text-sev-critical">{submitError}</p>}
+              <Button variant="primary" className="w-full" onClick={submitObservation} disabled={!attribute || submitting}>
                 <Send size={14} />
-                Submit Field Report
+                {submitting ? 'Submitting...' : 'Submit Field Report'}
               </Button>
             </div>
           )}

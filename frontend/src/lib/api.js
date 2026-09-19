@@ -121,7 +121,9 @@ export const hospitalsApi = {
 export const dispatchApi = {
   plans: (incidentId) => api.get(`/incidents/${incidentId}/dispatch/plans`).then(unwrap),
   compare: (incidentId) => api.get(`/incidents/${incidentId}/dispatch/compare`).then(unwrap),
-  approvePlan: (planId) => api.post(`/dispatch/plans/${planId}/approve`).then(unwrap),
+  approvePlan: (planId) => api.post(`/dispatch/plans/${planId}/approve`, {}, {
+    headers: { 'Idempotency-Key': planId },
+  }).then(unwrap),
   createAssignment: (incident_id, unit_id) => api.post('/assignments', { incident_id, unit_id }).then(unwrap),
   patchAssignment: (id, status, version) => api.patch(`/assignments/${id}`, { status, version }).then(unwrap),
   cancelAssignment: (id, reason) => api.post(`/assignments/${id}/cancel`, { reason }).then(unwrap),

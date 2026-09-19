@@ -3,15 +3,42 @@
    "Why is this CRITICAL?" panel with per-factor contribution bars,
    hard-rule badges, counterfactual lines
    ========================================================================= */
-import React from 'react';
-import { AlertTriangle, ShieldAlert, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertTriangle, ShieldAlert, Info, SlidersHorizontal } from 'lucide-react';
 import { PanelSection } from '../ui/Panel';
 import { SeverityChip } from '../ui/Chip';
-import { SEVERITY_CONFIG } from '../../lib/constants';
+import { Button } from '../ui/Button';
+import { SEVERITY, SEVERITY_CONFIG } from '../../lib/constants';
 import { formatAttribute } from '../../lib/format';
+import { severityApi } from '../../lib/api';
+import { useStore } from '../../lib/store';
 
-export function SeverityPanel({ assessment }) {
+export function SeverityPanel({ assessment, incidentId }) {
+  const [showOverride, setShowOverride] = useState(false);
+  const [overrideSeverity, setOverrideSeverity] = useState('');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const fetchIncidentDetail = useStore(s => s.fetchIncidentDetail);
+
   if (!assessment) return null;
+
+  const submitOverride = async () => {
+    if (!overrideSeverity || !reason) return;
+    setBusy(true);
+    setError('');
+    try {
+      await severityApi.override(incidentId, overrideSeverity, reason);
+      await fetchIncidentDetail(incidentId);
+      setShowOverride(false);
+      setOverrideSeverity('');
+      setReason('');
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || 'Failed to override severity');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const maxContribution = Math.max(...assessment.factors.map(f => f.contribution), 1);
 
@@ -26,7 +53,47 @@ export function SeverityPanel({ assessment }) {
               {assessment.confidence_note}
             </span>
           )}
+          {!showOverride && (
+            <Button variant="ghost" size="compact" className="ml-auto shrink-0" onClick={() => setShowOverride(true)}>
+              <SlidersHorizontal size={11} />
+              Override
+            </Button>
+          )}
         </div>
+
+        {showOverride && (
+          <div className="mb-3 p-2.5 bg-inset border border-border-subtle rounded-[4px] space-y-2">
+            <div className="flex gap-1.5 flex-wrap">
+              {SEVERITY.map(sev => (
+                <button
+                  key={sev}
+                  onClick={() => setOverrideSeverity(sev)}
+                  className={`px-2 py-1 rounded text-[11px] font-semibold uppercase border cursor-pointer transition-colors ${
+                    overrideSeverity === sev
+                      ? 'bg-accent-muted border-accent/40 text-accent'
+                      : 'bg-transparent border-border-subtle text-text-muted hover:border-border-strong'
+                  }`}
+                >
+                  {sev}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text" value={reason} onChange={e => setReason(e.target.value)}
+              placeholder="Reason for override (required)..."
+              className="w-full h-[28px] px-2 bg-surface border border-border-subtle rounded text-[12px] text-text-primary placeholder:text-text-muted focus:border-border-focus focus:outline-none"
+            />
+            {error && <div className="text-[11px] text-sev-critical">{error}</div>}
+            <div className="flex gap-1.5">
+              <Button variant="primary" size="compact" disabled={!overrideSeverity || !reason || busy} onClick={submitOverride}>
+                {busy ? 'Applying...' : 'Apply override'}
+              </Button>
+              <Button variant="ghost" size="compact" onClick={() => { setShowOverride(false); setError(''); }}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Hard rules */}
         {assessment.hard_rules_triggered.length > 0 && (

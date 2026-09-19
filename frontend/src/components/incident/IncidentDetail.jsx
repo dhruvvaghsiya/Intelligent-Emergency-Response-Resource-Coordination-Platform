@@ -14,7 +14,7 @@ import { formatTime, formatRelativeTime, formatDuration, formatProbability, form
 import { EvidenceLedger } from '../evidence/EvidenceLedger';
 import { SeverityPanel } from '../evidence/SeverityPanel';
 import { DispatchPanel } from '../dispatch/DispatchPanel';
-import { ReallocationModal } from '../dispatch/ReallocationModal';
+import { RelatedTab } from './RelatedTab';
 
 const TABS = [
   { key: 'overview',  label: 'Overview' },
@@ -129,7 +129,7 @@ function OverviewTab({ incident }) {
       </PanelSection>
 
       {/* Severity */}
-      <SeverityPanel assessment={incident.severity_assessment} />
+      <SeverityPanel assessment={incident.severity_assessment} incidentId={incident.id} />
 
       {/* Beliefs summary */}
       {incident.beliefs && incident.beliefs.length > 0 && (
@@ -199,8 +199,6 @@ function EvidenceTab({ incident }) {
 
 // ——— RESPONSE TAB ———
 function ResponseTab({ incident }) {
-  const [showReallocation, setShowReallocation] = React.useState(false);
-
   return (
     <div className="space-y-3">
       <PanelSection title={`Assigned units (${incident.assigned_unit_count}/${incident.units_required})`}>
@@ -245,35 +243,11 @@ function ResponseTab({ incident }) {
         </PanelSection>
       )}
 
-      {/* Dispatch recommendations */}
-      {incident.has_pending_recommendation && (
+      {/* Dispatch recommendations — reachable for any non-terminal, understaffed incident */}
+      {!['CLOSED', 'MERGED', 'FALSE_ALARM', 'RESOLVED'].includes(incident.status) &&
+        incident.assigned_unit_count < incident.units_required && (
         <DispatchPanel incidentId={incident.id} />
       )}
-
-      {/* Reallocation button */}
-      {incident.severity === 'CRITICAL' && incident.assigned_unit_count < incident.units_required && (
-        <div className="mt-2">
-          <Button variant="secondary" className="w-full" onClick={() => setShowReallocation(true)}>
-            <AlertTriangle size={14} />
-            Open Reallocation Advisor
-          </Button>
-        </div>
-      )}
-
-      <ReallocationModal
-        isOpen={showReallocation}
-        onClose={() => setShowReallocation(false)}
-        incidentCode={incident.code}
-      />
-    </div>
-  );
-}
-
-// ——— RELATED TAB ———
-function RelatedTab({ incident }) {
-  return (
-    <div className="text-[13px] text-text-muted py-4 text-center">
-      No related incidents linked.
     </div>
   );
 }

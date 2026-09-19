@@ -1,15 +1,16 @@
 /* =========================================================================
    DISPATCH PANEL — §W5 Resource Allocation Engine
-   Shows 3 strategy plans (BALANCED, FASTEST_RESPONSE, MINIMAL_DISRUPTION)
-   with cost breakdown, Approve/Modify/Reject triad, preemption warnings
+   Generates real plans via POST-equivalent GET (server computes + persists),
+   shows Hungarian-solved strategies with cost breakdown, and approves them
+   through the real transactional approve endpoint.
    ========================================================================= */
 import React, { useState } from 'react';
-import { Check, X, Edit3, Clock, AlertTriangle, Zap, Shield, ChevronDown, ChevronUp } from 'lucide-react';
-import { Panel, PanelSection } from '../ui/Panel';
+import { Check, X, Clock, AlertTriangle, Zap, Shield, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { PanelSection } from '../ui/Panel';
 import { Button } from '../ui/Button';
-import { SeverityChip } from '../ui/Chip';
-import { formatDuration, formatDistance } from '../../lib/format';
-import { MOCK_DISPATCH_PLANS } from '../../mocks/fixtures';
+import { formatDuration } from '../../lib/format';
+import { dispatchApi } from '../../lib/api';
+import { useStore } from '../../lib/store';
 
 const STRATEGY_CONFIG = {
   BALANCED: { label: 'Balanced', icon: Shield, color: 'text-accent', desc: 'Best trade-off between speed and disruption' },
@@ -18,18 +19,62 @@ const STRATEGY_CONFIG = {
 };
 
 export function DispatchPanel({ incidentId }) {
+  const [plans, setPlans] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [expandedPlan, setExpandedPlan] = useState(null);
-  const [approvedPlan, setApprovedPlan] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [showReject, setShowReject] = useState(null);
+  const [approvingId, setApprovingId] = useState(null);
+  const [approvedId, setApprovedId] = useState(null);
+  const [compare, setCompare] = useState(null);
+  const fetchIncidentDetail = useStore(s => s.fetchIncidentDetail);
+  const fetchUnits = useStore(s => s.fetchUnits);
 
-  const plans = MOCK_DISPATCH_PLANS.filter(p => p.incident_id === incidentId);
+  const generatePlans = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await dispatchApi.plans(incidentId);
+      setPlans(data);
+      setExpandedPlan(data[0]?.id || null);
+      dispatchApi.compare(incidentId).then(setCompare).catch(() => {});
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || 'Failed to generate dispatch plans');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const approvePlan = async (planId) => {
+    setApprovingId(planId);
+    setError('');
+    try {
+      await dispatchApi.approvePlan(planId);
+      setApprovedId(planId);
+      await Promise.all([fetchIncidentDetail(incidentId), fetchUnits()]);
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || 'Failed to approve plan');
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  if (plans === null) {
+    return (
+      <PanelSection title="Dispatch Recommendation">
+        {error && <div className="text-[12px] text-sev-critical mb-2">{error}</div>}
+        <Button variant="secondary" size="compact" onClick={generatePlans} disabled={loading}>
+          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+          {loading ? 'Generating...' : 'Generate Dispatch Plans'}
+        </Button>
+      </PanelSection>
+    );
+  }
 
   if (plans.length === 0) {
     return (
       <PanelSection title="Dispatch Recommendation">
         <div className="text-[13px] text-text-muted py-3 text-center">
-          No dispatch plans generated for this incident.
+          No dispatch plans could be generated for this incident.
         </div>
       </PanelSection>
     );
@@ -37,16 +82,27 @@ export function DispatchPanel({ incidentId }) {
 
   return (
     <div className="space-y-3">
-      <PanelSection title={`Dispatch Plans (${plans.length})`}>
-        <p className="text-[11px] text-text-muted mb-3">
-          Compare plans by total cost (seconds-equivalent). Lower is better.
-        </p>
+      <PanelSection
+        title={`Dispatch Plans (${plans.length})`}
+        className=""
+      >
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11px] text-text-muted">
+            Compare plans by total cost (seconds-equivalent). Lower is better.
+          </p>
+          <Button variant="ghost" size="compact" onClick={generatePlans} disabled={loading}>
+            <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
+            Regenerate
+          </Button>
+        </div>
+
+        {error && <div className="text-[12px] text-sev-critical mb-2">{error}</div>}
 
         <div className="space-y-2">
           {plans.map(plan => {
             const strategy = STRATEGY_CONFIG[plan.strategy] || STRATEGY_CONFIG.BALANCED;
             const isExpanded = expandedPlan === plan.id;
-            const isApproved = approvedPlan === plan.id;
+            const isApproved = approvedId === plan.id || Boolean(plan.applied_at);
             const StrategyIcon = strategy.icon;
 
             return (
@@ -122,45 +178,26 @@ export function DispatchPanel({ incidentId }) {
                       </div>
                     )}
 
-                    {/* Approve/Reject/Modify */}
+                    {/* Approve */}
                     {!isApproved && plan.feasible && (
                       <div className="flex gap-2">
                         <Button
                           variant="primary"
                           size="compact"
-                          onClick={() => setApprovedPlan(plan.id)}
+                          onClick={() => approvePlan(plan.id)}
+                          disabled={approvingId === plan.id}
                         >
                           <Check size={12} />
-                          Approve
-                        </Button>
-                        <Button variant="ghost" size="compact" onClick={() => {}}>
-                          <Edit3 size={12} />
-                          Modify
+                          {approvingId === plan.id ? 'Approving...' : 'Approve'}
                         </Button>
                         <Button
                           variant="ghost"
                           size="compact"
                           className="text-sev-critical"
-                          onClick={() => setShowReject(showReject === plan.id ? null : plan.id)}
+                          onClick={() => setPlans(prev => prev.filter(p => p.id !== plan.id))}
                         >
                           <X size={12} />
-                          Reject
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Reject with reason */}
-                    {showReject === plan.id && (
-                      <div className="mt-2 flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Reason for rejection..."
-                          value={rejectReason}
-                          onChange={e => setRejectReason(e.target.value)}
-                          className="flex-1 h-[28px] px-2 bg-inset border border-border-subtle rounded-[4px] text-[12px] text-text-primary placeholder:text-text-muted focus:border-border-focus focus:outline-none"
-                        />
-                        <Button variant="danger" size="compact" onClick={() => setShowReject(null)}>
-                          Confirm Reject
+                          Dismiss
                         </Button>
                       </div>
                     )}
@@ -178,14 +215,18 @@ export function DispatchPanel({ incidentId }) {
         </div>
       </PanelSection>
 
-      {/* Hungarian vs Greedy comparison badge */}
-      <div className="px-2.5 py-2 bg-inset border border-border-subtle rounded-[4px]">
-        <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Optimization Method</div>
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] text-text-primary">Hungarian assignment</span>
-          <span className="text-[11px] font-mono font-medium text-accent">−3:20 vs greedy</span>
+      {/* Hungarian vs Greedy comparison — real numbers from the solver */}
+      {compare && compare.savings_seconds > 0 && (
+        <div className="px-2.5 py-2 bg-inset border border-border-subtle rounded-[4px]">
+          <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Optimization Method</div>
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] text-text-primary">Hungarian assignment</span>
+            <span className="text-[11px] font-mono font-medium text-accent">
+              −{formatDuration(compare.savings_seconds)} vs greedy
+            </span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

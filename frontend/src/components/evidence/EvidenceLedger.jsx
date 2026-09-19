@@ -3,13 +3,15 @@
    Shows evidence items with source reliability, confidence, belief bars
    CONTESTED detection, operator supersede action
    ========================================================================= */
-import React from 'react';
-import { AlertTriangle, Eye, EyeOff, User, Radio, Cpu, Globe, Phone } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertTriangle, Eye, EyeOff, User, Radio, Cpu, Globe, Phone, Ban } from 'lucide-react';
 import { PanelSection } from '../ui/Panel';
 import { ContestedBadge } from '../ui/Chip';
 import { Button } from '../ui/Button';
 import { formatAttribute, formatTime, formatProbability, formatConfidence } from '../../lib/format';
 import { SOURCE_RELIABILITY } from '../../lib/constants';
+import { evidenceApi } from '../../lib/api';
+import { useStore } from '../../lib/store';
 
 const SOURCE_ICONS = {
   EMERGENCY_CALL: Phone,
@@ -49,7 +51,7 @@ export function EvidenceLedger({ incident }) {
         <PanelSection title={`Evidence ledger (${evidence.length})`}>
           <div className="space-y-1.5">
             {evidence.map(ev => (
-              <EvidenceItem key={ev.id} evidence={ev} />
+              <EvidenceItem key={ev.id} evidence={ev} incidentId={incident.id} />
             ))}
           </div>
         </PanelSection>
@@ -133,10 +135,26 @@ function BeliefDetail({ belief }) {
   );
 }
 
-function EvidenceItem({ evidence }) {
+function EvidenceItem({ evidence, incidentId }) {
   const Icon = SOURCE_ICONS[evidence.source_type] || User;
-  const reliability = SOURCE_RELIABILITY[evidence.source_type] || 0.5;
   const supports = evidence.asserted_probability >= 0.5;
+  const [showReason, setShowReason] = useState(false);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const fetchIncidentDetail = useStore(s => s.fetchIncidentDetail);
+
+  const supersede = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await evidenceApi.supersede(incidentId, evidence.id, reason || 'Superseded by operator');
+      await fetchIncidentDetail(incidentId);
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || 'Failed to supersede evidence');
+      setBusy(false);
+    }
+  };
 
   return (
     <div className={`
@@ -163,6 +181,29 @@ function EvidenceItem({ evidence }) {
           <span>Weight: {evidence.weight.toFixed(3)}</span>
           <span className="font-mono">{formatTime(evidence.observed_at)}</span>
         </div>
+        {evidence.superseded ? (
+          <div className="text-[10px] text-sev-moderate mt-1 no-underline">Superseded{evidence.superseded_reason ? `: ${evidence.superseded_reason}` : ''}</div>
+        ) : showReason ? (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <input
+              type="text" value={reason} onChange={e => setReason(e.target.value)}
+              placeholder="Reason for superseding..."
+              className="flex-1 h-[24px] px-2 bg-inset border border-border-subtle rounded text-[11px] text-text-primary placeholder:text-text-muted focus:border-border-focus focus:outline-none"
+            />
+            <Button variant="danger" size="compact" onClick={supersede} disabled={busy}>
+              {busy ? 'Superseding...' : 'Confirm'}
+            </Button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowReason(true)}
+            className="text-[10px] text-text-muted hover:text-sev-critical mt-1 flex items-center gap-1 cursor-pointer transition-colors no-underline"
+          >
+            <Ban size={10} />
+            Supersede
+          </button>
+        )}
+        {error && <div className="text-[10px] text-sev-critical mt-1">{error}</div>}
       </div>
     </div>
   );
