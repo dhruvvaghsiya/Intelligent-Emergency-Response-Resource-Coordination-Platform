@@ -376,9 +376,22 @@ export function SituationMap() {
         e.stopPropagation();
         selectIncident(incident.id);
       });
+      el.addEventListener('mouseenter', () => {
+        if (el.parentElement) el.parentElement.style.zIndex = '2000';
+      });
+      el.addEventListener('mouseleave', () => {
+        if (el.parentElement) el.parentElement.style.zIndex = isSelected ? '100' : '50';
+      });
+
       const marker = new Marker({ element: el, anchor: 'center', subpixelPositioning: true })
         .setLngLat([incident.location.lng, incident.location.lat])
         .addTo(map);
+
+      const parent = marker.getElement()?.parentElement;
+      if (parent) {
+        parent.style.zIndex = isSelected ? '100' : '50';
+      }
+
       markers.set(incident.id, marker);
     });
 
@@ -406,9 +419,22 @@ export function SituationMap() {
       const existing = markers.get(unit.id);
       if (existing) existing.remove();
       const el = unitMarkerEl(unit);
+      el.addEventListener('mouseenter', () => {
+        if (el.parentElement) el.parentElement.style.zIndex = '30';
+      });
+      el.addEventListener('mouseleave', () => {
+        if (el.parentElement) el.parentElement.style.zIndex = '10';
+      });
+
       const marker = new Marker({ element: el, anchor: 'center', subpixelPositioning: true })
         .setLngLat([unit.location.lng, unit.location.lat])
         .addTo(map);
+
+      const parent = marker.getElement()?.parentElement;
+      if (parent) {
+        parent.style.zIndex = '10';
+      }
+
       markers.set(unit.id, marker);
     });
 

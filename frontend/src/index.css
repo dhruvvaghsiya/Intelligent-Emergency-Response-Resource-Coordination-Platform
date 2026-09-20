@@ -151,14 +151,35 @@
   }
 }
 
+.maplibregl-marker:has(.unit-marker) {
+  z-index: 10 !important;
+}
+
+.maplibregl-marker:has(.incident-marker) {
+  z-index: 50 !important;
+}
+
+.maplibregl-marker:has(.incident-marker--selected) {
+  z-index: 100 !important;
+}
+
+.maplibregl-marker:has(.unit-marker:hover) {
+  z-index: 30 !important;
+}
+
+.maplibregl-marker:has(.incident-marker:hover) {
+  z-index: 2000 !important;
+}
+
 .incident-marker {
   transition: opacity 0.25s ease, filter 0.25s ease;
+  z-index: 50;
 }
 
 .incident-marker:hover {
   opacity: 1 !important;
   filter: none !important;
-  z-index: 1050 !important;
+  z-index: 2000 !important;
 }
 
 .incident-marker:hover .incident-core-circle {
@@ -175,12 +196,13 @@
   opacity: 0.45;
   filter: saturate(0.6) brightness(0.85);
   transition: opacity 0.2s ease, filter 0.2s ease;
+  z-index: 10;
 }
 
 .unit-marker:hover {
   opacity: 1 !important;
   filter: none !important;
-  z-index: 48 !important;
+  z-index: 30 !important;
 }
 
 .unit-marker:hover > div {
