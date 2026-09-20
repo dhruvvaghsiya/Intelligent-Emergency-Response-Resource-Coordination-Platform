@@ -211,69 +211,30 @@
   font-family: var(--font-mono);
 }
 
-/* ——— KPI & Analytics Azure Rotating Border Animation ——— */
-@keyframes rotate-border {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  100% {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
-}
-
+/* ——— KPI & Analytics Azure Cards — Simple Hover Border ——— */
 .kpi-azure-card-wrapper {
   position: relative;
-  border-radius: 0.75rem; /* 12px */
-  padding: 1px;
-  overflow: hidden;
-  background-color: #bae6fd; /* thin 1px crisp sky/azure border */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  background-color: azure;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .kpi-azure-card-wrapper:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px -4px rgba(14, 165, 233, 0.25);
+  border-color: #38bdf8; /* sky-400 — thin solid static border */
+  box-shadow: 0 2px 8px -2px rgba(14, 165, 233, 0.12);
 }
 
+/* Spinner div kept as no-op so existing JSX doesn't break */
 .kpi-border-spinner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 350%;
-  height: 350%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    #0284c7 40deg,
-    #38bdf8 80deg,
-    #06b6d4 120deg,
-    transparent 160deg,
-    transparent 180deg,
-    #0284c7 220deg,
-    #38bdf8 260deg,
-    #06b6d4 300deg,
-    transparent 340deg,
-    transparent 360deg
-  );
-  transform: translate(-50%, -50%) rotate(0deg);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  will-change: transform;
-}
-
-.kpi-azure-card-wrapper:hover .kpi-border-spinner {
-  opacity: 1;
-  animation: rotate-border 4.5s linear infinite;
+  display: none;
 }
 
 .kpi-azure-card-inner {
-  position: relative;
   background-color: azure;
   border-radius: 11px;
   height: 100%;
   width: 100%;
-  z-index: 1;
 }
 
