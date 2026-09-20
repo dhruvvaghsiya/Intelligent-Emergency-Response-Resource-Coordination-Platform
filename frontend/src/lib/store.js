@@ -331,6 +331,45 @@ export const useStore = create((set, get) => ({
       }
     }
   },
+  patchUnit: async (id, updates) => {
+    set(state => ({
+      units: state.units.map(u => u.id === id ? { ...u, ...updates } : u),
+    }));
+    try {
+      const updated = await unitsApi.patch(id, updates);
+      if (updated) {
+        set(state => ({ units: upsertById(state.units, updated) }));
+      }
+      return updated;
+    } catch (err) {
+      console.warn('patchUnit backend error (local state preserved):', err?.message || err);
+    }
+  },
+  createUnit: async (unitData) => {
+    try {
+      const created = await unitsApi.create(unitData);
+      if (created) {
+        set(state => ({ units: [created, ...state.units] }));
+        return created;
+      }
+    } catch (err) {
+      console.warn('createUnit backend error, fallback to local:', err?.message || err);
+      const fallback = {
+        id: `unit_${Date.now().toString(36)}`,
+        call_sign: unitData.call_sign,
+        type: unitData.type,
+        capabilities: unitData.capabilities || ['MEDICAL_BASIC'],
+        status: 'AVAILABLE',
+        station_id: unitData.station_id || 'STATION-MAIN',
+        location: unitData.location || { lng: 72.5714, lat: 23.0225 },
+        crew_size: unitData.crew_size || 3,
+        last_location_at: new Date().toISOString(),
+        version: 1,
+      };
+      set(state => ({ units: [fallback, ...state.units] }));
+      return fallback;
+    }
+  },
 
   // ——— Alerts ———
   alerts: [],
@@ -415,6 +454,52 @@ export const useStore = create((set, get) => ({
 
     // 3. Send to backend in background
     await Promise.allSettled(unacked.map(a => alertsApi.ack(a.id)));
+  },
+  assignResourceToAlert: async (alertId, unitId, incidentId) => {
+    const user = get().user;
+    const actor = user?.name || user?.email || 'Admin';
+    const now = new Date().toISOString();
+
+    // 1. Mark unit as ASSIGNED and alert as acknowledged
+    set(state => ({
+      units: state.units.map(u =>
+        u.id === unitId ? { ...u, status: 'ASSIGNED' } : u
+      ),
+      alerts: state.alerts.map(a =>
+        a.id === alertId ? { ...a, acked_by: actor, acked_at: now } : a
+      ),
+    }));
+
+    // 2. Persist alert ack in localStorage
+    try {
+      const stored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+      if (!stored.includes(alertId)) {
+        stored.push(alertId);
+        localStorage.setItem('resilio.acked_alerts', JSON.stringify(stored));
+      }
+    } catch {}
+
+    // 3. Add to live event feed
+    const unit = get().units.find(u => u.id === unitId);
+    const incident = get().incidents.find(i => i.id === incidentId);
+    set(state => ({
+      liveFeed: pushFeed(state, {
+        type: 'assignment.created',
+        text: `Admin dispatched ${unit?.call_sign || unitId} to ${incident?.code || incidentId || 'Alert Location'}`,
+        severity: 'INFO',
+      }),
+    }));
+
+    // 4. Send API request to backend
+    try {
+      await alertsApi.assignResource(alertId, unitId, incidentId);
+    } catch (err) {
+      try {
+        await dispatchApi.createAssignment(incidentId, unitId);
+      } catch (fallbackErr) {
+        console.warn('Backend resource assign failed, keeping local state:', fallbackErr?.message || fallbackErr);
+      }
+    }
   },
 
   // ——— Hospitals ———

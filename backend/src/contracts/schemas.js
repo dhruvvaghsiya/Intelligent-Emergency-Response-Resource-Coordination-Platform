@@ -79,8 +79,10 @@ export const LinkSchema = z.object({
 });
 
 export const UnitPatchSchema = z.object({
-  status: z.enum(UNIT_STATUS),
-  version: z.number().int(),
+  status: z.enum(UNIT_STATUS).optional(),
+  crew_size: z.number().int().positive().optional(),
+  station_id: z.string().nullable().optional(),
+  version: z.number().int().optional(),
 });
 
 export const UnitLocationSchema = z.object({

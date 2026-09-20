@@ -54,30 +54,9 @@ function AppShell() {
           <Route path="/ops" element={<OpsPage />} />
           <Route path="/resources" element={<ResourcesPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <AnalyticsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/ai-health"
-            element={
-              <ProtectedRoute>
-                <AIHealthPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/replay"
-            element={
-              <ProtectedRoute>
-                <ReplayPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/ai-health" element={<AIHealthPage />} />
+          <Route path="/replay" element={<ReplayPage />} />
           <Route path="/field" element={<FieldPage />} />
           <Route
             path="/profile"

@@ -38,14 +38,42 @@ resourcesRouter.patch('/units/:id', authenticate, requirePermission(PERMISSIONS.
   try {
     const unit = await Unit.findById(req.params.id);
     if (!unit) throw new AppError('NOT_FOUND', 'Unit not found');
-    if (unit.version !== req.body.version) throw new AppError('VERSION_CONFLICT', 'Unit has changed', { current: toUnitWire(unit) });
+    if (req.body.version != null && unit.version !== req.body.version) {
+      throw new AppError('VERSION_CONFLICT', 'Unit has changed', { current: toUnitWire(unit) });
+    }
 
-    unit.status = req.body.status;
+    if (req.body.status) unit.status = req.body.status;
+    if (req.body.crew_size != null) unit.crew_size = req.body.crew_size;
+    if (req.body.station_id !== undefined) unit.station_id = req.body.station_id;
     unit.version += 1;
     await unit.save();
 
     await appendEvent({ room: 'ops:global', type: 'unit.status_changed', entity: { kind: 'unit', id: unit._id }, actor: { kind: 'USER', id: req.user.id }, payload: toUnitWire(unit) });
     res.json({ data: toUnitWire(unit) });
+  } catch (err) { next(err); }
+});
+
+resourcesRouter.post('/units', authenticate, requirePermission(PERMISSIONS.MANAGE_RESOURCES), async (req, res, next) => {
+  try {
+    const { call_sign, type, capabilities, crew_size, station_id, location } = req.body;
+    if (!call_sign || !type) throw new AppError('BAD_REQUEST', 'Call sign and type are required');
+    const existing = await Unit.findOne({ call_sign: call_sign.trim() });
+    if (existing) throw new AppError('CONFLICT', 'A unit with this call sign already exists');
+
+    const unit = await Unit.create({
+      _id: newId('unit'),
+      call_sign: call_sign.trim(),
+      type,
+      capabilities: capabilities || ['MEDICAL_BASIC'],
+      status: 'AVAILABLE',
+      station_id: station_id || 'STATION-MAIN',
+      location: location ? toGeoJson(location) : toGeoJson({ lng: 72.5714, lat: 23.0225 }),
+      crew_size: crew_size || 3,
+      version: 1,
+    });
+    const wire = toUnitWire(unit);
+    await appendEvent({ room: 'ops:global', type: 'unit.created', entity: { kind: 'unit', id: unit._id }, actor: { kind: 'USER', id: req.user.id }, payload: wire });
+    res.status(201).json({ data: wire });
   } catch (err) { next(err); }
 });
 

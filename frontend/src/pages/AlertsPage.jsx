@@ -1,11 +1,10 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useStore } from '../lib/store';
 import { Button } from '../components/ui/Button';
 import { SeverityChip } from '../components/ui/Chip';
 import {
   Check, AlertTriangle, Bell, Shield, Radio, Cpu, Users,
-  CheckCircle2, Clock, MapPin, ArrowRight
+  CheckCircle2, Clock, MapPin, Truck, X, Send
 } from 'lucide-react';
 import { formatRelativeTime } from '../lib/format';
 import { hasPermission, PERMISSIONS } from '../lib/permissions';
@@ -25,25 +24,46 @@ const ALERT_ICONS = {
 };
 
 export function AlertsPage() {
-  const { alerts, ackAlert, ackAllAlerts, incidents = [], units = [], user, isAuthenticated } = useStore();
+  const { alerts, ackAlert, ackAllAlerts, assignResourceToAlert, incidents = [], units = [], user, isAuthenticated } = useStore();
 
-  // Admin and authorized incident operators can acknowledge/modify alerts
+  // Selected alert for resource dispatch modal
+  const [dispatchAlert, setDispatchAlert] = useState(null);
+  const [selectedUnitId, setSelectedUnitId] = useState('');
+  const [dispatchBusy, setDispatchBusy] = useState(false);
+
+  // Admin and authorized operators can acknowledge & assign resources
   const canModify = Boolean(
     isAuthenticated && (
       user?.role === 'ADMIN' ||
       hasPermission(user, PERMISSIONS.EDIT_INCIDENT) ||
-      hasPermission(user, PERMISSIONS.ADMIN)
+      hasPermission(user, PERMISSIONS.ADMIN) ||
+      hasPermission(user, PERMISSIONS.APPROVE_DISPATCH)
     )
   );
 
   const unacked = alerts.filter(a => !a.acked_at);
   const acked = alerts.filter(a => a.acked_at);
 
+  const handleOpenDispatch = (alert) => {
+    setDispatchAlert(alert);
+    const available = units.filter(u => u.status === 'AVAILABLE');
+    setSelectedUnitId(available[0]?.id || units[0]?.id || '');
+  };
+
+  const handleConfirmDispatch = async () => {
+    if (!dispatchAlert || !selectedUnitId) return;
+    setDispatchBusy(true);
+    const incidentId = dispatchAlert.incident_id || dispatchAlert.payload?.incident_id || incidents[0]?.id;
+    await assignResourceToAlert(dispatchAlert.id, selectedUnitId, incidentId);
+    setDispatchBusy(false);
+    setDispatchAlert(null);
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-slate-50 select-none">
       <div className="max-w-[920px] mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div className="flex items-center justify-between pb-2">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
               <Bell size={22} className="text-slate-700" />
@@ -53,59 +73,20 @@ export function AlertsPage() {
               Active SLA breaches, preemption advisories, and system dispatch warnings
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            {canModify ? (
-              unacked.length > 0 && (
-                <Button
-                  variant="primary"
-                  size="compact"
-                  onClick={ackAllAlerts}
-                  className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs cursor-pointer flex items-center gap-1.5 rounded-lg px-3 py-1.5"
-                >
-                  <CheckCircle2 size={15} />
-                  Acknowledge All ({unacked.length})
-                </Button>
-              )
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1.5">
-                  <Shield size={13} className="text-slate-400" />
-                  Read-Only
-                </span>
-                {!isAuthenticated && (
-                  <Link
-                    to="/login"
-                    className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded-lg shadow-2xs transition-colors flex items-center gap-1"
-                  >
-                    Admin Sign In <ArrowRight size={12} />
-                  </Link>
-                )}
-              </div>
-            )}
-            <span className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-xs flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${unacked.length > 0 ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
-              <strong className="text-slate-900 font-bold">{unacked.length}</strong> Unacknowledged
-            </span>
-          </div>
-        </div>
-
-        {/* Read-only Advisory Banner for non-logged-in visitors */}
-        {!canModify && (
-          <div className="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-800 shadow-2xs">
-            <div className="flex items-center gap-2 font-medium">
-              <AlertTriangle size={15} className="text-amber-600 shrink-0" />
-              <span>Public Observer View: You can view live alert statuses. Sign in as Admin to acknowledge or modify notifications.</span>
-            </div>
-            {!isAuthenticated && (
-              <Link
-                to="/login"
-                className="font-bold text-blue-700 hover:text-blue-800 underline shrink-0 flex items-center gap-1"
+          {canModify && unacked.length > 0 && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="primary"
+                size="compact"
+                onClick={ackAllAlerts}
+                className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs cursor-pointer flex items-center gap-1.5 rounded-lg px-3 py-1.5"
               >
-                Admin Login →
-              </Link>
-            )}
-          </div>
-        )}
+                <CheckCircle2 size={15} />
+                Acknowledge All ({unacked.length})
+              </Button>
+            </div>
+          )}
+        </div>
 
         {/* Pending Unacknowledged Alerts */}
         <div className="space-y-3">
@@ -129,6 +110,7 @@ export function AlertsPage() {
                   units={units}
                   canModify={canModify}
                   onAck={() => ackAlert(alert.id)}
+                  onOpenDispatch={() => handleOpenDispatch(alert)}
                 />
               ))}
             </div>
@@ -156,11 +138,105 @@ export function AlertsPage() {
           </div>
         )}
       </div>
+
+      {/* ── Admin Assign Resource Modal ──────────────────────────────── */}
+      {dispatchAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-[500px] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
+                <Truck size={17} className="text-blue-600" />
+                Assign Resource to Alert Location
+              </div>
+              <button
+                type="button"
+                onClick={() => setDispatchAlert(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg"
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Alert Summary */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-700 space-y-1">
+                <div className="font-bold text-slate-900">{dispatchAlert.title}</div>
+                <div className="text-slate-500">{dispatchAlert.body}</div>
+              </div>
+
+              {/* Unit Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Select Unit to Deploy
+                </label>
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                  {units.map((u) => {
+                    const isAvail = u.status === 'AVAILABLE';
+                    const isSelected = selectedUnitId === u.id;
+                    return (
+                      <div
+                        key={u.id}
+                        onClick={() => setSelectedUnitId(u.id)}
+                        className={`
+                          p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 text-xs
+                          ${isSelected
+                            ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20 shadow-xs'
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                          }
+                        `}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-2 h-2 rounded-full shrink-0 ${isAvail ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                          <div className="font-bold text-slate-900">{u.call_sign}</div>
+                          <span className="text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                            {u.type.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isAvail ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                          {u.status}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <Button
+                  variant="ghost"
+                  size="compact"
+                  onClick={() => setDispatchAlert(null)}
+                  className="text-xs font-semibold text-slate-600"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="compact"
+                  disabled={dispatchBusy || !selectedUnitId}
+                  onClick={handleConfirmDispatch}
+                  className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5"
+                >
+                  {dispatchBusy ? 'Dispatching…' : (
+                    <>
+                      <Send size={13} />
+                      Deploy Unit &amp; Resolve Alert
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function AlertCard({ alert, onAck, acked = false, canModify = false, incidents = [], units = [] }) {
+function AlertCard({
+  alert, onAck, onOpenDispatch, acked = false, canModify = false, incidents = [], units = []
+}) {
   const Icon = ALERT_ICONS[alert.type] || Bell;
 
   const incident = alert.incident_id ? incidents.find(i => i.id === alert.incident_id) : null;
@@ -171,7 +247,6 @@ function AlertCard({ alert, onAck, acked = false, canModify = false, incidents =
     : alert.severity === 'MODERATE' ? 'border-l-amber-500'
     : 'border-l-blue-500';
 
-  // Extract location label
   const locationLabel = incident?.address || incident?.ward || incident?.title || '';
 
   return (
@@ -271,15 +346,30 @@ function AlertCard({ alert, onAck, acked = false, canModify = false, incidents =
           <span>Acknowledged</span>
         </div>
       ) : canModify ? (
-        <Button
-          variant="primary"
-          size="compact"
-          onClick={onAck}
-          className="shrink-0 font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs transition-colors cursor-pointer mt-0.5 flex items-center gap-1.5"
-        >
-          <Check size={14} strokeWidth={2.5} />
-          Acknowledge
-        </Button>
+        <div className="shrink-0 flex items-center gap-2 mt-0.5 flex-wrap">
+          {/* Assign Resource / Dispatch Unit Button for Admins */}
+          <Button
+            variant="secondary"
+            size="compact"
+            onClick={onOpenDispatch}
+            className="text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border-slate-200 shadow-2xs flex items-center gap-1.5"
+            title="Deploy unit to alert incident"
+          >
+            <Truck size={13} className="text-blue-600" />
+            Assign Resource
+          </Button>
+
+          {/* Acknowledge Button */}
+          <Button
+            variant="primary"
+            size="compact"
+            onClick={onAck}
+            className="font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <Check size={14} strokeWidth={2.5} />
+            Acknowledge
+          </Button>
+        </div>
       ) : (
         <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold select-none shadow-2xs mt-0.5">
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
