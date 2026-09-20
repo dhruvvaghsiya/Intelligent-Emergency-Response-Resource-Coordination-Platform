@@ -3,31 +3,87 @@
    Replaces full-width bottom strips with 2 frosted-glass buttons at bottom-left
    and an interactive 10-12% height terminal console drawer.
    ========================================================================= */
-import React, { useState, useEffect, useRef } from 'react';
-import { Radio, Zap, X, Play, Square, Terminal, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Radio, Zap, X, Play, Square, Terminal, CheckCircle2, Power, Activity } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { formatTime } from '../../lib/format';
 import { SEVERITY_CONFIG } from '../../lib/constants';
 import { adminApi } from '../../lib/api';
+import { hasPermission, PERMISSIONS } from '../../lib/permissions';
 
+// Only scenarios with a real backend handler (modules/admin/scenarios.js) belong here — this list
+// previously had 2 extra entries with no server-side implementation ("highway_pileup_sg",
+// "cascade_monsoon"): buttons that looked real but silently did nothing when clicked.
 const SCENARIOS = [
   { id: 'flood_sabarmati', name: 'Flood Inundation — Sabarmati Basin', desc: '14 multi-source reports, deduplication clustering → coverage hole in West Zone', duration: '4 min', durationSeconds: 240 },
   { id: 'industrial_fire_vatva', name: 'Chemical Fire — Vatva GIDC', desc: 'Conflicting toxicity reports, belief probability fusion, dynamic severity escalation', duration: '3 min', durationSeconds: 180 },
-  { id: 'highway_pileup_sg', name: 'Mass Casualty Collision — SG Highway', desc: '9 reports in 90s, Hungarian matrix dispatch vs greedy heuristic', duration: '3 min', durationSeconds: 180 },
-  { id: 'cascade_monsoon', name: 'Cascading Monsoon Emergency', desc: 'Flash flood → power outage → road closures → multi-unit preemption', duration: '5 min', durationSeconds: 300 },
 ];
 
+const SOURCE_SHORT_LABEL = {
+  EMERGENCY_CALL: '108 Call', CITIZEN_APP: 'Citizen App', CITIZEN_SMS: 'Citizen SMS',
+  SOCIAL_MEDIA: 'Social', IOT_SENSOR: 'IoT Sensor', CCTV_ANALYTICS: 'CCTV',
+  FIELD_UNIT: 'Field Unit', HOSPITAL: 'Hospital', GOV_DEPARTMENT: 'Gov Dept',
+};
+const INTENSITY_STEPS = [0.5, 1, 2, 3];
+const SOURCE_ACTIVITY_WINDOW_MS = 60_000;
+
 export function BottomTerminalDrawer() {
-  const { liveFeed, sidebarOpen, selectedIncidentId } = useStore();
+  const { liveFeed, sidebarOpen, selectedIncidentId, sourceActivityLog, user } = useStore();
+  const canRunSimulation = hasPermission(user, PERMISSIONS.RUN_SIMULATION);
   const [activeTerminal, setActiveTerminal] = useState(null); // 'feed' | 'sim' | null
 
-  // Simulation Engine State
+  // Simulation Engine State (2 hand-scripted "signature" replays)
   const [running, setRunning] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState(null);
   const [speed, setSpeed] = useState(5);
   const [progress, setProgress] = useState(0);
   const startedAtRef = useRef(null);
   const feedEndRef = useRef(null);
+
+  // Live World Engine — the always-on multi-source feed, independent of the 2 scripted replays.
+  const [worldEngine, setWorldEngine] = useState({ running: false, intensity: 1 });
+  const [worldEngineBusy, setWorldEngineBusy] = useState(false);
+
+  const refreshWorldEngineStatus = () => {
+    adminApi.worldEngineStatus().then(setWorldEngine).catch(() => {});
+  };
+
+  useEffect(() => {
+    if (!canRunSimulation) return;
+    refreshWorldEngineStatus();
+    const poll = setInterval(refreshWorldEngineStatus, 8000);
+    return () => clearInterval(poll);
+  }, [canRunSimulation]);
+
+  const handleToggleWorldEngine = async () => {
+    setWorldEngineBusy(true);
+    try {
+      const next = worldEngine.running ? await adminApi.stopWorldEngine() : await adminApi.startWorldEngine(worldEngine.intensity || 1);
+      setWorldEngine((prev) => ({ ...prev, ...next }));
+    } catch { /* best-effort */ }
+    setWorldEngineBusy(false);
+  };
+
+  const handleWorldEngineIntensity = async (intensity) => {
+    setWorldEngine((prev) => ({ ...prev, intensity }));
+    if (!worldEngine.running) return;
+    try {
+      const next = await adminApi.startWorldEngine(intensity);
+      setWorldEngine((prev) => ({ ...prev, ...next }));
+    } catch { /* best-effort */ }
+  };
+
+  // Real-time per-source tally over the last 60s, fed by the report.ingested socket event
+  // (lib/store.js) — recomputed from the rolling log on every render, no separate pruning needed.
+  const sourceCounts = useMemo(() => {
+    const cutoff = Date.now() - SOURCE_ACTIVITY_WINDOW_MS;
+    const counts = {};
+    for (const entry of sourceActivityLog) {
+      if (entry.ts < cutoff) break; // log is newest-first
+      counts[entry.source_type] = (counts[entry.source_type] || 0) + 1;
+    }
+    return counts;
+  }, [sourceActivityLog]);
 
   useEffect(() => {
     adminApi.simStatus().then(status => {
@@ -115,7 +171,9 @@ export function BottomTerminalDrawer() {
           </span>
         </button>
 
-        {/* Button 2: Simulation Engine */}
+        {/* Button 2: Simulation Engine — requires RUN_SIMULATION; nothing view-only lives in this
+            tab, so unauthorized operators don't see the button at all rather than a dead one. */}
+        {canRunSimulation && (
         <button
           type="button"
           onClick={() => setActiveTerminal(activeTerminal === 'sim' ? null : 'sim')}
@@ -142,9 +200,16 @@ export function BottomTerminalDrawer() {
           />
           <span className="text-xs font-bold tracking-tight">Simulation Engine</span>
           {running && (
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" title="Signature scenario running" />
+          )}
+          {!running && worldEngine.running && (
+            <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              LIVE
+            </span>
           )}
         </button>
+        )}
       </div>
 
       {/* Terminal Drawer — Transparent Container with Floating White Components (Matching Navbar Theme) */}
@@ -277,35 +342,99 @@ export function BottomTerminalDrawer() {
                     </div>
                   </div>
                 ) : (
-                  <div className="h-full grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {SCENARIOS.map(scenario => (
-                      <div
-                        key={scenario.id}
-                        className="h-full flex flex-col justify-between p-3.5 bg-white hover:bg-white/95 border border-slate-200 hover:border-blue-500 rounded-2xl shadow-sm hover:shadow-md transition-all group"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md font-mono">
-                              {scenario.duration}
+                  <div className="h-full grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3">
+                    {/* Live City Feed — the always-on engine, independent of scripted replays */}
+                    <div className="h-full flex flex-col justify-between p-3.5 bg-white border border-slate-200 rounded-2xl shadow-sm min-w-0">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md font-mono uppercase tracking-wide">
+                            Always-On
+                          </span>
+                          {worldEngine.running && (
+                            <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE
                             </span>
-                          </div>
-                          <div className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
-                            {scenario.name}
-                          </div>
-                          <div className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-snug">
-                            {scenario.desc}
-                          </div>
+                          )}
+                        </div>
+                        <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                          <Activity size={13} className="text-emerald-600" /> Live City Feed
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-1 leading-snug">
+                          Continuous reports from 9 sources — calls, citizens, IoT, CCTV, social, field units, hospitals, gov — with procedurally spawned, correlated incidents.
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {Object.keys(sourceCounts).length === 0 ? (
+                            <span className="text-[10px] text-slate-400">no activity in last 60s</span>
+                          ) : Object.entries(sourceCounts).map(([src, count]) => (
+                            <span key={src} className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
+                              {SOURCE_SHORT_LABEL[src] || src} · {count}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex rounded-xl border border-slate-200 overflow-hidden bg-white shadow-2xs shrink-0">
+                          {INTENSITY_STEPS.map((i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => handleWorldEngineIntensity(i)}
+                              className={`h-8 px-2 text-xs font-bold transition-colors cursor-pointer ${
+                                (worldEngine.intensity || 1) === i ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {i}×
+                            </button>
+                          ))}
                         </div>
                         <button
                           type="button"
-                          onClick={() => handleStart(scenario)}
-                          className="mt-2 w-full h-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                          onClick={handleToggleWorldEngine}
+                          disabled={worldEngineBusy}
+                          className={`flex-1 h-8 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 ${
+                            worldEngine.running ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          }`}
                         >
-                          <Play size={11} fill="currentColor" />
-                          Run Scenario
+                          <Power size={13} />
+                          {worldEngine.running ? 'Pause' : 'Start'}
                         </button>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Signature Scenario Replay — the 2 hand-scripted, deterministic walkthroughs */}
+                    <div className="h-full flex flex-col gap-1.5 min-w-0">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide px-0.5">Signature Scenario Replay</div>
+                      <div className="flex-1 grid grid-cols-2 gap-3">
+                        {SCENARIOS.map(scenario => (
+                          <div
+                            key={scenario.id}
+                            className="h-full flex flex-col justify-between p-3.5 bg-white hover:bg-white/95 border border-slate-200 hover:border-blue-500 rounded-2xl shadow-sm hover:shadow-md transition-all group"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md font-mono">
+                                  {scenario.duration}
+                                </span>
+                              </div>
+                              <div className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                                {scenario.name}
+                              </div>
+                              <div className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-snug">
+                                {scenario.desc}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleStart(scenario)}
+                              className="mt-2 w-full h-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                            >
+                              <Play size={11} fill="currentColor" />
+                              Run Scenario
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

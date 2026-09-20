@@ -5,6 +5,7 @@ import { StaleBanner } from './components/layout/StaleBanner';
 import { ToastProvider } from './components/ui/Toast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useStore } from './lib/store';
+import { hasPermission, PERMISSIONS } from './lib/permissions';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
@@ -16,6 +17,7 @@ import { AIHealthPage } from './pages/AIHealthPage';
 import { ReplayPage } from './pages/ReplayPage';
 import { ReportPage } from './pages/ReportPage';
 import { FieldPage } from './pages/FieldPage';
+import { AdminPage } from './pages/AdminPage';
 
 import { MOCK_INCIDENTS, MOCK_UNITS, MOCK_ALERTS, MOCK_HOSPITALS } from './mocks/fixtures';
 
@@ -25,6 +27,14 @@ function ProtectedRoute({ children }) {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+  return children;
+}
+
+function AdminRoute({ children }) {
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
+  const user = useStore((s) => s.user);
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!hasPermission(user, PERMISSIONS.ADMIN)) return <Navigate to="/ops" replace />;
   return children;
 }
 
@@ -94,6 +104,14 @@ function AppShell() {
             }
           />
           <Route path="/field" element={<FieldPage />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminPage />
+              </AdminRoute>
+            }
+          />
           {/* Default redirect */}
           <Route path="*" element={<Navigate to={isAuthenticated ? "/ops" : "/login"} replace />} />
         </Routes>

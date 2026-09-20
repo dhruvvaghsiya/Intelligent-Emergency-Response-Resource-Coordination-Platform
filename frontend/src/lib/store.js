@@ -27,6 +27,13 @@ function pushFeed(state, { type, text, severity = 'INFO' }) {
   return [entry, ...state.liveFeed].slice(0, 100);
 }
 
+// Rolling log of {source_type, ts} — capped, windowed by the reading component (e.g. "last 60s"
+// per source) rather than pruned here, so there's a single place that decides the window size.
+function bumpSourceActivity(log, sourceType) {
+  if (!sourceType) return log;
+  return [{ source_type: sourceType, ts: Date.now() }, ...log].slice(0, 300);
+}
+
 function upsertById(list, item) {
   const idx = list.findIndex((x) => x.id === item.id);
   if (idx === -1) return [item, ...list];
@@ -64,15 +71,10 @@ export const useStore = create((set, get) => ({
       get().fetchAll();
       return { ok: true };
     } catch (err) {
-      // Offline / network failure / sleep fallback for demo accounts & registered accounts
-      let registeredUsers = [];
-      try {
-        registeredUsers = JSON.parse(localStorage.getItem('resilio.registered_users') || '[]');
-      } catch {
-        registeredUsers = [];
-      }
-      const allUsers = [...DEMO_USERS, ...registeredUsers];
-      const matched = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+      // Offline / network failure fallback — seeded demo accounts only. Permissions are left
+      // empty (fail-closed): without the backend reachable there's no authority to grant them,
+      // so every gated action stays hidden until a real session is established.
+      const matched = DEMO_USERS.find(u => u.email.toLowerCase() === cleanEmail);
 
       if (matched && (matched.password === password || password === 'prahari123')) {
         const fallbackUser = {
@@ -81,6 +83,7 @@ export const useStore = create((set, get) => ({
           name: matched.name,
           role: matched.role,
           station_id: matched.station_id || null,
+          permissions: [],
         };
         const fallbackToken = 'mock_jwt_' + btoa(JSON.stringify(fallbackUser));
         storeTokens({ access_token: fallbackToken, refresh_token: fallbackToken });
@@ -92,48 +95,6 @@ export const useStore = create((set, get) => ({
       }
 
       const message = err?.response?.data?.error?.message || 'Invalid credentials. Please verify your email and password.';
-      set({ authLoading: false, authError: message });
-      return { ok: false, error: message };
-    }
-  },
-
-  register: async ({ name, email, role, station_id, password }) => {
-    set({ authLoading: true, authError: null });
-    const cleanEmail = (email || '').trim().toLowerCase();
-    try {
-      let userObj;
-      try {
-        const data = await authApi.register({ name, email: cleanEmail, role, station_id, password });
-        storeTokens(data);
-        userObj = data.user;
-      } catch {
-        // Fallback registration if backend unreachable
-        userObj = {
-          id: `usr_${Date.now().toString(36)}`,
-          name: name.trim(),
-          email: cleanEmail,
-          role: role || 'DISPATCHER',
-          station_id: station_id?.trim() || null,
-        };
-        const mockToken = 'mock_jwt_' + btoa(JSON.stringify(userObj));
-        storeTokens({ access_token: mockToken, refresh_token: mockToken });
-        let registered = [];
-        try {
-          registered = JSON.parse(localStorage.getItem('resilio.registered_users') || '[]');
-        } catch {
-          registered = [];
-        }
-        registered.push({ ...userObj, password });
-        localStorage.setItem('resilio.registered_users', JSON.stringify(registered));
-      }
-
-      localStorage.setItem('resilio.user', JSON.stringify(userObj));
-      localStorage.setItem('prahari.user', JSON.stringify(userObj));
-      set({ user: userObj, token: getStoredToken(), isAuthenticated: true, authLoading: false });
-      get().fetchAll();
-      return { ok: true };
-    } catch (err) {
-      const message = err?.response?.data?.error?.message || 'Registration failed. Please try again.';
       set({ authLoading: false, authError: message });
       return { ok: false, error: message };
     }
@@ -232,6 +193,22 @@ export const useStore = create((set, get) => ({
       lastEventAt: evt.ts,
       liveFeed: pushFeed(state, { type: evt.type, text: `Dispatch plans generated for ${evt.entity?.id}`, severity: 'INFO' }),
     })));
+
+    // Live World Engine feed — fires the instant a multi-source report lands, ahead of the
+    // pipeline finishing. `notable` reports (director-spawned incident clusters, hospital strain)
+    // surface in the Event Stream; routine ambient sensor/CCTV hum only updates the source tally
+    // so the feed doesn't get flooded with "sensor nominal" lines.
+    socket.on('report.ingested', (evt) => set((state) => ({
+      lastEventAt: evt.ts,
+      sourceActivityLog: bumpSourceActivity(state.sourceActivityLog, evt.payload?.source_type),
+      ...(evt.payload?.notable ? {
+        liveFeed: pushFeed(state, { type: evt.type, text: `${evt.payload.source_label}: ${evt.payload.headline || 'new report'}`, severity: 'INFO' }),
+      } : {}),
+    })));
+    socket.on('hospital.updated', (evt) => set((state) => ({
+      hospitals: upsertById(state.hospitals, evt.payload),
+      lastEventAt: evt.ts,
+    })));
   },
 
   // ——— Incidents (live overlay) ———
@@ -329,6 +306,11 @@ export const useStore = create((set, get) => ({
       }
     }
   },
+  patchHospitalCapacity: async (id, body) => {
+    const updated = await hospitalsApi.patchCapacity(id, body);
+    set(state => ({ hospitals: upsertById(state.hospitals, updated) }));
+    return updated;
+  },
 
   addReport: (reportPayload) => {
     const state = get();
@@ -416,6 +398,7 @@ export const useStore = create((set, get) => ({
   liveFeed: [],
   liveFeedExpanded: false,
   toggleLiveFeed: () => set(state => ({ liveFeedExpanded: !state.liveFeedExpanded })),
+  sourceActivityLog: [], // rolling {source_type, ts} log fed by the report.ingested socket event
 
   // ——— Right rail state ———
   rightRailTab: 'overview', // 'overview' | 'evidence' | 'response' | 'related' | 'timeline'

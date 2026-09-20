@@ -1,17 +1,70 @@
 import { Router } from 'express';
+import bcrypt from 'bcryptjs';
 import { Report } from '../../models/Report.js';
+import { User } from '../../models/User.js';
 import { newId } from '../../utils/ids.js';
 import { toGeoJson } from '../../utils/geo.js';
 import { authenticate } from '../../middleware/auth.js';
-import { requirePermission, PERMISSIONS } from '../../platform/rbac.js';
+import { requirePermission, PERMISSIONS, can } from '../../platform/rbac.js';
+import { validateBody } from '../../middleware/validate.js';
+import { AdminCreateUserSchema } from '../../contracts/schemas.js';
 import { enqueueJob } from '../../platform/jobs.js';
 import { aiHealthSnapshot } from '../../ai/client.js';
 import { AiCall } from '../../models/AiCall.js';
 import { SCENARIOS, buildReportBody } from './scenarios.js';
 import { isDbHealthy } from '../../platform/db.js';
 import { AppError } from '../../platform/errors.js';
+import { startWorldEngine, stopWorldEngine, getWorldEngineStatus } from '../worldengine/engine.js';
 
 export const adminRouter = Router();
+
+function toUserWire(u) {
+  return {
+    id: u._id, email: u.email, name: u.name, role: u.role, station_id: u.station_id,
+    permissions: Object.values(PERMISSIONS).filter((p) => can(u.role, p)),
+    created_at: u.created_at.toISOString(),
+  };
+}
+
+// §access-control — the only place an operator account can be created or removed. Self-service
+// registration (POST /auth/register) was deleted entirely: it let any anonymous caller pick their
+// own role, including ADMIN. Here the role comes from an already-authenticated ADMIN, not the
+// anonymous request body.
+adminRouter.get('/admin/users', authenticate, requirePermission(PERMISSIONS.ADMIN), async (req, res, next) => {
+  try {
+    const users = await User.find().sort({ created_at: -1 });
+    res.json({ data: users.map(toUserWire) });
+  } catch (err) { next(err); }
+});
+
+adminRouter.post('/admin/users', authenticate, requirePermission(PERMISSIONS.ADMIN), validateBody(AdminCreateUserSchema), async (req, res, next) => {
+  try {
+    const cleanEmail = req.body.email.toLowerCase().trim();
+    const existing = await User.findOne({ email: cleanEmail });
+    if (existing) throw new AppError('CONFLICT', 'An operator account with this email already exists');
+
+    const password_hash = await bcrypt.hash(req.body.password, 10);
+    const user = await User.create({
+      _id: newId('user'),
+      name: req.body.name,
+      email: cleanEmail,
+      role: req.body.role,
+      station_id: req.body.station_id || null,
+      password_hash,
+    });
+    res.status(201).json({ data: toUserWire(user) });
+  } catch (err) { next(err); }
+});
+
+adminRouter.delete('/admin/users/:id', authenticate, requirePermission(PERMISSIONS.ADMIN), async (req, res, next) => {
+  try {
+    if (req.params.id === req.user.id) throw new AppError('BAD_REQUEST', 'Cannot delete your own account');
+    const user = await User.findById(req.params.id);
+    if (!user) throw new AppError('NOT_FOUND', 'User not found');
+    await User.deleteOne({ _id: req.params.id });
+    res.json({ data: { deleted: true, id: req.params.id } });
+  } catch (err) { next(err); }
+});
 
 let activeSim = null; // { name, sim_run_id, startedAt, speed, timers: [] }
 
@@ -65,6 +118,28 @@ adminRouter.post('/sim/stop', authenticate, requirePermission(PERMISSIONS.RUN_SI
 adminRouter.get('/sim/status', authenticate, async (req, res, next) => {
   try {
     res.json({ data: activeSim ? { running: true, name: activeSim.name, sim_run_id: activeSim.sim_run_id, started_at: activeSim.started_at, speed: activeSim.speed } : { running: false } });
+  } catch (err) { next(err); }
+});
+
+// §worldengine — the always-on multi-source live feed, distinct from the 2 hand-scripted
+// scenarios above. Runs by default (env.SIM_ENABLED) from server startup; these let an operator
+// pause it or turn the intensity dial for a demo.
+adminRouter.post('/worldengine/start', authenticate, requirePermission(PERMISSIONS.RUN_SIMULATION), async (req, res, next) => {
+  try {
+    const intensity = Number(req.body?.intensity) || 1;
+    res.json({ data: startWorldEngine({ intensity }) });
+  } catch (err) { next(err); }
+});
+
+adminRouter.post('/worldengine/stop', authenticate, requirePermission(PERMISSIONS.RUN_SIMULATION), async (req, res, next) => {
+  try {
+    res.json({ data: stopWorldEngine() });
+  } catch (err) { next(err); }
+});
+
+adminRouter.get('/worldengine/status', authenticate, async (req, res, next) => {
+  try {
+    res.json({ data: await getWorldEngineStatus() });
   } catch (err) { next(err); }
 });
 

@@ -111,21 +111,23 @@ function getSyncAnimationDelay() {
   return `-${elapsedSec.toFixed(3)}s`;
 }
 
-function incidentMarkerEl(incident, isSelected) {
+function incidentMarkerEl(incident, isSelected, hasSelected) {
   const color = SEV_COLORS[incident.severity] || SEV_COLORS.INFO;
-  const r = SEV_RADIUS[incident.severity] || 11;
+  const r = SEV_RADIUS[incident.severity] || 12;
   const d = r * 2;
   const inner = Math.max(5, Math.round(r * 0.45));
   const animDelay = getSyncAnimationDelay();
 
-  // CRITICAL: Do NOT set position:relative on el!
-  // MapLibre's marker element must remain position:absolute at (0,0) of the canvas container
-  // so that MapLibre's transform places it precisely at its geographic coordinates.
+  const isDull = hasSelected && !isSelected;
+
   const el = document.createElement('div');
   el.className = `incident-marker ${isSelected ? 'incident-marker--selected' : ''}`;
   el.style.width = `${d}px`;
   el.style.height = `${d}px`;
   el.style.cursor = 'pointer';
+  el.style.zIndex = isSelected ? '45' : isDull ? '10' : '40';
+  el.style.opacity = isDull ? '0.38' : '1';
+  el.style.filter = isDull ? 'grayscale(0.35) opacity(0.4)' : isSelected ? `drop-shadow(0 0 14px ${color}) brightness(1.25)` : 'none';
 
   el.innerHTML = `
     <!-- Pulse Ring -->
@@ -137,9 +139,11 @@ function incidentMarkerEl(incident, isSelected) {
       height: ${d}px;
       border-radius: 50%;
       background: ${color};
+      box-shadow: 0 0 14px ${color};
       animation: incident-pulse-anim ${SYNC_PULSE_DURATION}s cubic-bezier(0, 0, 0.2, 1) infinite;
       animation-delay: ${animDelay};
       pointer-events: none;
+      display: ${isDull ? 'none' : 'block'};
     "></div>
 
     <!-- Core Circle -->
@@ -150,25 +154,26 @@ function incidentMarkerEl(incident, isSelected) {
       width: ${d}px;
       height: ${d}px;
       border-radius: 50%;
-      border: 2.5px solid ${color};
-      background: ${color}26;
+      border: 3px solid #FFFFFF;
+      background: ${color};
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.18)${isSelected ? ', 0 0 0 4px rgba(37,99,235,0.45)' : ''};
-      transform: ${isSelected ? 'scale(1.25)' : 'scale(1)'};
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 0 0 2px ${color}90, 0 4px 16px rgba(0,0,0,0.55)${isSelected ? `, 0 0 24px ${color}` : ''};
+      transform: ${isSelected ? 'scale(1.35)' : 'scale(1)'};
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     ">
       <span style="
         width: ${inner}px;
         height: ${inner}px;
         border-radius: 50%;
-        background: ${color};
+        background: #FFFFFF;
         display: block;
+        box-shadow: 0 0 3px rgba(0,0,0,0.4);
       "></span>
     </div>
 
-    <!-- Hover Info Tooltip (above the circle) -->
+    <!-- Hover Info Tooltip -->
     <div class="incident-tooltip" style="
       position: absolute;
       bottom: 100%;
@@ -179,29 +184,28 @@ function incidentMarkerEl(incident, isSelected) {
       pointer-events: none;
       transition: opacity 0.15s ease, transform 0.15s ease;
       white-space: nowrap;
-      z-index: 50;
+      z-index: 1050;
     ">
       <div style="
         display: flex;
         align-items: center;
         gap: 7px;
         padding: 6px 12px;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.98);
-        backdrop-filter: blur(8px);
-        border: 1px solid ${isSelected ? '#3B82F6' : '#CBD5E1'};
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14)${isSelected ? ', 0 0 0 2px rgba(59,130,246,0.25)' : ''};
+        border-radius: 10px;
+        background: #FFFFFF;
+        border: 1.5px solid ${isSelected ? '#2563EB' : '#CBD5E1'};
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22)${isSelected ? `, 0 0 0 3px rgba(37,99,235,0.3)` : ''};
       ">
-        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${color}; flex-shrink: 0;"></span>
-        <span style="font-size: 12px; font-weight: 600; color: #0F172A; max-width: 220px; overflow: hidden; text-overflow: ellipsis;">${incident.title}</span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: ${color}; flex-shrink: 0;"></span>
+        <span style="font-size: 12px; font-weight: 700; color: #0F172A; max-width: 220px; overflow: hidden; text-overflow: ellipsis;">${incident.title}</span>
         <span style="
-          font-size: 9px;
-          font-weight: 700;
+          font-size: 10px;
+          font-weight: 800;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          padding: 2px 6px;
-          border-radius: 4px;
-          background: ${color}18;
+          padding: 2px 7px;
+          border-radius: 6px;
+          background: ${color}20;
           color: ${color};
         ">${incident.severity}</span>
       </div>
@@ -213,16 +217,50 @@ function incidentMarkerEl(incident, isSelected) {
 function unitMarkerEl(unit) {
   const color = STATUS_COLORS[unit.status] || STATUS_COLORS.OFFLINE;
   const el = document.createElement('div');
-  // CRITICAL: Do NOT use 'relative' here! Markers must be absolute in canvas container
   el.className = 'unit-marker group cursor-default select-none';
+  el.style.zIndex = '20';
+  el.style.pointerEvents = 'auto';
+
   el.innerHTML = `
-    <div class="flex items-center gap-1">
-      <div class="w-0 h-0 border-l-[5px] border-r-[5px] border-b-[11px] border-l-transparent border-r-transparent drop-shadow-sm"
-        style="border-bottom-color:${color};transform:rotate(${unit.heading || 0}deg)">
-      </div>
-      <div class="px-1.5 py-0.5 rounded bg-white/95 border border-slate-200 shadow-xs text-[10px] font-mono font-bold" style="color:${color}">
-        ${unit.call_sign}
-      </div>
+    <div style="
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      transform: translate(8px, -12px);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    ">
+      <div style="
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-bottom: 9px solid ${color};
+        transform: rotate(${unit.heading || 0}deg);
+        flex-shrink: 0;
+        filter: drop-shadow(0 0 4px ${color});
+      "></div>
+      <span style="
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 11px;
+        font-weight: 800;
+        color: #FFFFFF;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      ">${unit.call_sign}</span>
+      <span style="
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: ${color};
+        flex-shrink: 0;
+        box-shadow: 0 0 6px ${color};
+      "></span>
     </div>
   `;
   el.title = `${unit.call_sign} — ${unit.status}`;
@@ -307,6 +345,8 @@ export function SituationMap() {
     const map = mapRef.current;
     if (!map || !mapReady) return;
     const markers = incidentMarkersRef.current;
+    const hasSelected = Boolean(selectedIncidentId);
+
     // Build set of incident IDs linked or merged to currently selected incident
     const selectedIncident = incidents.find(i => i.id === selectedIncidentId || i.code === selectedIncidentId);
     const linkedIncidentIds = new Set([
@@ -326,12 +366,12 @@ export function SituationMap() {
     visible.forEach(incident => {
       if (!incident.location) return;
       seen.add(incident.id);
-      const isSelected = incident.id === selectedIncidentId;
+      const isSelected = incident.id === selectedIncidentId || incident.code === selectedIncidentId;
       const existing = markers.get(incident.id);
       if (existing) {
         existing.remove();
       }
-      const el = incidentMarkerEl(incident, isSelected);
+      const el = incidentMarkerEl(incident, isSelected, hasSelected);
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         selectIncident(incident.id);
@@ -381,7 +421,7 @@ export function SituationMap() {
   }, [units, mapLayers.units, mapReady]);
 
   return (
-    <div className="flex-1 relative bg-slate-100 overflow-hidden">
+    <div className="flex-1 relative bg-slate-100 overflow-hidden h-full w-full z-0 isolate">
       <div ref={mapContainer} className="w-full h-full" />
 
       {/* Floating 3-Line Sidebar Menu Toggle Button on Map (Only visible when sidebar is closed) */}

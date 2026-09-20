@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button';
 import { SeverityChip } from '../components/ui/Chip';
 import { Check, AlertTriangle, Bell, Shield, Radio, Cpu, Users, CheckCircle2, Clock, MapPin } from 'lucide-react';
 import { formatRelativeTime } from '../lib/format';
+import { hasPermission, PERMISSIONS } from '../lib/permissions';
 
 const ALERT_ICONS = {
   NEW_CRITICAL: AlertTriangle,
@@ -20,7 +21,8 @@ const ALERT_ICONS = {
 };
 
 export function AlertsPage() {
-  const { alerts, ackAlert, incidents = [], units = [] } = useStore();
+  const { alerts, ackAlert, incidents = [], units = [], user } = useStore();
+  const canAck = hasPermission(user, PERMISSIONS.EDIT_INCIDENT);
   const unacked = alerts.filter(a => !a.acked_at);
   const acked = alerts.filter(a => a.acked_at);
 
@@ -66,7 +68,7 @@ export function AlertsPage() {
                   alert={alert}
                   incidents={incidents}
                   units={units}
-                  onAck={() => ackAlert(alert.id)}
+                  onAck={canAck ? () => ackAlert(alert.id) : null}
                 />
               ))}
             </div>
