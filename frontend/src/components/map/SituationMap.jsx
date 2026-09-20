@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Map as MapLibreMap, Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Minus, Plus, Crosshair, Layers, Globe, Map as MapIcon, Menu } from 'lucide-react';
+import { Minus, Plus, Crosshair, Layers, Globe, Map as MapIcon, Menu, Navigation } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { Button } from '../ui/Button';
 import { CoverageRadar } from './CoverageRadar';
@@ -273,6 +273,18 @@ export function SituationMap() {
   const incidentMarkersRef = useRef(new Map());
   const unitMarkersRef = useRef(new Map());
   const [mapReady, setMapReady] = useState(false);
+  const [bearing, setBearing] = useState(0);
+
+  const resetNorthDirection = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (map.resetNorthPitch) {
+      map.resetNorthPitch({ duration: 800 });
+    } else {
+      map.easeTo({ bearing: 0, pitch: 0, duration: 800 });
+    }
+    setBearing(0);
+  };
 
   const [basemap, setBasemap] = useState('satellite'); // By default satellite view
   const [showLayersPopup, setShowLayersPopup] = useState(false);
@@ -327,9 +339,12 @@ export function SituationMap() {
     });
 
     map.on('load', () => setMapReady(true));
+    map.on('rotate', () => setBearing(map.getBearing()));
+    map.on('pitch', () => setBearing(map.getBearing()));
     map.on('moveend', () => {
       const c = map.getCenter();
       setMapViewport({ center: [c.lng, c.lat], zoom: map.getZoom() });
+      setBearing(map.getBearing());
     });
 
     mapRef.current = map;
@@ -461,8 +476,23 @@ export function SituationMap() {
           </button>
         </div>
 
+        {/* Google Maps Style North Direction Compass Button */}
         <button
-          onClick={() => mapRef.current?.flyTo({ center: AHMEDABAD_CENTER, zoom: DEFAULT_ZOOM })}
+          type="button"
+          onClick={resetNorthDirection}
+          className="bg-white border border-slate-200 rounded-xl p-2.5 text-slate-700 hover:bg-slate-50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all cursor-pointer flex items-center justify-center group"
+          title="Orient Map to North (Reset Direction)"
+          aria-label="Orient Map to North"
+        >
+          <Navigation
+            size={16}
+            className="text-blue-600 transition-transform duration-300"
+            style={{ transform: `rotate(${-bearing}deg)` }}
+          />
+        </button>
+
+        <button
+          onClick={() => mapRef.current?.flyTo({ center: AHMEDABAD_CENTER, zoom: DEFAULT_ZOOM, bearing: 0, pitch: 0 })}
           className="bg-white border border-slate-200 rounded-xl p-2.5 text-slate-700 hover:bg-slate-50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-colors cursor-pointer"
           title="Center on Operations Hub"
         >
