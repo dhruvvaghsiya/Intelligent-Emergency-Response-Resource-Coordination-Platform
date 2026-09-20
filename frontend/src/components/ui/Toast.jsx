@@ -33,7 +33,7 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ addToast, removeToast }}>
       {children}
-      <div className="fixed top-5 right-5 z-50 flex flex-col gap-3 w-[400px] pointer-events-none" aria-live="polite">
+      <div className="fixed top-5 right-5 z-50 flex flex-col gap-3 w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] pointer-events-none" aria-live="polite">
         {toasts.map(toast => (
           <div key={toast.id} className="pointer-events-auto">
             <ToastItem toast={toast} onDismiss={() => removeToast(toast.id)} />
@@ -62,22 +62,24 @@ function ToastItem({ toast, onDismiss }) {
       className={`
         flex items-start gap-3.5 p-4
         bg-white border border-slate-200 ${leftBorder} border-l-[4px] rounded-xl
-        shadow-[0_10px_30px_rgba(15,23,42,0.08)]
-        transition-all
+        shadow-[0_8px_24px_rgba(15,23,42,0.08)]
+        transition-all duration-150
       `}
       role={isCritical ? 'alert' : 'status'}
       aria-live={isCritical ? 'assertive' : 'polite'}
     >
-      <Icon size={20} className="mt-0.5 shrink-0" />
+      <div className="p-2 rounded-lg bg-slate-50 shrink-0">
+        <Icon size={20} strokeWidth={2.2} />
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-1">
-          <p className="text-[14.5px] font-semibold text-slate-900">{toast.title}</p>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+          <p className="text-sm font-bold text-slate-900 leading-snug">{toast.title}</p>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono uppercase tracking-wider border border-slate-200/70 shrink-0">
             {toast.severity}
           </span>
         </div>
         {toast.body && (
-          <p className="text-sm text-slate-600 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
             {toast.body}
           </p>
         )}

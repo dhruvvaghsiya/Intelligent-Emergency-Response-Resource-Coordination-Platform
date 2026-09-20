@@ -1,13 +1,9 @@
-/* =========================================================================
-   ALERTS PAGE — Tactical Alert Inbox & Acknowledgment (Light Theme)
-   ========================================================================= */
 import React from 'react';
 import { useStore } from '../lib/store';
 import { Button } from '../components/ui/Button';
 import { SeverityChip } from '../components/ui/Chip';
-import { Check, AlertTriangle, Bell, Shield, Radio, Cpu, Users, CheckCircle2 } from 'lucide-react';
-import { formatRelativeTime, formatTime } from '../lib/format';
-import { SEVERITY_CONFIG } from '../lib/constants';
+import { Check, AlertTriangle, Bell, Shield, Radio, Cpu, Users, CheckCircle2, Clock, MapPin } from 'lucide-react';
+import { formatRelativeTime } from '../lib/format';
 
 const ALERT_ICONS = {
   NEW_CRITICAL: AlertTriangle,
@@ -24,49 +20,52 @@ const ALERT_ICONS = {
 };
 
 export function AlertsPage() {
-  const { alerts, ackAlert } = useStore();
+  const { alerts, ackAlert, incidents = [], units = [] } = useStore();
   const unacked = alerts.filter(a => !a.acked_at);
   const acked = alerts.filter(a => a.acked_at);
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 bg-slate-50 select-none">
-      <div className="max-w-[960px] mx-auto space-y-6">
+    <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-slate-50 select-none">
+      <div className="max-w-[920px] mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <Bell size={24} className="text-blue-600" />
-              Tactical Alert Dispatch Inbox
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <Bell size={22} className="text-slate-700" />
+              Tactical Alert & Notifications
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Active SLA Breaches, Preemption Advisories, & Cascading Event Warnings
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              Active SLA breaches, preemption advisories, and system dispatch warnings
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-xs">
+            <span className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-xs flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
               <strong className="text-slate-900 font-bold">{unacked.length}</strong> Unacknowledged
             </span>
           </div>
         </div>
 
-        {/* Unacked Section */}
+        {/* Pending Unacknowledged Alerts */}
         <div className="space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between px-0.5">
             <span>Pending Immediate Attention ({unacked.length})</span>
           </div>
 
           {unacked.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-10 text-center shadow-sm">
-              <CheckCircle2 size={32} className="text-emerald-600 mx-auto mb-2" />
+            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center shadow-xs">
+              <CheckCircle2 size={32} className="text-slate-400 mx-auto mb-2" />
               <div className="text-base text-slate-900 font-semibold">All Escalations Acknowledged</div>
-              <div className="text-sm text-slate-500 mt-1">No active unacknowledged incidents in queue.</div>
+              <div className="text-xs text-slate-500 mt-1">No active unacknowledged alerts in your queue.</div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4 sm:space-y-5">
               {unacked.map(alert => (
                 <AlertCard
                   key={alert.id}
                   alert={alert}
+                  incidents={incidents}
+                  units={units}
                   onAck={() => ackAlert(alert.id)}
                 />
               ))}
@@ -74,15 +73,21 @@ export function AlertsPage() {
           )}
         </div>
 
-        {/* Acked Section */}
+        {/* Resolved / Acknowledged Stream */}
         {acked.length > 0 && (
-          <div className="space-y-3 pt-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <div className="space-y-3 pt-6 border-t border-slate-200/80">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 px-0.5">
               Resolved & Acknowledged Stream ({acked.length})
             </div>
-            <div className="space-y-3 opacity-75">
+            <div className="space-y-4 sm:space-y-5 opacity-80">
               {acked.map(alert => (
-                <AlertCard key={alert.id} alert={alert} acked />
+                <AlertCard
+                  key={alert.id}
+                  alert={alert}
+                  incidents={incidents}
+                  units={units}
+                  acked
+                />
               ))}
             </div>
           </div>
@@ -92,46 +97,125 @@ export function AlertsPage() {
   );
 }
 
-function AlertCard({ alert, onAck, acked = false }) {
-  const config = SEVERITY_CONFIG[alert.severity] || SEVERITY_CONFIG.INFO;
+function AlertCard({ alert, onAck, acked = false, incidents = [], units = [] }) {
   const Icon = ALERT_ICONS[alert.type] || Bell;
+
+  const incident = alert.incident_id ? incidents.find(i => i.id === alert.incident_id) : null;
+  const unit = alert.unit_id ? units.find(u => u.id === alert.unit_id) : null;
 
   const leftBorderColor = alert.severity === 'CRITICAL' ? 'border-l-red-500'
     : alert.severity === 'HIGH' ? 'border-l-orange-500'
     : alert.severity === 'MODERATE' ? 'border-l-amber-500'
     : 'border-l-blue-500';
 
+  // Extract location label
+  const locationLabel = incident?.address || incident?.ward || incident?.title || '';
+
   return (
     <div
       className={`
-        flex items-start gap-4 p-5
-        bg-white border border-slate-200 ${!acked ? `${leftBorderColor} border-l-[4px]` : ''} rounded-xl shadow-xs
-        transition-all duration-150
+        flex items-start gap-4 p-4.5 sm:p-5
+        bg-white border border-slate-200 ${leftBorderColor} border-l-[4px]
+        rounded-xl shadow-xs transition-all duration-150 hover:border-slate-300
       `}
     >
-      <div className="p-2.5 rounded-lg bg-slate-50 text-slate-600 shrink-0">
-        <Icon size={20} />
+      {/* Neutral Slate Severity Icon */}
+      <div className="p-2.5 rounded-lg bg-slate-100 text-slate-600 shrink-0">
+        <Icon size={20} strokeWidth={2.2} />
       </div>
+
+      {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2.5 mb-1.5">
-          <span className="text-base font-semibold text-slate-900 tracking-tight">{alert.title}</span>
-          <SeverityChip severity={alert.severity} />
+        {/* Title + Severity + Type Badge */}
+        <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-base font-bold text-slate-900 tracking-tight">{alert.title}</span>
+            <SeverityChip severity={alert.severity} />
+          </div>
+          <span className="uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[11px] font-semibold border border-slate-200/60">
+            {alert.type.replace(/_/g, ' ')}
+          </span>
         </div>
-        <p className="text-sm text-slate-600 leading-relaxed">{alert.body}</p>
-        <div className="flex items-center gap-3 mt-2 text-xs text-slate-400 font-medium">
-          <span>{formatTime(alert.raised_at)}</span>
-          <span>·</span>
-          <span>{formatRelativeTime(alert.raised_at)}</span>
-          <span>·</span>
-          <span className="uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[11px]">{alert.type.replace(/_/g, ' ')}</span>
+
+        {/* Simple Body Text */}
+        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-3">
+          {alert.body}
+        </p>
+
+        {/* Bottom Information Footer: Time, Location, Evidence Conflict Info */}
+        <div className="flex items-center gap-3 text-xs text-slate-500 font-medium flex-wrap pt-0.5">
+          {/* Time */}
+          <span className="flex items-center gap-1">
+            <Clock size={13} className="text-slate-400" />
+            {formatRelativeTime(alert.raised_at)}
+          </span>
+
+          {/* Location & Incident Code */}
+          {incident && (
+            <>
+              <span className="text-slate-300">·</span>
+              <span className="flex items-center gap-1 font-semibold text-slate-700">
+                <MapPin size={13} className="text-slate-400 shrink-0" />
+                <span>{incident.code}</span>
+                {locationLabel && (
+                  <span className="text-slate-500 font-normal truncate max-w-[240px]">
+                    ({locationLabel})
+                  </span>
+                )}
+              </span>
+            </>
+          )}
+
+          {/* Evidence Conflict Detail Tag in Bottom Bar */}
+          {alert.type === 'EVIDENCE_CONFLICT' && (
+            <>
+              <span className="text-slate-300">·</span>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200/80 text-[11px] font-semibold">
+                <AlertTriangle size={12} className="text-slate-400 shrink-0" />
+                Contested: people_trapped
+              </span>
+            </>
+          )}
+
+          {/* Related Unit if applicable */}
+          {unit && (
+            <>
+              <span className="text-slate-300">·</span>
+              <span className="flex items-center gap-1 font-semibold text-slate-700">
+                <Shield size={13} className="text-slate-400 shrink-0" />
+                {unit.call_sign}
+              </span>
+            </>
+          )}
+
+          {/* Acknowledged Status Timestamp */}
+          {acked && alert.acked_at && (
+            <>
+              <span className="text-slate-300">·</span>
+              <span className="flex items-center gap-1 text-slate-600 font-medium ml-auto">
+                <CheckCircle2 size={13} className="text-slate-400" />
+                Acknowledged {formatRelativeTime(alert.acked_at)}
+              </span>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Acknowledge Button */}
       {!acked && onAck && (
-        <Button variant="secondary" size="compact" onClick={onAck} className="shrink-0">
-          <Check size={14} />
+        <Button
+          variant="primary"
+          size="compact"
+          onClick={onAck}
+          className="shrink-0 font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs transition-colors cursor-pointer"
+        >
+          <Check size={14} strokeWidth={2.5} />
           Acknowledge
         </Button>
       )}
     </div>
   );
 }
+
+
+

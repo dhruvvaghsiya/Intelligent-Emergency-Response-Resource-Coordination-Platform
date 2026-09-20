@@ -1,534 +1,513 @@
 /* =========================================================================
-   LOGIN PAGE — Emergency Command Center Authentication
-   Dark cinematic aesthetic matching the satellite map hero of OpsPage.
-   Split layout: glassmorphic login panel left | animated "live map" right.
+   LOGIN & SIGN UP PAGE — Resilio Emergency Response Console
+   Layout: Split card layout matching reference design:
+   - Left: Rounded showcase card with orbital satellite telemetry imagery,
+           tactical directive tag, and high-contrast editorial serif headline.
+   - Right: Clean white card with brand logo, "Welcome Back", email/password
+            inputs, remember-me, solid black sign-in button, and quick-login chips.
    ========================================================================= */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ShieldCheck, LogIn, AlertCircle, Eye, EyeOff,
-  Zap, Activity, Radio, BarChart3, Wrench, User,
+  ShieldCheck, Eye, EyeOff, AlertCircle, CheckCircle2,
+  Lock, Mail, User, Building2, ChevronRight, ArrowRight
 } from 'lucide-react';
-import { useStore } from '../lib/store';
+import { useStore, DEMO_USERS } from '../lib/store';
 
-/* ── Operator role presets ─────────────────────────────────────────────── */
-const ROLES = [
-  {
-    key: 'commander',
-    label: 'Commander',
-    email: 'commander@resilio.in',
-    password: 'Resilio@2026',
-    icon: ShieldCheck,
-    color: '#EF4444',
-    bg: 'rgba(239,68,68,0.12)',
-    border: 'rgba(239,68,68,0.35)',
-    description: 'Full strategic command & resource allocation',
-  },
-  {
-    key: 'dispatch',
-    label: 'Dispatcher',
-    email: 'dispatch@resilio.in',
-    password: 'Resilio@2026',
-    icon: Radio,
-    color: '#3B82F6',
-    bg: 'rgba(59,130,246,0.12)',
-    border: 'rgba(59,130,246,0.35)',
-    description: 'Unit deployment, routing & coordination',
-  },
-  {
-    key: 'analyst',
-    label: 'Analyst',
-    email: 'analyst@resilio.in',
-    password: 'Resilio@2026',
-    icon: BarChart3,
-    color: '#10B981',
-    bg: 'rgba(16,185,129,0.12)',
-    border: 'rgba(16,185,129,0.35)',
-    description: 'Analytics, SLAs, AI evaluation & reports',
-  },
-  {
-    key: 'field',
-    label: 'Field Unit',
-    email: 'unit07@resilio.in',
-    password: 'Resilio@2026',
-    icon: Activity,
-    color: '#F59E0B',
-    bg: 'rgba(245,158,11,0.12)',
-    border: 'rgba(245,158,11,0.35)',
-    description: 'Field responder mobile view & status updates',
-  },
-  {
-    key: 'admin',
-    label: 'Admin',
-    email: 'admin@resilio.in',
-    password: 'Resilio@2026',
-    icon: Wrench,
-    color: '#8B5CF6',
-    bg: 'rgba(139,92,246,0.12)',
-    border: 'rgba(139,92,246,0.35)',
-    description: 'System admin, simulation control & seed',
-  },
+const ROLE_PRESETS = [
+  { id: 'COMMANDER',  label: 'Commander',   badge: 'bg-red-50 text-red-700 border-red-200',    email: 'commander@prahari.in' },
+  { id: 'DISPATCHER', label: 'Dispatcher',  badge: 'bg-blue-50 text-blue-700 border-blue-200',   email: 'dispatch@prahari.in' },
+  { id: 'ANALYST',    label: 'Analyst',     badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', email: 'analyst@prahari.in' },
+  { id: 'FIELD_UNIT', label: 'Field Unit',  badge: 'bg-amber-50 text-amber-700 border-amber-200',  email: 'unit07@prahari.in' },
+  { id: 'ADMIN',      label: 'Admin',       badge: 'bg-purple-50 text-purple-700 border-purple-200', email: 'admin@prahari.in' },
 ];
 
-/* ── Animated pulse ring used for map decoration ──────────────────────── */
-function PulseRing({ x, y, color, delay = 0, size = 40 }) {
-  return (
-    <motion.div
-      className="absolute rounded-full pointer-events-none"
-      style={{ left: x - size / 2, top: y - size / 2, width: size, height: size }}
-    >
-      {/* Core dot */}
-      <div
-        className="absolute inset-0 rounded-full opacity-90"
-        style={{ background: color, transform: 'scale(0.2)', boxShadow: `0 0 12px 4px ${color}` }}
-      />
-      {/* Outer ring pulse */}
-      <motion.div
-        className="absolute rounded-full border-2"
-        style={{ inset: 0, borderColor: color }}
-        animate={{ scale: [1, 2.8], opacity: [0.7, 0] }}
-        transition={{ duration: 2.5, delay, repeat: Infinity, ease: 'easeOut' }}
-      />
-      <motion.div
-        className="absolute rounded-full border"
-        style={{ inset: 0, borderColor: color }}
-        animate={{ scale: [1, 2], opacity: [0.4, 0] }}
-        transition={{ duration: 2.5, delay: delay + 0.5, repeat: Infinity, ease: 'easeOut' }}
-      />
-    </motion.div>
-  );
-}
-
-/* ── Unit dot on decorative "map" ─────────────────────────────────────── */
-function UnitDot({ x, y, color }) {
-  return (
-    <div
-      className="absolute w-2.5 h-2.5 rounded-full border-2 border-white/80 pointer-events-none"
-      style={{ left: x - 5, top: y - 5, background: color, boxShadow: `0 0 8px ${color}` }}
-    />
-  );
-}
-
-/* ── Road-like connector lines (SVG) ─────────────────────────────────── */
-function MapGrid({ width, height }) {
-  return (
-    <svg className="absolute inset-0 opacity-[0.07]" width={width} height={height}>
-      {/* Horizontal grid */}
-      {Array.from({ length: 12 }, (_, i) => (
-        <line key={`h${i}`} x1={0} y1={(i + 1) * (height / 13)} x2={width} y2={(i + 1) * (height / 13)}
-          stroke="#38BDF8" strokeWidth="1" />
-      ))}
-      {/* Vertical grid */}
-      {Array.from({ length: 16 }, (_, i) => (
-        <line key={`v${i}`} x1={(i + 1) * (width / 17)} y1={0} x2={(i + 1) * (width / 17)} y2={height}
-          stroke="#38BDF8" strokeWidth="1" />
-      ))}
-      {/* Diagonal roads */}
-      <line x1="15%" y1="25%" x2="55%" y2="60%" stroke="#60A5FA" strokeWidth="1.5" />
-      <line x1="55%" y1="60%" x2="85%" y2="45%" stroke="#60A5FA" strokeWidth="1.5" />
-      <line x1="20%" y1="70%" x2="60%" y2="30%" stroke="#60A5FA" strokeWidth="1" />
-      <line x1="60%" y1="30%" x2="90%" y2="20%" stroke="#60A5FA" strokeWidth="1" />
-      {/* Arc road */}
-      <path d="M 10% 50% Q 50% 10% 90% 55%" stroke="#38BDF8" strokeWidth="1.5" fill="none" />
-    </svg>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
-   ══════════════════════════════════════════════════════════════════════════ */
 export function LoginPage() {
-  const [selectedRole, setSelectedRole] = useState(ROLES[1]); // default Dispatcher
-  const [email, setEmail] = useState(ROLES[1].email);
-  const [password, setPassword] = useState(ROLES[1].password);
-  const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState('');
-  const [time, setTime] = useState(new Date());
   const navigate = useNavigate();
-  const login = useStore(s => s.login);
-  const authLoading = useStore(s => s.authLoading);
+  const { user, isAuthenticated, login, register, logout, authLoading } = useStore();
 
-  /* Live clock */
-  useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
 
-  const handleSelectRole = (role) => {
-    setSelectedRole(role);
-    setEmail(role.email);
-    setPassword(role.password);
-    setError('');
-  };
+  // Sign In State
+  const [email, setEmail] = useState('dispatch@prahari.in');
+  const [password, setPassword] = useState('prahari123');
+  const [showPass, setShowPass] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    const result = await login(email, password);
-    if (result.ok) {
+  // Sign Up State
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupRole, setSignupRole] = useState('DISPATCHER');
+  const [signupStation, setSignupStation] = useState('Ahmedabad Central HQ');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [showSignupPass, setShowSignupPass] = useState(false);
+
+  // Feedback messages
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const executeLogin = async (emailToUse, passToUse) => {
+    setErrorMessage('');
+    setSuccessMessage('');
+    const res = await login(emailToUse, passToUse);
+    if (res.ok) {
       navigate('/ops');
     } else {
-      setError(result.error || 'Authentication failed. Check credentials.');
+      setErrorMessage(res.error || 'Invalid credentials. Check email and password.');
     }
   };
 
-  const timeStr = time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-  const dateStr = time.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+  const handleSignInSubmit = async (e) => {
+    e.preventDefault();
+    await executeLogin(email, password);
+  };
+
+  const handleQuickLogin = (demoEmail, autoSubmit = false) => {
+    const demo = DEMO_USERS.find(u => u.email === demoEmail);
+    if (demo) {
+      setEmail(demo.email);
+      setPassword(demo.password);
+      if (autoSubmit) {
+        executeLogin(demo.email, demo.password);
+      }
+    }
+  };
+
+  const handleSignUpSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    if (!signupName.trim()) {
+      setErrorMessage('Please provide operator full name.');
+      return;
+    }
+    if (!signupEmail.trim() || !signupEmail.includes('@')) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+    if (!signupPassword || signupPassword.length < 4) {
+      setErrorMessage('Password must be at least 4 characters.');
+      return;
+    }
+
+    const res = await register({
+      name: signupName.trim(),
+      email: signupEmail.trim(),
+      role: signupRole,
+      station_id: signupStation.trim() || null,
+      password: signupPassword,
+    });
+
+    if (res.ok) {
+      setSuccessMessage('Account created! Entering operational console…');
+      setTimeout(() => {
+        navigate('/ops');
+      }, 500);
+    } else {
+      setErrorMessage(res.error || 'Account creation failed.');
+    }
+  };
 
   return (
-    <div className="fixed inset-0 overflow-hidden" style={{ background: '#080C14' }}>
+    <div className="min-h-full w-full relative flex items-center justify-center p-3 sm:p-6 lg:p-8 bg-slate-950 overflow-y-auto">
+      {/* ── Ambient Background Glow matching the satellite imagery ── */}
+      <div
+        className="absolute inset-0 z-0 opacity-40 blur-3xl scale-105 pointer-events-none"
+        style={{
+          backgroundImage: `url('/satellite-hero.jpg')`,
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+        }}
+      />
+      <div className="absolute inset-0 z-0 bg-slate-950/75 backdrop-blur-2xl pointer-events-none" />
 
-      {/* ── Dark satellite-style background ─────────────────────────── */}
-      <div className="absolute inset-0">
-        {/* Base dark map gradient */}
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse 80% 60% at 65% 50%, #0D1B2A 0%, #080C14 100%)',
-        }} />
-        {/* City glow cluster */}
-        <div className="absolute" style={{
-          right: '8%', top: '15%', width: '55%', height: '70%',
-          background: 'radial-gradient(ellipse at 50% 50%, rgba(20,40,80,0.8) 0%, transparent 70%)',
-          filter: 'blur(4px)',
-        }} />
-        {/* Road grid overlay */}
-        <MapGrid width={window.innerWidth} height={window.innerHeight} />
+      {/* ── Outer White Card Frame (Reference screenshot design) ───── */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 w-full max-w-[1060px] rounded-[32px] sm:rounded-[38px] bg-white border border-white/40 shadow-2xl p-3 sm:p-4 my-auto overflow-hidden"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 min-h-[620px] lg:min-h-[660px]">
 
-        {/* ── Decorative incident markers ──────────────────────────── */}
-        <PulseRing x={window.innerWidth * 0.62} y={window.innerHeight * 0.32} color="#EF4444" delay={0} size={44} />
-        <PulseRing x={window.innerWidth * 0.75} y={window.innerHeight * 0.55} color="#F59E0B" delay={0.8} size={34} />
-        <PulseRing x={window.innerWidth * 0.55} y={window.innerHeight * 0.65} color="#EF4444" delay={1.4} size={28} />
-        <PulseRing x={window.innerWidth * 0.82} y={window.innerHeight * 0.30} color="#F97316" delay={0.3} size={22} />
+          {/* ───────────────────────────────────────────────────────────
+              LEFT COLUMN: HERO SHOWCASE CARD
+              ─────────────────────────────────────────────────────────── */}
+          <div className="lg:col-span-6 relative rounded-[24px] sm:rounded-[30px] overflow-hidden min-h-[380px] lg:min-h-full flex flex-col justify-between p-6 sm:p-9 text-white select-none shadow-inner">
+            {/* Real high-res satellite orbital feed */}
+            <img
+              src="/satellite-hero.jpg"
+              alt="Orbital Emergency Telemetry"
+              className="absolute inset-0 w-full h-full object-cover object-center"
+            />
+            {/* Cinematic dark gradient overlay for optimal text contrast */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/85" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
 
-        {/* Unit markers */}
-        <UnitDot x={window.innerWidth * 0.58} y={window.innerHeight * 0.42} color="#3B82F6" />
-        <UnitDot x={window.innerWidth * 0.70} y={window.innerHeight * 0.38} color="#3B82F6" />
-        <UnitDot x={window.innerWidth * 0.79} y={window.innerHeight * 0.62} color="#10B981" />
-        <UnitDot x={window.innerWidth * 0.65} y={window.innerHeight * 0.70} color="#3B82F6" />
-        <UnitDot x={window.innerWidth * 0.88} y={window.innerHeight * 0.45} color="#10B981" />
-
-        {/* Floating label callouts */}
-        <motion.div
-          className="absolute text-[10px] font-semibold px-2 py-0.5 rounded border"
-          style={{
-            left: window.innerWidth * 0.61, top: window.innerHeight * 0.22,
-            color: '#FCA5A5', borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(17,24,39,0.85)',
-          }}
-          animate={{ opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 3, repeat: Infinity }}
-        >
-          ● CRITICAL · Structure Fire
-        </motion.div>
-        <motion.div
-          className="absolute text-[10px] font-semibold px-2 py-0.5 rounded border"
-          style={{
-            left: window.innerWidth * 0.73, top: window.innerHeight * 0.63,
-            color: '#FCD34D', borderColor: 'rgba(245,158,11,0.3)', background: 'rgba(17,24,39,0.85)',
-          }}
-          animate={{ opacity: [0.5, 0.9, 0.5] }}
-          transition={{ duration: 4, repeat: Infinity, delay: 1.5 }}
-        >
-          ◆ HIGH · Flood Zone
-        </motion.div>
-
-        {/* ── Scan line animation ──────────────────────────────────── */}
-        <motion.div
-          className="absolute left-0 right-0 h-px opacity-20 pointer-events-none"
-          style={{ background: 'linear-gradient(90deg, transparent, #38BDF8, transparent)' }}
-          animate={{ top: ['10%', '90%'] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'linear', repeatType: 'reverse' }}
-        />
-      </div>
-
-      {/* ── Top status bar ───────────────────────────────────────────── */}
-      <div className="absolute top-0 left-0 right-0 h-10 flex items-center justify-between px-6 z-20"
-        style={{ background: 'rgba(8,12,20,0.8)', borderBottom: '1px solid rgba(56,189,248,0.15)' }}>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: '#10B981' }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            SYSTEM OPERATIONAL
-          </span>
-          <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.6)' }}>|</span>
-          <motion.span
-            className="text-xs font-semibold"
-            style={{ color: '#F59E0B' }}
-            animate={{ opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            LIVE INCIDENTS: 12
-          </motion.span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.5)' }}>{dateStr}</span>
-          <span className="text-xs font-mono font-bold" style={{ color: '#38BDF8' }}>{timeStr} IST</span>
-        </div>
-      </div>
-
-      {/* ── Main content: login card ────────────────────────────────── */}
-      <div className="absolute inset-0 flex items-center justify-start pl-12 pt-10 z-10">
-        <motion.div
-          initial={{ opacity: 0, x: -32 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-[460px]"
-        >
-          {/* Logo header */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #1D4ED8, #0EA5E9)', boxShadow: '0 0 24px rgba(14,165,233,0.4)' }}>
-              <ShieldCheck size={24} color="white" strokeWidth={2.5} />
+            {/* Top Directive Tag (Matching 'A WISE QUOTE ———' in screenshot) */}
+            <div className="relative z-10 flex items-center gap-2.5">
+              <span className="text-[11px] font-bold tracking-[0.24em] text-slate-200 uppercase">
+                TACTICAL COMMAND FEED
+              </span>
+              <div className="h-[1px] w-12 bg-white/40" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#F1F5F9' }}>RESILIO</h1>
-                <span className="text-xs font-bold px-2 py-0.5 rounded"
-                  style={{ background: 'rgba(14,165,233,0.15)', color: '#38BDF8', border: '1px solid rgba(56,189,248,0.3)' }}>
-                  OPS
-                </span>
-              </div>
-              <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'rgba(148,163,184,0.6)' }}>
-                Emergency Response Platform
+
+            {/* Bottom Headline & Narrative (Matching 'Get Everything You Want') */}
+            <div className="relative z-10 mt-auto pt-12">
+              <h2
+                className="text-3xl sm:text-4xl lg:text-[44px] font-serif text-white tracking-tight leading-[1.12]"
+                style={{ fontFamily: '"Instrument Serif", Georgia, serif' }}
+              >
+                Every Second Counts In Critical Response.
+              </h2>
+              <p className="mt-3.5 text-xs sm:text-[13px] text-slate-300 font-normal leading-relaxed max-w-md">
+                Intelligent multi-agency incident management, automated fleet dispatch, and live GIS situational awareness for municipal resilience.
               </p>
+
+              {/* Status pill on image */}
+              <div className="mt-6 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 w-fit text-[11px] text-slate-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Ahmedabad Operational Sector · Live Telemetry</span>
+              </div>
             </div>
           </div>
 
-          {/* Card */}
-          <div className="rounded-2xl overflow-hidden" style={{
-            background: 'rgba(15,23,42,0.75)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(56,189,248,0.18)',
-            boxShadow: '0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(56,189,248,0.06)',
-          }}>
-            {/* Card header */}
-            <div className="px-7 pt-6 pb-5" style={{ borderBottom: '1px solid rgba(56,189,248,0.1)' }}>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold" style={{ color: '#CBD5E1' }}>
-                  Operator Authentication
-                </span>
-                <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                  style={{ background: 'rgba(16,185,129,0.12)', color: '#34D399', border: '1px solid rgba(16,185,129,0.25)' }}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  ENCRYPTED
-                </span>
-              </div>
-            </div>
+          {/* ───────────────────────────────────────────────────────────
+              RIGHT COLUMN: WHITE AUTH FORM
+              ───────────────────────────────────────────────────────── */}
+          <div className="lg:col-span-6 flex flex-col justify-between p-4 sm:p-8 lg:p-10 bg-white rounded-[24px] sm:rounded-[30px]">
 
-            <div className="px-7 pb-7 pt-5 space-y-5">
-              {/* Role selector */}
-              <div>
-                <label className="block text-xs font-bold tracking-widest uppercase mb-3"
-                  style={{ color: 'rgba(148,163,184,0.7)' }}>
-                  Select Role Preset
-                </label>
-                <div className="grid grid-cols-5 gap-2">
-                  {ROLES.map((role) => {
-                    const Icon = role.icon;
-                    const isSelected = selectedRole.key === role.key;
-                    return (
-                      <motion.button
-                        key={role.key}
-                        type="button"
-                        onClick={() => handleSelectRole(role)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.97 }}
-                        title={`${role.label}: ${role.description}`}
-                        className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-xl transition-all cursor-pointer"
-                        style={{
-                          background: isSelected ? role.bg : 'rgba(30,41,59,0.5)',
-                          border: `1px solid ${isSelected ? role.border : 'rgba(51,65,85,0.5)'}`,
-                          boxShadow: isSelected ? `0 0 16px ${role.color}30` : 'none',
-                        }}
-                      >
-                        <Icon size={16} color={isSelected ? role.color : 'rgba(148,163,184,0.5)'} strokeWidth={2.2} />
-                        <span className="text-[9px] font-bold uppercase tracking-wide leading-none"
-                          style={{ color: isSelected ? role.color : 'rgba(148,163,184,0.45)' }}>
-                          {role.label}
-                        </span>
-                      </motion.button>
-                    );
-                  })}
+            {/* Top Brand Logo (Matching 'Cogir' in screenshot) */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm shadow-blue-500/25">
+                  <ShieldCheck size={18} strokeWidth={2.4} />
                 </div>
-                {/* Selected role description */}
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={selectedRole.key}
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="text-xs mt-2 px-1"
-                    style={{ color: 'rgba(148,163,184,0.5)' }}
-                  >
-                    {selectedRole.description}
-                  </motion.p>
-                </AnimatePresence>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base font-bold text-slate-900 tracking-tight">Resilio</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 border border-sky-200">
+                    Ops
+                  </span>
+                </div>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Email */}
-                <div>
-                  <label className="block text-xs font-bold tracking-widest uppercase mb-2"
-                    style={{ color: 'rgba(148,163,184,0.7)' }}>
-                    Operator ID / Email
-                  </label>
-                  <div className="relative">
-                    <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2"
-                      style={{ color: 'rgba(148,163,184,0.4)' }} />
-                    <input
-                      id="login-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full h-11 pl-9 pr-3.5 rounded-lg text-sm font-medium outline-none transition-all"
-                      style={{
-                        background: 'rgba(15,23,42,0.6)',
-                        border: '1px solid rgba(51,65,85,0.6)',
-                        color: '#E2E8F0',
-                      }}
-                      onFocus={e => e.target.style.borderColor = 'rgba(56,189,248,0.6)'}
-                      onBlur={e => e.target.style.borderColor = 'rgba(51,65,85,0.6)'}
-                      placeholder="dispatch@resilio.in"
-                      required
-                      autoComplete="username"
-                    />
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label className="block text-xs font-bold tracking-widest uppercase mb-2"
-                    style={{ color: 'rgba(148,163,184,0.7)' }}>
-                    Access Code
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="login-password"
-                      type={showPass ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full h-11 pl-3.5 pr-10 rounded-lg text-sm font-medium outline-none transition-all"
-                      style={{
-                        background: 'rgba(15,23,42,0.6)',
-                        border: '1px solid rgba(51,65,85,0.6)',
-                        color: '#E2E8F0',
-                      }}
-                      onFocus={e => e.target.style.borderColor = 'rgba(56,189,248,0.6)'}
-                      onBlur={e => e.target.style.borderColor = 'rgba(51,65,85,0.6)'}
-                      placeholder="••••••••••"
-                      required
-                      autoComplete="current-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPass(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: 'rgba(148,163,184,0.4)' }}
-                      tabIndex={-1}
-                    >
-                      {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Error */}
-                <AnimatePresence>
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-xs font-medium overflow-hidden"
-                      style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}
-                    >
-                      <AlertCircle size={13} className="shrink-0" />
-                      {error}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Submit */}
-                <motion.button
-                  type="submit"
-                  disabled={authLoading}
-                  whileHover={{ scale: authLoading ? 1 : 1.02 }}
-                  whileTap={{ scale: authLoading ? 1 : 0.98 }}
-                  className="w-full h-12 rounded-xl flex items-center justify-center gap-2.5 text-sm font-bold tracking-wide transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{
-                    background: authLoading
-                      ? 'rgba(14,165,233,0.3)'
-                      : 'linear-gradient(135deg, #1D4ED8 0%, #0EA5E9 100%)',
-                    color: '#FFFFFF',
-                    boxShadow: authLoading ? 'none' : '0 0 24px rgba(14,165,233,0.35)',
-                    border: '1px solid rgba(56,189,248,0.3)',
-                  }}
+              {/* Active session pill if logged in */}
+              {isAuthenticated && user && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/ops')}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
                 >
-                  {authLoading ? (
-                    <>
-                      <motion.span
-                        className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-                      />
-                      VERIFYING CREDENTIALS...
-                    </>
-                  ) : (
-                    <>
-                      <Zap size={16} />
-                      LAUNCH COMMAND CENTER
-                    </>
-                  )}
-                </motion.button>
-              </form>
-
-              {/* Credentials table */}
-              <div className="pt-4" style={{ borderTop: '1px solid rgba(56,189,248,0.1)' }}>
-                <p className="text-xs font-bold tracking-widest uppercase mb-3"
-                  style={{ color: 'rgba(148,163,184,0.5)' }}>
-                  Team Access Credentials
-                </p>
-                <div className="rounded-lg overflow-hidden" style={{ border: '1px solid rgba(51,65,85,0.4)' }}>
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr style={{ background: 'rgba(15,23,42,0.8)', borderBottom: '1px solid rgba(51,65,85,0.4)' }}>
-                        <th className="text-left px-3 py-2 font-bold tracking-wider"
-                          style={{ color: 'rgba(148,163,184,0.6)' }}>ROLE</th>
-                        <th className="text-left px-3 py-2 font-bold tracking-wider"
-                          style={{ color: 'rgba(148,163,184,0.6)' }}>EMAIL</th>
-                        <th className="text-left px-3 py-2 font-bold tracking-wider"
-                          style={{ color: 'rgba(148,163,184,0.6)' }}>PASSWORD</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ROLES.map((r, i) => (
-                        <tr
-                          key={r.key}
-                          className="cursor-pointer transition-colors"
-                          style={{
-                            background: i % 2 === 0 ? 'rgba(15,23,42,0.4)' : 'rgba(15,23,42,0.2)',
-                            borderBottom: i < ROLES.length - 1 ? '1px solid rgba(51,65,85,0.2)' : 'none',
-                          }}
-                          onClick={() => handleSelectRole(r)}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(56,189,248,0.06)'}
-                          onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'rgba(15,23,42,0.4)' : 'rgba(15,23,42,0.2)'}
-                        >
-                          <td className="px-3 py-2 font-semibold" style={{ color: r.color }}>{r.label}</td>
-                          <td className="px-3 py-2 font-mono" style={{ color: '#94A3B8' }}>{r.email}</td>
-                          <td className="px-3 py-2 font-mono font-bold" style={{ color: '#64748B' }}>Resilio@2026</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                  <span>Open Console</span>
+                  <ArrowRight size={13} />
+                </button>
+              )}
             </div>
+
+            {/* Form Container */}
+            <div className="my-auto max-w-[380px] w-full mx-auto">
+              {/* Heading */}
+              <div className="text-center mb-6">
+                <h1
+                  className="text-3xl sm:text-[38px] font-serif text-slate-900 tracking-tight leading-tight"
+                  style={{ fontFamily: '"Instrument Serif", Georgia, serif' }}
+                >
+                  {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
+                </h1>
+                <p className="text-xs text-slate-500 mt-1">
+                  {mode === 'signin'
+                    ? 'Enter your email and password to access your account'
+                    : 'Register a new municipal operator profile'
+                  }
+                </p>
+              </div>
+
+              {/* Error Message */}
+              <AnimatePresence>
+                {errorMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex items-start gap-2 p-3 mb-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium"
+                  >
+                    <AlertCircle size={14} className="shrink-0 mt-0.5 text-red-600" />
+                    <span>{errorMessage}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Success Message */}
+              <AnimatePresence>
+                {successMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 font-medium"
+                  >
+                    <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
+                    <span>{successMessage}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ───────────────────────────────────────────────────────
+                  MODE: SIGN IN
+                  ─────────────────────────────────────────────────────── */}
+              {mode === 'signin' ? (
+                <form onSubmit={handleSignInSubmit} className="space-y-4">
+                  {/* Email Input */}
+                  <div>
+                    <label
+                      htmlFor="signin-email"
+                      className="block text-xs font-semibold text-slate-700 mb-1.5"
+                    >
+                      Email
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="signin-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email"
+                        className="w-full h-11 px-3.5 bg-slate-50/90 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:outline-none transition-colors"
+                        required
+                        autoComplete="username"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password Input */}
+                  <div>
+                    <label
+                      htmlFor="signin-password"
+                      className="block text-xs font-semibold text-slate-700 mb-1.5"
+                    >
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="signin-password"
+                        type={showPass ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        className="w-full h-11 px-3.5 pr-10 bg-slate-50/90 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:outline-none transition-colors"
+                        required
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPass(!showPass)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                        aria-label={showPass ? 'Hide password' : 'Show password'}
+                      >
+                        {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Remember Me & Forgot Password Row (Identical to screenshot) */}
+                  <div className="flex items-center justify-between text-xs text-slate-600 pt-0.5">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                      />
+                      <span>Remember me</span>
+                    </label>
+                    <span className="text-slate-400 font-medium">
+                      Pass: <span className="font-semibold text-slate-600">prahari123</span>
+                    </span>
+                  </div>
+
+                  {/* Solid Black Sign In Button (Matching screenshot) */}
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full h-11 mt-2 rounded-xl bg-slate-950 text-white text-sm font-semibold hover:bg-slate-800 active:scale-[0.99] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {authLoading ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                        Authenticating…
+                      </span>
+                    ) : (
+                      'Sign In'
+                    )}
+                  </button>
+
+                  {/* ── Quick Operator 1-Click Launch Chips ──────────── */}
+                  <div className="pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        Quick Operator Select
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        1-Click Test Login
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {ROLE_PRESETS.map((r) => {
+                        const isSelected = email === r.email;
+                        return (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => handleQuickLogin(r.email, false)}
+                            className={`
+                              px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer flex items-center gap-1
+                              ${isSelected
+                                ? 'bg-slate-950 text-white border-slate-950 shadow-xs'
+                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                              }
+                            `}
+                          >
+                            <span>{r.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </form>
+              ) : (
+                /* ───────────────────────────────────────────────────────
+                    MODE: SIGN UP
+                    ─────────────────────────────────────────────────────── */
+                <form onSubmit={handleSignUpSubmit} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
+                      placeholder="Officer Arjun Shah"
+                      className="w-full h-10 px-3.5 bg-slate-50/90 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:outline-none transition-colors"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Official Email
+                    </label>
+                    <input
+                      type="email"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
+                      placeholder="arjun@prahari.in"
+                      className="w-full h-10 px-3.5 bg-slate-50/90 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:outline-none transition-colors"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Role
+                    </label>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { id: 'DISPATCHER', label: 'Dispatcher' },
+                        { id: 'COMMANDER',  label: 'Commander' },
+                        { id: 'ANALYST',    label: 'Analyst' },
+                        { id: 'FIELD_UNIT', label: 'Field' },
+                        { id: 'ADMIN',      label: 'Admin' },
+                      ].map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setSignupRole(r.id)}
+                          className={`
+                            py-1 px-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer text-center
+                            ${signupRole === r.id
+                              ? 'bg-slate-950 text-white border-slate-950'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }
+                          `}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Create Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showSignupPass ? 'text' : 'password'}
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full h-10 px-3.5 pr-10 bg-slate-50/90 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:outline-none transition-colors"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPass(!showSignupPass)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                      >
+                        {showSignupPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full h-11 mt-2 rounded-xl bg-slate-950 text-white text-sm font-semibold hover:bg-slate-800 active:scale-[0.99] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {authLoading ? 'Registering…' : 'Create Account'}
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* Bottom Switch Link (Matching "Don't have an account? Sign Up" in screenshot) */}
+            <div className="text-center pt-4">
+              {mode === 'signin' ? (
+                <p className="text-xs text-slate-500">
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setMode('signup'); setErrorMessage(''); setSuccessMessage(''); }}
+                    className="font-bold text-slate-900 hover:underline cursor-pointer"
+                  >
+                    Sign Up
+                  </button>
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setMode('signin'); setErrorMessage(''); setSuccessMessage(''); }}
+                    className="font-bold text-slate-900 hover:underline cursor-pointer"
+                  >
+                    Sign In
+                  </button>
+                </p>
+              )}
+            </div>
+
           </div>
 
-          <p className="text-xs font-medium text-center mt-4" style={{ color: 'rgba(100,116,139,0.5)' }}>
-            Encrypted · Simulation Environment · Municipal Gateway
-          </p>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

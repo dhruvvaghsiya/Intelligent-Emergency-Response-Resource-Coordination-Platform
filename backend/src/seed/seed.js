@@ -50,27 +50,23 @@ async function reset() {
 }
 
 async function seedUsers() {
-  // Delete all existing users first (db:reset or fresh re-seed)
-  await User.deleteMany({});
-
   const users = [
-    { email: 'commander@resilio.in', name: 'Cdr. Arjun Sharma', role: 'COMMANDER' },
-    { email: 'dispatch@resilio.in', name: 'Disp. Priya Mehta', role: 'DISPATCHER' },
-    { email: 'analyst@resilio.in', name: 'Anl. Ravi Kumar', role: 'ANALYST' },
-    { email: 'unit07@resilio.in', name: 'FO Ketan Patel', role: 'FIELD_UNIT' },
-    { email: 'admin@resilio.in', name: 'Sys. Admin', role: 'ADMIN' },
+    { email: 'commander@prahari.in', name: 'Cdr. Arjun Shah', role: 'COMMANDER' },
+    { email: 'dispatch@prahari.in', name: 'Disp. Priya Mehta', role: 'DISPATCHER' },
+    { email: 'analyst@prahari.in', name: 'Anl. Ravi Kumar', role: 'ANALYST' },
+    { email: 'unit07@prahari.in', name: 'FO Ketan Patel', role: 'FIELD_UNIT' },
+    { email: 'admin@prahari.in', name: 'System Admin', role: 'ADMIN' },
   ];
-  const password_hash = await bcrypt.hash('Resilio@2026', 10);
+  const password_hash = await bcrypt.hash('prahari123', 10);
   for (const u of users) {
     await User.findOneAndUpdate(
       { email: u.email },
-      { $setOnInsert: { _id: newId('user'), ...u, password_hash } },
+      { $set: { name: u.name, role: u.role, password_hash }, $setOnInsert: { _id: newId('user') } },
       { upsert: true }
     );
   }
-  logger.info('Seeded %d users (password: Resilio@2026)', users.length);
+  logger.info('Seeded %d users (password: prahari123)', users.length);
 }
-
 
 async function seedStations() {
   const stations = [

@@ -9,44 +9,52 @@ import { formatDuration } from '../lib/format';
 import { TrendingUp, Clock, Users, Shield, Activity, Layers, Brain, BarChart3 } from 'lucide-react';
 
 const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div
-        className="border border-sky-200/90 px-4 py-3 rounded-xl shadow-xl backdrop-blur-sm"
-        style={{ backgroundColor: 'azure' }}
-      >
-        <p className="text-xs font-bold text-slate-800 mb-2 border-b border-sky-200/60 pb-1">{label}</p>
-        <div className="space-y-1.5">
-          {payload.map((p, i) => {
-            const isP50 = p.dataKey === 'p50' || p.name === 'p50';
-            const isP90 = p.dataKey === 'p90' || p.name === 'p90';
-            const isRatio = p.dataKey === 'ratio';
-            const colorDot = isP50
-              ? 'bg-blue-600'
-              : isP90
-              ? 'bg-slate-400'
-              : isRatio
-              ? 'bg-sky-500'
-              : 'bg-blue-600';
+  const isVisible = active && payload && payload.length;
+  return (
+    <div
+      style={{
+        backgroundColor: 'azure',
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0)' : 'translateY(6px)',
+        transition: 'opacity 0.25s ease, transform 0.25s ease',
+        pointerEvents: isVisible ? 'auto' : 'none',
+      }}
+      className="border border-sky-200/90 px-4 py-3 rounded-xl shadow-lg backdrop-blur-sm"
+    >
+      {isVisible && (
+        <>
+          <p className="text-xs font-bold text-slate-800 mb-2 border-b border-sky-200/60 pb-1">{label}</p>
+          <div className="space-y-1.5">
+            {payload.map((p, i) => {
+              const isP50 = p.dataKey === 'p50' || p.name === 'p50';
+              const isP90 = p.dataKey === 'p90' || p.name === 'p90';
+              const isRatio = p.dataKey === 'ratio';
+              const colorDot = isP50
+                ? 'bg-blue-600'
+                : isP90
+                ? 'bg-slate-400'
+                : isRatio
+                ? 'bg-sky-500'
+                : 'bg-blue-600';
 
-            return (
-              <div key={i} className="text-xs text-slate-600 flex items-center justify-between gap-4">
-                <span className="flex items-center gap-1.5 capitalize font-medium">
-                  <span className={`w-2 h-2 rounded-full ${colorDot}`} />
-                  {p.name}:
-                </span>
-                <strong className="text-slate-900 font-semibold tabular-nums">
-                  {typeof p.value === 'number' && p.value > 100 ? formatDuration(p.value) : p.value}
-                  {isRatio ? '%' : ''}
-                </strong>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-  return null;
+              return (
+                <div key={i} className="text-xs text-slate-600 flex items-center justify-between gap-4">
+                  <span className="flex items-center gap-1.5 capitalize font-medium">
+                    <span className={`w-2 h-2 rounded-full ${colorDot}`} />
+                    {p.name}:
+                  </span>
+                  <strong className="text-slate-900 font-semibold tabular-nums">
+                    {typeof p.value === 'number' && p.value > 100 ? formatDuration(p.value) : p.value}
+                    {isRatio ? '%' : ''}
+                  </strong>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
 };
 
 function percentile(values, p) {
@@ -103,7 +111,16 @@ export function AnalyticsPage() {
   const allP90 = Object.values(responseTimes).map(v => v?.p90_s).filter(v => v != null);
   const responseData = Object.entries(responseTimes).map(([type, v]) => ({ name: type.replace(/_/g, ' '), p50: Math.round(v?.p50_s || 0), p90: Math.round(v?.p90_s || 0) }));
 
-  const utilizationData = Object.entries(utilization).map(([type, v]) => ({ name: type.replace(/_/g, ' '), ratio: Math.round((v?.ratio || 0) * 100), busy: v?.busy || 0, total: v?.total || 0 }));
+  // Shorten apparatus names for cleaner chart alignment
+  const SHORT_NAMES = {
+    AMBULANCE_BLS: 'Ambulance',
+    FIRE_ENGINE: 'Fire Engine',
+    FIRE_LADDER: 'Fire Ladder',
+    HAZMAT: 'Hazmat',
+    POLICE_PATROL: 'Police',
+    WATER_RESCUE: 'Water Rescue',
+  };
+  const utilizationData = Object.entries(utilization).map(([type, v]) => ({ name: SHORT_NAMES[type] || type.replace(/_/g, ' '), ratio: Math.round((v?.ratio || 0) * 100), busy: v?.busy || 0, total: v?.total || 0 }));
 
   const unitsTotal = Object.values(utilization).reduce((sum, v) => sum + (v?.total || 0), 0);
   const unitsBusy = Object.values(utilization).reduce((sum, v) => sum + (v?.busy || 0), 0);
@@ -147,103 +164,118 @@ export function AnalyticsPage() {
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Response time chart */}
-          <div
-            className="border border-sky-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
-            style={{ backgroundColor: 'azure' }}
-          >
-            <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center justify-between">
-              <span>Response Times by Incident Type (Seconds)</span>
-              <span className="text-xs font-normal text-slate-400">p50 (Blue) · p90 (Slate)</span>
-            </h3>
-            {responseData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={responseData} barCategoryGap="28%">
-                  <defs>
-                    <linearGradient id="p50Gradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#2563EB" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#38BDF8" stopOpacity={0.85} />
-                    </linearGradient>
-                    <linearGradient id="p90Gradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#64748B" stopOpacity={0.9} />
-                      <stop offset="100%" stopColor="#94A3B8" stopOpacity={0.7} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#bae6fd" strokeOpacity={0.5} />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={{ stroke: '#bae6fd' }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} cursor={false} />
-                  <Bar dataKey="p50" fill="url(#p50Gradient)" radius={[6, 6, 0, 0]} maxBarSize={36} name="p50" />
-                  <Bar dataKey="p90" fill="url(#p90Gradient)" radius={[6, 6, 0, 0]} maxBarSize={36} name="p90" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[240px] flex items-center justify-center text-sm text-slate-400">
-                No incident arrivals recorded yet
-              </div>
-            )}
+          <div className="kpi-azure-card-wrapper group">
+            <div className="kpi-border-spinner" />
+            <div className="kpi-azure-card-inner p-6 flex flex-col justify-between" style={{ backgroundColor: 'azure' }}>
+              <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center justify-between">
+                <span>Response Times by Incident Type (Seconds)</span>
+                <span className="text-xs font-normal text-slate-500">p50 (Blue) · p90 (Slate)</span>
+              </h3>
+              {responseData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={responseData} barCategoryGap="28%">
+                    <defs>
+                      <linearGradient id="p50Gradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2563EB" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#38BDF8" stopOpacity={0.85} />
+                      </linearGradient>
+                      <linearGradient id="p90Gradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#64748B" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="#94A3B8" stopOpacity={0.7} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#bae6fd" strokeOpacity={0.5} />
+                    <XAxis
+                      dataKey="name"
+                      interval={0}
+                      tick={{ fontSize: 10, fill: '#475569', fontWeight: 500 }}
+                      axisLine={{ stroke: '#bae6fd' }}
+                      tickLine={false}
+                    />
+                    <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} cursor={false} animationDuration={300} isAnimationActive={true} />
+                    <Bar dataKey="p50" fill="url(#p50Gradient)" radius={[6, 6, 0, 0]} maxBarSize={32} minPointSize={4} name="p50" />
+                    <Bar dataKey="p90" fill="url(#p90Gradient)" radius={[6, 6, 0, 0]} maxBarSize={32} minPointSize={4} name="p90" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[240px] flex items-center justify-center text-sm text-slate-400">
+                  No incident arrivals recorded yet
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Unit utilization chart */}
-          <div
-            className="border border-sky-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
-            style={{ backgroundColor: 'azure' }}
-          >
-            <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center justify-between">
-              <span>Apparatus Utilization Ratio (%)</span>
-              <span className="text-xs font-normal text-slate-400">Target &lt; 75%</span>
-            </h3>
-            {utilizationData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={utilizationData} barCategoryGap="28%">
-                  <defs>
-                    <linearGradient id="utilGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#0284C7" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#38BDF8" stopOpacity={0.8} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#bae6fd" strokeOpacity={0.5} />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={{ stroke: '#bae6fd' }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} cursor={false} />
-                  <Bar dataKey="ratio" fill="url(#utilGradient)" radius={[6, 6, 0, 0]} maxBarSize={44} name="Busy %" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[240px] flex items-center justify-center text-sm text-slate-400">
-                No apparatus telemetry available
-              </div>
-            )}
+          <div className="kpi-azure-card-wrapper group">
+            <div className="kpi-border-spinner" />
+            <div className="kpi-azure-card-inner p-6 flex flex-col justify-between" style={{ backgroundColor: 'azure' }}>
+              <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center justify-between">
+                <span>Apparatus Utilization Ratio (%)</span>
+                <span className="text-xs font-normal text-slate-500">Target &lt; 75%</span>
+              </h3>
+              {utilizationData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={utilizationData} barCategoryGap="18%" margin={{ top: 5, right: 15, left: 0, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="utilGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0284C7" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#38BDF8" stopOpacity={0.8} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#bae6fd" strokeOpacity={0.5} />
+                    <XAxis
+                      dataKey="name"
+                      interval={0}
+                      tick={{ fontSize: 11, fill: '#475569', fontWeight: 500 }}
+                      axisLine={{ stroke: '#bae6fd' }}
+                      tickLine={false}
+                      padding={{ left: 10, right: 10 }}
+                    />
+                    <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                    <Tooltip content={<CustomTooltip />} cursor={false} animationDuration={300} isAnimationActive={true} />
+                    <Bar dataKey="ratio" fill="url(#utilGradient)" radius={[6, 6, 0, 0]} maxBarSize={36} minPointSize={4} name="Busy %" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[240px] flex items-center justify-center text-sm text-slate-400">
+                  No apparatus telemetry available
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Shortages & Sector Density */}
-        <div
-          className="border border-sky-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
-          style={{ backgroundColor: 'azure' }}
-        >
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">
-            High-Severity Incident Concentration by Municipal Ward
-          </h3>
-          {shortages.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {shortages.map(s => (
-                <div
-                  key={s.ward}
-                  className="flex items-center justify-between p-3.5 border border-sky-200/90 rounded-lg shadow-2xs hover:border-sky-300 transition-colors"
-                  style={{ backgroundColor: 'azure' }}
-                >
-                  <span className="text-sm font-medium text-slate-800">{s.ward}</span>
-                  <span className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
-                    {s.high_severity_incident_count} Critical
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-slate-400 py-3 text-center">
-              No regional resource shortages identified
-            </div>
-          )}
+        <div className="kpi-azure-card-wrapper group">
+          <div className="kpi-border-spinner" />
+          <div className="kpi-azure-card-inner p-6" style={{ backgroundColor: 'azure' }}>
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">
+              High-Severity Incident Concentration by Municipal Ward
+            </h3>
+            {shortages.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {shortages.map(s => (
+                  <div key={s.ward} className="kpi-azure-card-wrapper group">
+                    <div className="kpi-border-spinner" />
+                    <div
+                      className="kpi-azure-card-inner flex items-center justify-between p-3.5"
+                      style={{ backgroundColor: 'azure' }}
+                    >
+                      <span className="text-sm font-medium text-slate-800">{s.ward}</span>
+                      <span className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                        {s.high_severity_incident_count} Critical
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-slate-400 py-3 text-center">
+                No regional resource shortages identified
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Additional metrics */}

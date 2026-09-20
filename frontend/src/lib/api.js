@@ -78,6 +78,7 @@ const unwrap = (res) => res.data.data;
 
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }).then(unwrap),
+  register: (body) => api.post('/auth/register', body).then(unwrap),
   refresh: (refresh_token) => api.post('/auth/refresh', { refresh_token }).then(unwrap),
   me: () => api.get('/auth/me').then(unwrap),
 };
