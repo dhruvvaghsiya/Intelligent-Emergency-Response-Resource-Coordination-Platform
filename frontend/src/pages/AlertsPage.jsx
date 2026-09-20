@@ -114,39 +114,39 @@ function AlertCard({ alert, onAck, acked = false, incidents = [], units = [] }) 
   return (
     <div
       className={`
-        flex items-start gap-4 p-4.5 sm:p-5
+        flex items-start gap-4 sm:gap-5 p-5 sm:p-6
         bg-white border border-slate-200 ${leftBorderColor} border-l-[4px]
-        rounded-xl shadow-xs transition-all duration-150 hover:border-slate-300
+        rounded-xl shadow-xs transition-all duration-200 hover:border-slate-400 hover:ring-2 hover:ring-slate-300/40 hover:shadow-md
       `}
     >
       {/* Neutral Slate Severity Icon */}
-      <div className="p-2.5 rounded-lg bg-slate-100 text-slate-600 shrink-0">
+      <div className="p-2.5 rounded-lg bg-slate-100 text-slate-600 shrink-0 mt-0.5">
         <Icon size={20} strokeWidth={2.2} />
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 space-y-3">
         {/* Title + Severity + Type Badge */}
-        <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-base font-bold text-slate-900 tracking-tight">{alert.title}</span>
+        <div className="flex items-center justify-between gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight leading-snug">{alert.title}</span>
             <SeverityChip severity={alert.severity} />
           </div>
-          <span className="uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[11px] font-semibold border border-slate-200/60">
+          <span className="uppercase px-2.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[11px] font-semibold border border-slate-200/60">
             {alert.type.replace(/_/g, ' ')}
           </span>
         </div>
 
-        {/* Simple Body Text */}
-        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-3">
+        {/* Spacious Body Text with airy line-height */}
+        <p className="text-sm text-slate-600 leading-[1.7] my-2.5">
           {alert.body}
         </p>
 
-        {/* Bottom Information Footer: Time, Location, Evidence Conflict Info */}
-        <div className="flex items-center gap-3 text-xs text-slate-500 font-medium flex-wrap pt-0.5">
+        {/* Separated Bottom Information Footer: Time, Location, Evidence Conflict Info */}
+        <div className="flex items-center gap-x-4 gap-y-2 text-xs text-slate-500 font-medium flex-wrap pt-3 border-t border-slate-100">
           {/* Time */}
-          <span className="flex items-center gap-1">
-            <Clock size={13} className="text-slate-400" />
+          <span className="flex items-center gap-1.5">
+            <Clock size={13.5} className="text-slate-400" />
             {formatRelativeTime(alert.raised_at)}
           </span>
 
@@ -154,11 +154,11 @@ function AlertCard({ alert, onAck, acked = false, incidents = [], units = [] }) 
           {incident && (
             <>
               <span className="text-slate-300">·</span>
-              <span className="flex items-center gap-1 font-semibold text-slate-700">
-                <MapPin size={13} className="text-slate-400 shrink-0" />
+              <span className="flex items-center gap-1.5 font-semibold text-slate-700">
+                <MapPin size={13.5} className="text-slate-400 shrink-0" />
                 <span>{incident.code}</span>
                 {locationLabel && (
-                  <span className="text-slate-500 font-normal truncate max-w-[240px]">
+                  <span className="text-slate-500 font-normal truncate max-w-[280px]">
                     ({locationLabel})
                   </span>
                 )}
@@ -170,8 +170,8 @@ function AlertCard({ alert, onAck, acked = false, incidents = [], units = [] }) 
           {alert.type === 'EVIDENCE_CONFLICT' && (
             <>
               <span className="text-slate-300">·</span>
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200/80 text-[11px] font-semibold">
-                <AlertTriangle size={12} className="text-slate-400 shrink-0" />
+              <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200/80 text-[11px] font-semibold">
+                <AlertTriangle size={12.5} className="text-slate-400 shrink-0" />
                 Contested: people_trapped
               </span>
             </>
@@ -181,8 +181,8 @@ function AlertCard({ alert, onAck, acked = false, incidents = [], units = [] }) 
           {unit && (
             <>
               <span className="text-slate-300">·</span>
-              <span className="flex items-center gap-1 font-semibold text-slate-700">
-                <Shield size={13} className="text-slate-400 shrink-0" />
+              <span className="flex items-center gap-1.5 font-semibold text-slate-700">
+                <Shield size={13.5} className="text-slate-400 shrink-0" />
                 {unit.call_sign}
               </span>
             </>
@@ -192,8 +192,8 @@ function AlertCard({ alert, onAck, acked = false, incidents = [], units = [] }) 
           {acked && alert.acked_at && (
             <>
               <span className="text-slate-300">·</span>
-              <span className="flex items-center gap-1 text-slate-600 font-medium ml-auto">
-                <CheckCircle2 size={13} className="text-slate-400" />
+              <span className="flex items-center gap-1.5 text-slate-600 font-medium ml-auto">
+                <CheckCircle2 size={13.5} className="text-slate-400" />
                 Acknowledged {formatRelativeTime(alert.acked_at)}
               </span>
             </>
@@ -207,7 +207,7 @@ function AlertCard({ alert, onAck, acked = false, incidents = [], units = [] }) 
           variant="primary"
           size="compact"
           onClick={onAck}
-          className="shrink-0 font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs transition-colors cursor-pointer"
+          className="shrink-0 font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs transition-colors cursor-pointer mt-0.5"
         >
           <Check size={14} strokeWidth={2.5} />
           Acknowledge
