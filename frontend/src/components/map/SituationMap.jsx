@@ -125,7 +125,7 @@ function incidentMarkerEl(incident, isSelected, hasSelected) {
   el.style.width = `${d}px`;
   el.style.height = `${d}px`;
   el.style.cursor = 'pointer';
-  el.style.zIndex = isSelected ? '45' : isDull ? '10' : '20';
+  el.style.zIndex = isSelected ? '45' : isDull ? '10' : '40';
   el.style.opacity = isDull ? '0.38' : '1';
   el.style.filter = isDull ? 'grayscale(0.35) opacity(0.4)' : isSelected ? `drop-shadow(0 0 14px ${color}) brightness(1.25)` : 'none';
 
@@ -218,7 +218,7 @@ function unitMarkerEl(unit) {
   const color = STATUS_COLORS[unit.status] || STATUS_COLORS.OFFLINE;
   const el = document.createElement('div');
   el.className = 'unit-marker group cursor-default select-none';
-  el.style.zIndex = '30';
+  el.style.zIndex = '20';
   el.style.pointerEvents = 'auto';
 
   el.innerHTML = `
@@ -228,9 +228,9 @@ function unitMarkerEl(unit) {
       gap: 5px;
       padding: 3px 8px;
       border-radius: 12px;
-      background: rgba(15, 23, 42, 0.92);
-      backdrop-filter: blur(8px);
-      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
       transform: translate(8px, -12px);
       transition: transform 0.15s ease, box-shadow 0.15s ease;

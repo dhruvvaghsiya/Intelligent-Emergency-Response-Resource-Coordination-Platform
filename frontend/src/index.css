@@ -172,15 +172,19 @@
 }
 
 .unit-marker {
-  transition: opacity 0.2s ease;
+  opacity: 0.45;
+  filter: saturate(0.6) brightness(0.85);
+  transition: opacity 0.2s ease, filter 0.2s ease;
 }
 
 .unit-marker:hover {
-  z-index: 999 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  z-index: 48 !important;
 }
 
 .unit-marker:hover > div {
-  transform: translate(6px, -16px) scale(1.08) !important;
+  transform: translate(8px, -14px) scale(1.08) !important;
   box-shadow: 0 8px 20px rgba(0,0,0,0.5) !important;
 }
 
