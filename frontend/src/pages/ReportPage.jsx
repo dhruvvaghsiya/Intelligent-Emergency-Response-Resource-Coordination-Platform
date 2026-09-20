@@ -447,24 +447,25 @@ export function ReportPage() {
               {/* ───────────────────────────────────────────────────────────
                   LEFT SIDE: FORM DETAILS FOR FILLING
                   ─────────────────────────────────────────────────────────── */}
-              <div className="w-full md:w-1/2 h-full p-5 sm:p-7 flex flex-col justify-between overflow-hidden border-b md:border-b-0 md:border-r border-slate-200/80 bg-white">
-                <div>
-                  {/* Header */}
-                  <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
-                    <div className="w-10 h-10 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0 shadow-xs">
-                      <ShieldAlert size={20} />
+              <div className="w-full md:w-1/2 h-full p-6 sm:p-7 flex flex-col overflow-hidden border-b md:border-b-0 md:border-r border-slate-200/80 bg-white">
+                <form onSubmit={handleSubmit} className="h-full flex flex-col justify-between">
+                  {/* Top Form Fields Area */}
+                  <div className="space-y-3.5">
+                    {/* Header */}
+                    <div className="flex items-center gap-3.5 mb-3.5 pb-3 border-b border-slate-100">
+                      <div className="w-10 h-10 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0 shadow-xs">
+                        <ShieldAlert size={20} />
+                      </div>
+                      <div>
+                        <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight leading-tight">
+                          Citizen Emergency Report
+                        </h1>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                          Direct Ingest into Municipal Dispatch Matrix
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight leading-tight">
-                        Citizen Emergency Report
-                      </h1>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                        Direct Ingest into Municipal Dispatch Matrix
-                      </p>
-                    </div>
-                  </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-3">
                     {/* Incident Type */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
@@ -556,7 +557,10 @@ export function ReportPage() {
                           }`}
                       />
                     </div>
+                  </div>
 
+                  {/* Bottom Submit Action Block */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
                     {error && (
                       <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs font-medium text-red-700">
                         {error}
@@ -566,17 +570,17 @@ export function ReportPage() {
                     <button
                       type="submit"
                       disabled={!form.description || submitting}
-                      className="w-full h-10 mt-1 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-bold shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
-                      <Send size={16} />
+                      <Send size={17} />
                       {submitting ? 'Transmitting Ingest Payload...' : 'Transmit Emergency Report'}
                     </button>
-                  </form>
-                </div>
 
-                <p className="text-[11px] font-bold text-slate-400 text-center mt-2 uppercase tracking-wider">
-                  Realtime Public Ingest Gateway · Multi-Channel Adapter
-                </p>
+                    <p className="text-[11px] font-bold text-slate-400 text-center uppercase tracking-wider pt-0.5">
+                      Realtime Public Ingest Gateway · Multi-Channel Adapter
+                    </p>
+                  </div>
+                </form>
               </div>
 
               {/* ───────────────────────────────────────────────────────────

@@ -21,8 +21,7 @@ const ALERT_ICONS = {
 };
 
 export function AlertsPage() {
-  const { alerts, ackAlert, incidents = [], units = [], user } = useStore();
-  const canAck = hasPermission(user, PERMISSIONS.EDIT_INCIDENT);
+  const { alerts, ackAlert, incidents = [], units = [] } = useStore();
   const unacked = alerts.filter(a => !a.acked_at);
   const acked = alerts.filter(a => a.acked_at);
 
@@ -40,7 +39,18 @@ export function AlertsPage() {
               Active SLA breaches, preemption advisories, and system dispatch warnings
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {unacked.length > 0 && (
+              <Button
+                variant="primary"
+                size="compact"
+                onClick={() => unacked.forEach(a => ackAlert(a.id))}
+                className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs cursor-pointer flex items-center gap-1.5 rounded-lg px-3 py-1.5"
+              >
+                <CheckCircle2 size={15} />
+                Acknowledge All ({unacked.length})
+              </Button>
+            )}
             <span className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-xs flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
               <strong className="text-slate-900 font-bold">{unacked.length}</strong> Unacknowledged
@@ -68,7 +78,7 @@ export function AlertsPage() {
                   alert={alert}
                   incidents={incidents}
                   units={units}
-                  onAck={canAck ? () => ackAlert(alert.id) : null}
+                  onAck={() => ackAlert(alert.id)}
                 />
               ))}
             </div>
