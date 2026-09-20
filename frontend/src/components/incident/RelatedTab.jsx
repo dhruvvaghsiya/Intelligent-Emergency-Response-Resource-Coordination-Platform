@@ -29,18 +29,32 @@ export function RelatedTab({ incident }) {
   const findCandidates = async () => {
     setLoading(true);
     setError('');
+    const storeIncidents = useStore.getState().incidents || [];
+    const linkedIds = new Set((incident.links || []).flatMap(l => [l.from_incident_id, l.to_incident_id]));
+
+    const filterCandidates = (list) => {
+      return (list || []).filter(c => {
+        if (c.band === 'INDEPENDENT') return false;
+        const candObj = storeIncidents.find(i => i.id === c.incident_id || i.code === c.incident_id);
+        if (linkedIds.has(c.incident_id) || linkedIds.has(c.incident_code) || (candObj && linkedIds.has(candObj.id))) {
+          return false;
+        }
+        return true;
+      });
+    };
+
     try {
       const data = await incidentsApi.candidates(incident.id);
       if (data && data.length > 0) {
-        setCandidates(data.filter(c => c.band !== 'INDEPENDENT'));
+        setCandidates(filterCandidates(data));
       } else {
-        const fallback = generateMockCandidates(incident, useStore.getState().incidents);
-        setCandidates(fallback);
+        const fallback = generateMockCandidates(incident, storeIncidents);
+        setCandidates(filterCandidates(fallback));
       }
     } catch (err) {
       // Fallback for static/deployed host or mock incidents
-      const fallback = generateMockCandidates(incident, useStore.getState().incidents);
-      setCandidates(fallback);
+      const fallback = generateMockCandidates(incident, storeIncidents);
+      setCandidates(filterCandidates(fallback));
     } finally {
       setLoading(false);
     }
@@ -50,33 +64,41 @@ export function RelatedTab({ incident }) {
     if (incident?.id) {
       findCandidates();
     }
-  }, [incident?.id]);
+  }, [incident?.id, incident?.links?.length]);
 
   const linkAs = async (candidateIncidentId, relation) => {
     setBusyId(candidateIncidentId);
     setError('');
+    const newLink = {
+      id: `lnk_${Date.now()}`,
+      from_incident_id: incident.id,
+      to_incident_id: candidateIncidentId,
+      relation,
+      confirmed: true,
+      created_at: new Date().toISOString(),
+    };
+
     try {
       await incidentsApi.addLink(incident.id, candidateIncidentId, relation);
       await fetchIncidentDetail(incident.id);
     } catch (err) {
       // Local store state fallback for deployed/mock mode
-      const store = useStore.getState();
-      const newLink = {
-        id: `lnk_${Date.now()}`,
-        from_incident_id: incident.id,
-        to_incident_id: candidateIncidentId,
-        relation,
-        confirmed: true,
-        created_at: new Date().toISOString(),
-      };
-      const updatedIncident = {
-        ...incident,
-        links: [...(incident.links || []), newLink],
-      };
-      useStore.setState({
-        incidents: store.incidents.map(i => (i.id === incident.id || i.code === incident.id) ? updatedIncident : i),
-      });
     } finally {
+      const store = useStore.getState();
+      const currentInc = store.incidents.find(i => i.id === incident.id || i.code === incident.id);
+      if (currentInc) {
+        const existingLinks = currentInc.links || [];
+        const alreadyLinked = existingLinks.some(l => l.from_incident_id === candidateIncidentId || l.to_incident_id === candidateIncidentId);
+        if (!alreadyLinked) {
+          useStore.setState({
+            incidents: store.incidents.map(i =>
+              (i.id === incident.id || i.code === incident.id)
+                ? { ...i, links: [...(i.links || []), newLink] }
+                : i
+            ),
+          });
+        }
+      }
       setCandidates(prev => prev?.filter(c => c.incident_id !== candidateIncidentId) ?? null);
       setBusyId(null);
     }
@@ -85,30 +107,55 @@ export function RelatedTab({ incident }) {
   const mergeIn = async (candidateIncidentId) => {
     setBusyId(candidateIncidentId);
     setError('');
+    const newLink = {
+      id: `lnk_${Date.now()}`,
+      from_incident_id: candidateIncidentId,
+      to_incident_id: incident.id,
+      relation: 'DUPLICATE_OF',
+      confirmed: true,
+      created_at: new Date().toISOString(),
+    };
+
     try {
       await incidentsApi.merge(incident.id, [candidateIncidentId], 'Confirmed duplicate via correlation candidates');
       await fetchIncidents();
       await fetchIncidentDetail(incident.id);
     } catch (err) {
       // Local store state fallback for deployed/mock mode
+    } finally {
       const store = useStore.getState();
       const cand = store.incidents.find(i => i.id === candidateIncidentId || i.code === candidateIncidentId);
-      const updatedIncident = {
-        ...incident,
-        report_count: (incident.report_count || 1) + (cand?.report_count || 1),
-        status: 'TRIAGED',
-      };
-      useStore.setState({
-        incidents: store.incidents.map(i =>
-          (i.id === incident.id || i.code === incident.id) ? updatedIncident :
-          (i.id === candidateIncidentId || i.code === candidateIncidentId) ? { ...i, status: 'MERGED' } : i
-        ),
-      });
-    } finally {
+      const currentInc = store.incidents.find(i => i.id === incident.id || i.code === incident.id);
+
+      if (currentInc) {
+        const existingLinks = currentInc.links || [];
+        const alreadyLinked = existingLinks.some(l => l.from_incident_id === candidateIncidentId || l.to_incident_id === candidateIncidentId);
+        const updatedLinks = alreadyLinked ? existingLinks : [...existingLinks, newLink];
+
+        useStore.setState({
+          incidents: store.incidents.map(i => {
+            if (i.id === incident.id || i.code === incident.id) {
+              return {
+                ...i,
+                report_count: (i.report_count || 1) + (cand?.report_count || 1),
+                status: i.status === 'REPORTED' ? 'TRIAGED' : i.status,
+                links: updatedLinks,
+              };
+            }
+            if (i.id === candidateIncidentId || i.code === candidateIncidentId) {
+              return { ...i, status: 'MERGED', merged_into_id: incident.id };
+            }
+            return i;
+          }),
+        });
+      }
       setCandidates(prev => prev?.filter(c => c.incident_id !== candidateIncidentId) ?? null);
       setBusyId(null);
     }
   };
+
+  const storeIncidents = useStore(s => s.incidents) || [];
+  const selectIncident = useStore(s => s.selectIncident);
 
   return (
     <div className="space-y-4 font-sans text-slate-900">
@@ -118,25 +165,32 @@ export function RelatedTab({ incident }) {
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
             <Link2 size={16} className="text-blue-600" />
             <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-              Linked Incidents ({links.length})
+              Linked & Merged Incidents ({links.length})
             </h3>
           </div>
           <div className="space-y-2">
             {links.map(link => {
               const otherId = link.from_incident_id === incident.id ? link.to_incident_id : link.from_incident_id;
-              const storeIncidents = useStore.getState().incidents || [];
               const foundInc = storeIncidents.find(i => i.id === otherId || i.code === otherId);
               const displayLabel = foundInc?.code || (otherId && otherId.length > 16 ? `${otherId.slice(0, 14)}…` : otherId);
 
               return (
                 <div key={link.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs gap-3">
-                  <div className="flex items-center gap-2 font-mono font-bold text-slate-800 min-w-0 shrink">
-                    <Link2 size={14} className="text-slate-400 shrink-0" />
+                  <button
+                    onClick={() => foundInc && selectIncident(foundInc.id)}
+                    className="flex items-center gap-2 font-mono font-bold text-slate-800 hover:text-blue-600 transition-colors min-w-0 shrink text-left cursor-pointer"
+                  >
+                    <Link2 size={14} className="text-blue-500 shrink-0" />
                     <span className="truncate" title={otherId}>{displayLabel}</span>
-                  </div>
+                    {foundInc?.status === 'MERGED' && (
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded-md">
+                        MERGED
+                      </span>
+                    )}
+                  </button>
                   <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
                     <span className="text-[10px] font-bold uppercase text-slate-700 bg-white px-2.5 py-1 rounded-md border border-slate-200 shadow-2xs whitespace-nowrap shrink-0">
-                      {link.relation ? link.relation.replace(/_/g, ' ') : 'RELATED TO'}
+                      {link.relation ? link.relation.replace(/_/g, ' ') : 'DUPLICATE OF'}
                     </span>
                     <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md flex items-center gap-1 shadow-2xs whitespace-nowrap shrink-0">
                       <CheckCircle size={10} /> Confirmed
@@ -196,66 +250,71 @@ export function RelatedTab({ incident }) {
           </div>
         ) : (
           <div className="space-y-3 pt-1">
-            {candidates.map(c => (
-              <div
-                key={c.incident_id}
-                className="p-4 bg-slate-50/70 border border-slate-200 rounded-xl shadow-2xs hover:bg-slate-50 transition-colors space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-extrabold text-slate-900 bg-white px-2.5 py-1 rounded-md border border-slate-200">
-                      {c.incident_code || c.incident_id}
-                    </span>
-                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${BAND_COLOR[c.band] || BAND_COLOR.RELATED}`}>
-                      {c.band.replace(/_/g, ' ')}
+            {candidates.map(c => {
+              const candIncident = storeIncidents.find(i => i.id === c.incident_id || i.code === c.incident_id);
+              const candDisplayCode = candIncident?.code || c.incident_code || (c.incident_id && c.incident_id.length > 16 ? `${c.incident_id.slice(0, 14)}…` : c.incident_id);
+
+              return (
+                <div
+                  key={c.incident_id}
+                  className="p-4 bg-slate-50/70 border border-slate-200 rounded-xl shadow-2xs hover:bg-slate-50 transition-colors space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-extrabold text-slate-900 bg-white px-2.5 py-1 rounded-md border border-slate-200">
+                        {candDisplayCode}
+                      </span>
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${BAND_COLOR[c.band] || BAND_COLOR.RELATED}`}>
+                        {c.band.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                    <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                      {Math.round((c.score || 0.85) * 100)}% match
                     </span>
                   </div>
-                  <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                    {Math.round((c.score || 0.85) * 100)}% match
-                  </span>
-                </div>
 
-                {c.explanation && (
-                  <p className="text-xs font-medium text-slate-700 leading-relaxed font-sans bg-white p-2.5 rounded-lg border border-slate-200/70">
-                    {c.explanation}
-                  </p>
-                )}
-
-                <div className="flex items-center gap-2 pt-0.5">
-                  {(c.band === 'DUPLICATE' || c.band === 'LIKELY_SAME') && (
-                    <Button
-                      variant="primary"
-                      size="compact"
-                      className="h-8 px-3 text-xs font-bold flex items-center gap-1.5"
-                      disabled={busyId === c.incident_id}
-                      onClick={() => mergeIn(c.incident_id)}
-                    >
-                      <GitMerge size={13} />
-                      {busyId === c.incident_id ? 'Merging...' : 'Merge In'}
-                    </Button>
+                  {c.explanation && (
+                    <p className="text-xs font-medium text-slate-700 leading-relaxed font-sans bg-white p-2.5 rounded-lg border border-slate-200/70">
+                      {c.explanation}
+                    </p>
                   )}
-                  <Button
-                    variant="secondary"
-                    size="compact"
-                    className="h-8 px-3 text-xs font-semibold flex items-center gap-1.5 text-slate-700 border-slate-200"
-                    disabled={busyId === c.incident_id}
-                    onClick={() => linkAs(c.incident_id, 'RELATED_TO')}
-                  >
-                    <Link2 size={13} />
-                    {busyId === c.incident_id ? 'Linking...' : 'Link Incident'}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="compact"
-                    className="h-8 px-2 text-xs font-medium text-slate-400 hover:text-slate-700 ml-auto"
-                    onClick={() => setCandidates(prev => prev.filter(x => x.incident_id !== c.incident_id))}
-                  >
-                    <X size={13} />
-                    Dismiss
-                  </Button>
+
+                  <div className="flex items-center gap-2 pt-0.5">
+                    {(c.band === 'DUPLICATE' || c.band === 'LIKELY_SAME') && (
+                      <Button
+                        variant="primary"
+                        size="compact"
+                        className="h-8 px-3 text-xs font-bold flex items-center gap-1.5"
+                        disabled={busyId === c.incident_id}
+                        onClick={() => mergeIn(c.incident_id)}
+                      >
+                        <GitMerge size={13} />
+                        {busyId === c.incident_id ? 'Merging...' : 'Merge In'}
+                      </Button>
+                    )}
+                    <Button
+                      variant="secondary"
+                      size="compact"
+                      className="h-8 px-3 text-xs font-semibold flex items-center gap-1.5 text-slate-700 border-slate-200"
+                      disabled={busyId === c.incident_id}
+                      onClick={() => linkAs(c.incident_id, 'RELATED_TO')}
+                    >
+                      <Link2 size={13} />
+                      {busyId === c.incident_id ? 'Linking...' : 'Link Incident'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="compact"
+                      className="h-8 px-2 text-xs font-medium text-slate-400 hover:text-slate-700 ml-auto"
+                      onClick={() => setCandidates(prev => prev.filter(x => x.incident_id !== c.incident_id))}
+                    >
+                      <X size={13} />
+                      Dismiss
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

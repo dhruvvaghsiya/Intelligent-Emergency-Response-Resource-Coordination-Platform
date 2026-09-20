@@ -307,8 +307,19 @@ export function SituationMap() {
     const map = mapRef.current;
     if (!map || !mapReady) return;
     const markers = incidentMarkersRef.current;
+    // Build set of incident IDs linked or merged to currently selected incident
+    const selectedIncident = incidents.find(i => i.id === selectedIncidentId || i.code === selectedIncidentId);
+    const linkedIncidentIds = new Set([
+      selectedIncidentId,
+      ...(selectedIncident?.links || []).flatMap(l => [l.from_incident_id, l.to_incident_id])
+    ]);
+
     const visible = mapLayers.incidents
-      ? incidents.filter(i => !['CLOSED', 'MERGED', 'FALSE_ALARM'].includes(i.status))
+      ? incidents.filter(i =>
+          !['CLOSED', 'MERGED', 'FALSE_ALARM'].includes(i.status) ||
+          linkedIncidentIds.has(i.id) ||
+          linkedIncidentIds.has(i.code)
+        )
       : [];
     const seen = new Set();
 
