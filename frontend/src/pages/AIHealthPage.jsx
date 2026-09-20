@@ -125,7 +125,7 @@ export function AIHealthPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-2xs">
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-2xs hover:border-emerald-400 hover:shadow-xs transition-all duration-200">
               <CheckCircle2 size={15} />
               AI Service Operational
             </span>
@@ -134,7 +134,7 @@ export function AIHealthPage() {
 
         {/* Telemetry Metrics Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-          <div className="bg-white p-4.5 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
+          <div className="bg-white p-4.5 rounded-xl border border-slate-200 shadow-xs hover:border-blue-500 hover:shadow-md transition-all duration-200 cursor-pointer">
             <div className="flex items-center justify-between text-slate-500 mb-1">
               <span className="text-xs font-semibold uppercase tracking-wider">Inference Engine</span>
               <Cpu size={15} className="text-blue-600" />
@@ -145,7 +145,7 @@ export function AIHealthPage() {
             <div className="text-xs text-blue-600 font-medium mt-0.5">Groq High-Throughput API</div>
           </div>
 
-          <div className="bg-white p-4.5 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
+          <div className="bg-white p-4.5 rounded-xl border border-slate-200 shadow-xs hover:border-blue-500 hover:shadow-md transition-all duration-200 cursor-pointer">
             <div className="flex items-center justify-between text-slate-500 mb-1">
               <span className="text-xs font-semibold uppercase tracking-wider">Median Latency</span>
               <Clock size={15} className="text-blue-600" />
@@ -156,7 +156,7 @@ export function AIHealthPage() {
             <div className="text-xs text-emerald-600 font-medium mt-0.5">Target &lt; 500 ms SLA</div>
           </div>
 
-          <div className="bg-white p-4.5 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
+          <div className="bg-white p-4.5 rounded-xl border border-slate-200 shadow-xs hover:border-blue-500 hover:shadow-md transition-all duration-200 cursor-pointer">
             <div className="flex items-center justify-between text-slate-500 mb-1">
               <span className="text-xs font-semibold uppercase tracking-wider">Embedding Model</span>
               <Layers size={15} className="text-blue-600" />
@@ -167,7 +167,7 @@ export function AIHealthPage() {
             <div className="text-xs text-slate-500 mt-0.5">384-dimensional dense vectors</div>
           </div>
 
-          <div className="bg-white p-4.5 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
+          <div className="bg-white p-4.5 rounded-xl border border-slate-200 shadow-xs hover:border-blue-500 hover:shadow-md transition-all duration-200 cursor-pointer">
             <div className="flex items-center justify-between text-slate-500 mb-1">
               <span className="text-xs font-semibold uppercase tracking-wider">Circuit Breaker</span>
               <ShieldCheck size={15} className="text-emerald-600" />
@@ -182,7 +182,7 @@ export function AIHealthPage() {
         {/* =========================================================================
             FEATURE 1: 🎯 AI vs. Human Dispatch Accuracy Benchmark
            ========================================================================= */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6 hover:border-blue-400 hover:shadow-md transition-all duration-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-2">
             <div>
               <div className="flex items-center gap-2">
@@ -202,7 +202,7 @@ export function AIHealthPage() {
 
           {/* 4 KPI Metric Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 space-y-1">
+            <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 space-y-1 hover:border-blue-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
               <div className="flex items-center justify-between text-slate-500 mb-1">
                 <span className="text-xs font-semibold uppercase tracking-wider">Triage Agreement Rate</span>
                 <CheckCircle2 size={16} className="text-emerald-600" />
@@ -215,7 +215,7 @@ export function AIHealthPage() {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 space-y-1">
+            <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 space-y-1 hover:border-blue-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
               <div className="flex items-center justify-between text-slate-500 mb-1">
                 <span className="text-xs font-semibold uppercase tracking-wider">Avg Response Time Saved</span>
                 <Clock size={16} className="text-blue-600" />
@@ -228,7 +228,7 @@ export function AIHealthPage() {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 space-y-1">
+            <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 space-y-1 hover:border-blue-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
               <div className="flex items-center justify-between text-slate-500 mb-1">
                 <span className="text-xs font-semibold uppercase tracking-wider">Preemption Accuracy</span>
                 <Zap size={16} className="text-amber-600" />
@@ -241,7 +241,7 @@ export function AIHealthPage() {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 space-y-1">
+            <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 space-y-1 hover:border-blue-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
               <div className="flex items-center justify-between text-slate-500 mb-1">
                 <span className="text-xs font-semibold uppercase tracking-wider">Distance Optimization</span>
                 <MapPin size={16} className="text-indigo-600" />
@@ -299,7 +299,7 @@ export function AIHealthPage() {
             </div>
 
             {/* Audit Table */}
-            <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-2xs">
+            <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-2xs hover:border-blue-500 transition-all duration-200">
               <table className="w-full text-left border-collapse text-xs sm:text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -314,7 +314,7 @@ export function AIHealthPage() {
                   {filteredLogs.map((log) => {
                     const isMatch = log.status === 'ACCEPTED';
                     return (
-                      <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
+                      <tr key={log.id} className="hover:bg-blue-50/40 transition-colors cursor-pointer">
                         <td className="py-3.5 px-4">
                           <div className="font-bold text-slate-900">{log.title}</div>
                           <div className="flex items-center gap-2 text-xs text-slate-500 font-mono mt-0.5">
@@ -367,7 +367,7 @@ export function AIHealthPage() {
         {/* =========================================================================
             FEATURE 2: 🚑 AI Resource Demand Forecast & Readiness
            ========================================================================= */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6 hover:border-blue-400 hover:shadow-md transition-all duration-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-2">
             <div>
               <div className="flex items-center gap-2">
@@ -388,7 +388,7 @@ export function AIHealthPage() {
           {/* Demand vs Availability Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* 1. Ambulances */}
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-red-200 space-y-2">
+            <div className="bg-slate-50 p-4.5 rounded-xl border border-red-200 space-y-2 hover:border-red-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
               <div className="flex items-center justify-between text-slate-500">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Ambulances</span>
                 <Truck size={16} className="text-red-600" />
@@ -405,7 +405,7 @@ export function AIHealthPage() {
             </div>
 
             {/* 2. Fire Units */}
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-amber-200 space-y-2">
+            <div className="bg-slate-50 p-4.5 rounded-xl border border-amber-200 space-y-2 hover:border-amber-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
               <div className="flex items-center justify-between text-slate-500">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Fire Units</span>
                 <Flame size={16} className="text-amber-600" />
@@ -422,7 +422,7 @@ export function AIHealthPage() {
             </div>
 
             {/* 3. ICU Beds */}
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-red-200 space-y-2">
+            <div className="bg-slate-50 p-4.5 rounded-xl border border-red-200 space-y-2 hover:border-red-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
               <div className="flex items-center justify-between text-slate-500">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700">ICU Beds</span>
                 <Hospital size={16} className="text-red-600" />
@@ -439,7 +439,7 @@ export function AIHealthPage() {
             </div>
 
             {/* 4. Forecast Accuracy */}
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-emerald-200 space-y-2">
+            <div className="bg-slate-50 p-4.5 rounded-xl border border-emerald-200 space-y-2 hover:border-emerald-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
               <div className="flex items-center justify-between text-slate-500">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Forecast Accuracy</span>
                 <Activity size={16} className="text-emerald-600" />
@@ -455,7 +455,7 @@ export function AIHealthPage() {
           </div>
 
           {/* Resource Shortage Risk Banner */}
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-slate-900">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-slate-900 hover:border-red-400 hover:shadow-md transition-all duration-200 cursor-pointer">
             <ShieldAlert size={20} className="text-red-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -480,7 +480,7 @@ export function AIHealthPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               {/* Recommendation 1 */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 hover:border-blue-300 hover:bg-blue-50/20 transition-all">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 hover:border-blue-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-blue-900 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200 flex items-center gap-1.5">
                     <span>Move 2 Ambulances</span>
@@ -497,7 +497,7 @@ export function AIHealthPage() {
               </div>
 
               {/* Recommendation 2 */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 hover:border-blue-300 hover:bg-blue-50/20 transition-all">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 hover:border-blue-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-blue-900 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200 flex items-center gap-1.5">
                     <span>Re-stage 1 Fire Engine</span>
@@ -514,7 +514,7 @@ export function AIHealthPage() {
               </div>
 
               {/* Recommendation 3 */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 hover:border-blue-300 hover:bg-blue-50/20 transition-all md:col-span-2">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 hover:border-blue-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer md:col-span-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-blue-900 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200 flex items-center gap-1.5">
                     <span>Reserve 7 Trauma ICU Beds</span>
