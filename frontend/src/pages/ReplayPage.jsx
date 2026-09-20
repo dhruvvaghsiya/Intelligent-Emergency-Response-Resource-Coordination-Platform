@@ -30,7 +30,8 @@ import {
   Eye,
   Grid,
   X,
-  Filter
+  Filter,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { replayApi } from '../lib/api';
@@ -1164,29 +1165,35 @@ export function ReplayPage() {
 
             <form onSubmit={handleAddCustomEvent} className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
               <div className="sm:col-span-3">
-                <select
-                  value={newIncidentId}
-                  onChange={e => setNewIncidentId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-medium text-slate-800"
-                >
-                  {Object.entries(incidentsConfig).map(([id, conf]) => (
-                    <option key={id} value={id}>{conf.shortTitle}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={newIncidentId}
+                    onChange={e => setNewIncidentId(e.target.value)}
+                    className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-lg pl-2.5 pr-8 py-1.5 text-xs font-medium text-slate-800"
+                  >
+                    {Object.entries(incidentsConfig).map(([id, conf]) => (
+                      <option key={id} value={id}>{conf.shortTitle}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                </div>
               </div>
 
               <div className="sm:col-span-3">
-                <select
-                  value={newEventType}
-                  onChange={e => setNewEventType(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-medium text-slate-800"
-                >
-                  <option value="INCIDENT_ESCALATED">INCIDENT_ESCALATED</option>
-                  <option value="CASUALTY_EVACUATED">CASUALTY_EVACUATED</option>
-                  <option value="MUTUAL_AID_REQUESTED">MUTUAL_AID_REQUESTED</option>
-                  <option value="AIR_QUALITY_WARNING">AIR_QUALITY_WARNING</option>
-                  <option value="CONTAINMENT_UPDATE">CONTAINMENT_UPDATE</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={newEventType}
+                    onChange={e => setNewEventType(e.target.value)}
+                    className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-lg pl-2.5 pr-8 py-1.5 text-xs font-medium text-slate-800"
+                  >
+                    <option value="INCIDENT_ESCALATED">INCIDENT_ESCALATED</option>
+                    <option value="CASUALTY_EVACUATED">CASUALTY_EVACUATED</option>
+                    <option value="MUTUAL_AID_REQUESTED">MUTUAL_AID_REQUESTED</option>
+                    <option value="AIR_QUALITY_WARNING">AIR_QUALITY_WARNING</option>
+                    <option value="CONTAINMENT_UPDATE">CONTAINMENT_UPDATE</option>
+                  </select>
+                  <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                </div>
               </div>
 
               <div className="sm:col-span-3">
@@ -1223,28 +1230,31 @@ export function ReplayPage() {
         <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-xs shrink-0 flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 shrink-0">Incident:</span>
-            <select
-              value={selectedIncidentFilters[0] || 'ALL'}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === 'ALL') {
-                  setSelectedIncidentFilters([]);
-                } else {
-                  setSelectedIncidentFilters([val]);
-                }
-              }}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all min-w-[260px]"
-            >
-              <option value="ALL">All Incidents ({Object.keys(incidentsConfig).length})</option>
-              {Object.entries(incidentsConfig).map(([incId, conf]) => {
-                const st = incidentStatuses[incId] || { label: 'Reported' };
-                return (
-                  <option key={incId} value={incId}>
-                    [{conf.severity}] {conf.shortTitle} — {st.label}
-                  </option>
-                );
-              })}
-            </select>
+            <div className="relative min-w-[260px]">
+              <select
+                value={selectedIncidentFilters[0] || 'ALL'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'ALL') {
+                    setSelectedIncidentFilters([]);
+                  } else {
+                    setSelectedIncidentFilters([val]);
+                  }
+                }}
+                className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-9 py-1.5 text-xs font-semibold text-slate-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all"
+              >
+                <option value="ALL">All Incidents ({Object.keys(incidentsConfig).length})</option>
+                {Object.entries(incidentsConfig).map(([incId, conf]) => {
+                  const st = incidentStatuses[incId] || { label: 'Reported' };
+                  return (
+                    <option key={incId} value={incId}>
+                      [{conf.severity}] {conf.shortTitle} — {st.label}
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500" />
+            </div>
           </div>
 
           {/* Quick status summary of selected incident or active event incident */}
@@ -1302,36 +1312,42 @@ export function ReplayPage() {
               {/* Quick Filter Dropdown */}
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">Filter:</span>
-                <select
-                  value={quickFilter}
-                  onChange={e => setQuickFilter(e.target.value)}
-                  className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all"
-                >
-                  <option value="all">All Events</option>
-                  <option value="latest5">Latest Incidents</option>
-                  <option value="critical">Critical Only</option>
-                  <option value="recent">Last 5 Min</option>
-                </select>
+                <div className="relative flex-1">
+                  <select
+                    value={quickFilter}
+                    onChange={e => setQuickFilter(e.target.value)}
+                    className="w-full appearance-none bg-white border border-slate-200 rounded-lg pl-2.5 pr-8 py-1.5 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all"
+                  >
+                    <option value="all">All Events</option>
+                    <option value="latest5">Latest Incidents</option>
+                    <option value="critical">Critical Only</option>
+                    <option value="recent">Last 5 Min</option>
+                  </select>
+                  <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                </div>
               </div>
 
 
               {/* Category Filter Dropdown */}
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">Type:</span>
-                <select
-                  value={selectedCategoryFilters[0] || 'ALL'}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === 'ALL') toggleCategoryFilter('ALL');
-                    else { setSelectedCategoryFilters([val]); }
-                  }}
-                  className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all capitalize"
-                >
-                  <option value="ALL">All Types</option>
-                  {['incident', 'ai', 'dispatch', 'units', 'hospital'].map(cat => (
-                    <option key={cat} value={cat} className="capitalize">{cat}</option>
-                  ))}
-                </select>
+                <div className="relative flex-1">
+                  <select
+                    value={selectedCategoryFilters[0] || 'ALL'}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === 'ALL') toggleCategoryFilter('ALL');
+                      else { setSelectedCategoryFilters([val]); }
+                    }}
+                    className="w-full appearance-none bg-white border border-slate-200 rounded-lg pl-2.5 pr-8 py-1.5 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all capitalize"
+                  >
+                    <option value="ALL">All Types</option>
+                    {['incident', 'ai', 'dispatch', 'units', 'hospital'].map(cat => (
+                      <option key={cat} value={cat} className="capitalize">{cat}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                </div>
               </div>
             </div>
 
