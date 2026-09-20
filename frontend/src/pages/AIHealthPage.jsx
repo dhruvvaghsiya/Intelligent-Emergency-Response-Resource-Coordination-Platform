@@ -23,7 +23,8 @@ import {
   Truck,
   Flame,
   Hospital,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles
 } from 'lucide-react';
 import { adminApi } from '../lib/api';
 
@@ -117,7 +118,7 @@ export function AIHealthPage() {
         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <Brain size={24} className="text-blue-600" />
+              <Sparkles size={24} className="text-blue-600" />
               AI Intelligence Core & Performance Telemetry
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
