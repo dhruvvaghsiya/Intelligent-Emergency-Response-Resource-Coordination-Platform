@@ -28,19 +28,24 @@ import { isOriginAllowed } from './utils/cors.js';
 export function buildApp() {
   const app = express();
 
-  app.use(helmet({ crossOriginResourcePolicy: false }));
-  app.use(cors({
+  const corsOptions = {
     origin: (origin, callback) => {
       if (isOriginAllowed(origin)) {
         callback(null, true);
       } else {
-        callback(new Error(`Not allowed by CORS: ${origin}`));
+        callback(null, false);
       }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Request-Id'],
-  }));
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Request-Id', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['X-Request-Id'],
+    optionsSuccessStatus: 204,
+  };
+
+  app.use(helmet({ crossOriginResourcePolicy: false, crossOriginOpenerPolicy: false }));
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
   app.use(express.json({ limit: '2mb' }));
   app.use(requestIdMiddleware);
   app.use(pinoHttp({ logger, customLogLevel: (req, res) => (res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'debug') }));
