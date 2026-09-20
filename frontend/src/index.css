@@ -211,19 +211,21 @@
   font-family: var(--font-mono);
 }
 
-/* ——— KPI & Analytics Azure Cards — Simple Hover Border ——— */
+/* ——— KPI & Analytics Azure Cards — Hover Bulge + White ——— */
 .kpi-azure-card-wrapper {
   position: relative;
   border-radius: 0.75rem;
-  border: 1px solid transparent;
-  background-color: azure;
+  border: 1px solid #E2E8F0;
+  background-color: #ffffff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
 }
 
 .kpi-azure-card-wrapper:hover {
-  border-color: #38bdf8; /* sky-400 — thin solid static border */
-  box-shadow: 0 2px 8px -2px rgba(14, 165, 233, 0.12);
+  border-color: #2563EB !important;
+  box-shadow: 0 6px 16px -2px rgba(37, 99, 235, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+  transform: scale(1.02);
+  background-color: #ffffff;
 }
 
 /* Spinner div kept as no-op so existing JSX doesn't break */
@@ -232,9 +234,10 @@
 }
 
 .kpi-azure-card-inner {
-  background-color: azure;
+  background-color: inherit;
   border-radius: 11px;
   height: 100%;
   width: 100%;
+  transition: background-color 0.25s ease;
 }
 

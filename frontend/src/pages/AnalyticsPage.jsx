@@ -13,7 +13,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return (
     <div
       style={{
-        backgroundColor: 'azure',
+        backgroundColor: '#ffffff',
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? 'translateY(0)' : 'translateY(6px)',
         transition: 'opacity 0.25s ease, transform 0.25s ease',
@@ -128,7 +128,7 @@ export function AnalyticsPage() {
   const overallResponseP90 = percentile(allP90, 0.9);
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 select-none" style={{ backgroundColor: 'azure' }}>
+    <div className="flex-1 overflow-y-auto p-8 select-none" style={{ backgroundColor: '#ffffff' }}>
       <div className="max-w-[1300px] mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-sky-200/80">
@@ -143,7 +143,7 @@ export function AnalyticsPage() {
           </div>
           <span
             className="text-xs font-semibold text-slate-600 border border-sky-200 px-3 py-1.5 rounded-full shadow-xs"
-            style={{ backgroundColor: 'azure' }}
+            style={{ backgroundColor: '#ffffff' }}
           >
             Window: 24h Rolling
           </span>
@@ -166,7 +166,7 @@ export function AnalyticsPage() {
           {/* Response time chart */}
           <div className="kpi-azure-card-wrapper group">
             <div className="kpi-border-spinner" />
-            <div className="kpi-azure-card-inner p-6 flex flex-col justify-between" style={{ backgroundColor: 'azure' }}>
+            <div className="kpi-azure-card-inner p-6 flex flex-col justify-between" style={{ backgroundColor: '#ffffff' }}>
               <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center justify-between">
                 <span>Response Times by Incident Type (Seconds)</span>
                 <span className="text-xs font-normal text-slate-500">p50 (Blue) · p90 (Slate)</span>
@@ -174,16 +174,6 @@ export function AnalyticsPage() {
               {responseData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={responseData} barCategoryGap="28%">
-                    <defs>
-                      <linearGradient id="p50Gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2563EB" stopOpacity={1} />
-                        <stop offset="100%" stopColor="#38BDF8" stopOpacity={0.85} />
-                      </linearGradient>
-                      <linearGradient id="p90Gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#64748B" stopOpacity={0.9} />
-                        <stop offset="100%" stopColor="#94A3B8" stopOpacity={0.7} />
-                      </linearGradient>
-                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#bae6fd" strokeOpacity={0.5} />
                     <XAxis
                       dataKey="name"
@@ -194,8 +184,8 @@ export function AnalyticsPage() {
                     />
                     <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
                     <Tooltip content={<CustomTooltip />} cursor={false} animationDuration={300} isAnimationActive={true} />
-                    <Bar dataKey="p50" fill="url(#p50Gradient)" radius={[6, 6, 0, 0]} maxBarSize={32} minPointSize={4} name="p50" />
-                    <Bar dataKey="p90" fill="url(#p90Gradient)" radius={[6, 6, 0, 0]} maxBarSize={32} minPointSize={4} name="p90" />
+                    <Bar dataKey="p50" fill="#2563EB" radius={[6, 6, 0, 0]} maxBarSize={32} minPointSize={4} name="p50" />
+                    <Bar dataKey="p90" fill="#94A3B8" radius={[6, 6, 0, 0]} maxBarSize={32} minPointSize={4} name="p90" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -209,7 +199,7 @@ export function AnalyticsPage() {
           {/* Unit utilization chart */}
           <div className="kpi-azure-card-wrapper group">
             <div className="kpi-border-spinner" />
-            <div className="kpi-azure-card-inner p-6 flex flex-col justify-between" style={{ backgroundColor: 'azure' }}>
+            <div className="kpi-azure-card-inner p-6 flex flex-col justify-between" style={{ backgroundColor: '#ffffff' }}>
               <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center justify-between">
                 <span>Apparatus Utilization Ratio (%)</span>
                 <span className="text-xs font-normal text-slate-500">Target &lt; 75%</span>
@@ -217,12 +207,6 @@ export function AnalyticsPage() {
               {utilizationData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={utilizationData} barCategoryGap="18%" margin={{ top: 5, right: 15, left: 0, bottom: 5 }}>
-                    <defs>
-                      <linearGradient id="utilGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#0284C7" stopOpacity={1} />
-                        <stop offset="100%" stopColor="#38BDF8" stopOpacity={0.8} />
-                      </linearGradient>
-                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#bae6fd" strokeOpacity={0.5} />
                     <XAxis
                       dataKey="name"
@@ -234,7 +218,7 @@ export function AnalyticsPage() {
                     />
                     <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} domain={[0, 100]} />
                     <Tooltip content={<CustomTooltip />} cursor={false} animationDuration={300} isAnimationActive={true} />
-                    <Bar dataKey="ratio" fill="url(#utilGradient)" radius={[6, 6, 0, 0]} maxBarSize={36} minPointSize={4} name="Busy %" />
+                    <Bar dataKey="ratio" fill="#2563EB" radius={[6, 6, 0, 0]} maxBarSize={36} minPointSize={4} name="Busy %" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -249,18 +233,18 @@ export function AnalyticsPage() {
         {/* Shortages & Sector Density */}
         <div className="kpi-azure-card-wrapper group">
           <div className="kpi-border-spinner" />
-          <div className="kpi-azure-card-inner p-6" style={{ backgroundColor: 'azure' }}>
+          <div className="kpi-azure-card-inner p-6" style={{ backgroundColor: '#ffffff' }}>
             <h3 className="text-sm font-semibold text-slate-900 mb-3">
               High-Severity Incident Concentration by Municipal Ward
             </h3>
             {shortages.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {shortages.map(s => (
-                  <div key={s.ward} className="kpi-azure-card-wrapper group">
+                  <div key={s.ward} className="kpi-azure-card-wrapper group cursor-pointer">
                     <div className="kpi-border-spinner" />
                     <div
                       className="kpi-azure-card-inner flex items-center justify-between p-3.5"
-                      style={{ backgroundColor: 'azure' }}
+                      style={{ backgroundColor: '#ffffff' }}
                     >
                       <span className="text-sm font-medium text-slate-800">{s.ward}</span>
                       <span className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
@@ -292,7 +276,7 @@ export function AnalyticsPage() {
 
 function KPICard({ icon: Icon, label, value, subtitle, accent = false }) {
   return (
-    <div className="kpi-azure-card-wrapper group">
+    <div className="kpi-azure-card-wrapper group cursor-pointer">
       <div className="kpi-border-spinner" />
       <div className="kpi-azure-card-inner p-5 flex flex-col justify-between">
         <div>
@@ -312,7 +296,7 @@ function KPICard({ icon: Icon, label, value, subtitle, accent = false }) {
 
 function MetricCard({ label, value }) {
   return (
-    <div className="kpi-azure-card-wrapper group">
+    <div className="kpi-azure-card-wrapper group cursor-pointer">
       <div className="kpi-border-spinner" />
       <div className="kpi-azure-card-inner p-4 flex flex-col justify-between">
         <div className="text-xs text-slate-500 font-medium mb-1">{label}</div>

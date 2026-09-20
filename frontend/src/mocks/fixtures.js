@@ -281,6 +281,48 @@ export const MOCK_ALERTS = [
   { id: 'alr_005', type: 'SLA_BREACH', severity: 'HIGH', incident_id: 'inc_005', unit_id: 'unt_002', title: 'SLA breach warning', body: 'A-02 ETA to INC-0151 exceeds 8-min SLA by 2:20', payload: {}, raised_at: minutesAgo(8), acked_by: null, acked_at: null },
 ];
 
+// ——— CORRELATION CANDIDATES (dynamic generator for any incident) ———
+export function generateMockCandidates(targetIncident, customIncidents = null) {
+  if (!targetIncident) return [];
+  const incidents = (customIncidents && customIncidents.length > 0) ? customIncidents : MOCK_INCIDENTS;
+
+  const others = incidents.filter(i =>
+    i.id !== targetIncident.id &&
+    i.code !== targetIncident.code &&
+    i.status !== 'MERGED' &&
+    i.status !== 'CLOSED'
+  );
+
+  if (others.length === 0) return [];
+
+  const c1 = others.find(i => i.type === targetIncident.type) || others[0];
+  const c2 = others.find(i => i.id !== c1.id) || (others[1] || others[0]);
+
+  const results = [
+    {
+      incident_id: c1.id,
+      incident_code: c1.code || 'INC-2026-0148',
+      title: c1.title || 'Structure fire nearby',
+      band: 'DUPLICATE',
+      score: 0.94,
+      explanation: `Spatial proximity within 350m & 12 min window (${c1.type.replace(/_/g, ' ')})`,
+    }
+  ];
+
+  if (c2 && c2.id !== c1.id) {
+    results.push({
+      incident_id: c2.id,
+      incident_code: c2.code || 'INC-2026-0149',
+      title: c2.title || 'Secondary hazard reported',
+      band: 'LIKELY_SAME',
+      score: 0.78,
+      explanation: `Correlated via text embedding & vector similarity (${c2.type.replace(/_/g, ' ')})`,
+    });
+  }
+
+  return results;
+}
+
 // ——— DISPATCH PLANS (dynamic generator for any incident) ———
 export function generateMockDispatchPlans(incidentId, customIncidents = null, customUnits = null) {
   const incidents = customIncidents || MOCK_INCIDENTS;
