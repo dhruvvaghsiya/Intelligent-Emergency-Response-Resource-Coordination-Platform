@@ -5,10 +5,12 @@ import React, { useState } from 'react';
 import { AlertTriangle, Eye, EyeOff, User, Radio, Cpu, Globe, Phone, Ban, ShieldCheck } from 'lucide-react';
 import { PanelSection } from '../ui/Panel';
 import { ContestedBadge } from '../ui/Chip';
+import { Button } from '../ui/Button';
 import { formatAttribute, formatTime, formatProbability, formatConfidence } from '../../lib/format';
 import { SOURCE_RELIABILITY } from '../../lib/constants';
 import { evidenceApi } from '../../lib/api';
 import { useStore } from '../../lib/store';
+import { hasPermission, PERMISSIONS } from '../../lib/permissions';
 
 const SOURCE_ICONS = {
   EMERGENCY_CALL: Phone,
@@ -172,6 +174,8 @@ function EvidenceItem({ evidence, incidentId }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const fetchIncidentDetail = useStore(s => s.fetchIncidentDetail);
+  const user = useStore(s => s.user);
+  const canSupersede = hasPermission(user, PERMISSIONS.SUPERSEDE_EVIDENCE);
 
   const supersede = async () => {
     setBusy(true);
@@ -217,7 +221,7 @@ function EvidenceItem({ evidence, incidentId }) {
         </div>
         {evidence.superseded ? (
           <div className="text-[11px] text-amber-700 font-medium mt-1.5 no-underline">Superseded{evidence.superseded_reason ? `: ${evidence.superseded_reason}` : ''}</div>
-        ) : showReason ? (
+        ) : !canSupersede ? null : showReason ? (
           <div className="flex items-center gap-2 mt-2">
             <input
               type="text" value={reason} onChange={e => setReason(e.target.value)}

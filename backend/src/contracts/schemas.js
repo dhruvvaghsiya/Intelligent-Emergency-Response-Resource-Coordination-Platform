@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SOURCE_TYPE, INCIDENT_TYPE, INCIDENT_STATUS, SEVERITY, UNIT_STATUS, CAPABILITY } from './enums.js';
+import { SOURCE_TYPE, INCIDENT_TYPE, INCIDENT_STATUS, SEVERITY, UNIT_STATUS, CAPABILITY, ROLE } from './enums.js';
 
 export const GeoPointSchema = z.object({
   lng: z.number().min(-180).max(180),
@@ -28,6 +28,16 @@ export const LoginSchema = z.object({
 
 export const RefreshSchema = z.object({
   refresh_token: z.string().min(1),
+});
+
+// §access-control — the only place an operator's role is now assigned: an authenticated ADMIN
+// calling POST /admin/users, never a self-serve register endpoint.
+export const AdminCreateUserSchema = z.object({
+  name: z.string().trim().min(1),
+  email: z.string().email(),
+  password: z.string().min(6),
+  role: z.enum(ROLE),
+  station_id: z.string().nullable().optional(),
 });
 
 export const IncidentPatchSchema = z.object({

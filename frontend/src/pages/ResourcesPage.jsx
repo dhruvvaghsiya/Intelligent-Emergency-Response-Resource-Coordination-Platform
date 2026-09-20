@@ -5,14 +5,36 @@
 import React, { useState } from 'react';
 import { useStore } from '../lib/store';
 import { StatusDot, SimBadge } from '../components/ui/Chip';
-import { HeartHandshake, CheckCircle2, X } from 'lucide-react';
+import { HeartHandshake, CheckCircle2, X, Pencil, Check } from 'lucide-react';
 import { formatRelativeTime, formatCoords } from '../lib/format';
 import { STATUS_CONFIG } from '../lib/constants';
+import { hasPermission, PERMISSIONS } from '../lib/permissions';
 
 export function ResourcesPage() {
-  const { units, hospitals } = useStore();
+  const { units, hospitals, user, patchHospitalCapacity } = useStore();
+  const canManageResources = hasPermission(user, PERMISSIONS.MANAGE_RESOURCES);
   const [tab, setTab] = useState('units');
   const [statusFilter, setStatusFilter] = useState(null);
+  const [editingHospitalId, setEditingHospitalId] = useState(null);
+  const [editForm, setEditForm] = useState({ beds_available: 0, icu_available: 0 });
+  const [savingHospital, setSavingHospital] = useState(false);
+
+  const startEditHospital = (h) => {
+    setEditingHospitalId(h.id);
+    setEditForm({ beds_available: h.beds_available, icu_available: h.icu_available });
+  };
+
+  const saveHospitalCapacity = async (id) => {
+    setSavingHospital(true);
+    try {
+      await patchHospitalCapacity(id, editForm);
+      setEditingHospitalId(null);
+    } catch {
+      // best-effort — leave the row in edit mode so the operator can retry
+    } finally {
+      setSavingHospital(false);
+    }
+  };
 
   const unitsByStatus = units.reduce((acc, u) => {
     acc[u.status] = (acc[u.status] || 0) + 1;
@@ -201,27 +223,46 @@ export function ResourcesPage() {
                   <th className="px-5 text-right">ICU Capacity</th>
                   <th className="px-5">Specialty Services</th>
                   <th className="px-5 text-right">Updated</th>
+                  {canManageResources && <th className="px-5 text-right w-10"></th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
-                {hospitals.map(h => (
+                {hospitals.map(h => {
+                  const isEditing = editingHospitalId === h.id;
+                  return (
                   <tr key={h.id} className="h-12 hover:bg-slate-50/80 transition-colors">
                     <td className="px-5 text-slate-900 font-semibold">{h.name}</td>
                     <td className="px-5 text-right">
-                      <span className={`text-sm font-bold ${
-                        h.beds_available < 10 ? 'text-red-700 font-bold' :
-                        h.beds_available < 25 ? 'text-amber-700' : 'text-emerald-700'
-                      }`}>
-                        {h.beds_available}
-                      </span>
+                      {isEditing ? (
+                        <input
+                          type="number" min={0} max={h.beds_total} value={editForm.beds_available}
+                          onChange={e => setEditForm(f => ({ ...f, beds_available: Number(e.target.value) }))}
+                          className="w-16 h-7 px-2 text-right bg-white border border-blue-300 rounded-md text-sm font-bold focus:border-blue-600 focus:outline-none"
+                        />
+                      ) : (
+                        <span className={`text-sm font-bold ${
+                          h.beds_available < 10 ? 'text-red-700 font-bold' :
+                          h.beds_available < 25 ? 'text-amber-700' : 'text-emerald-700'
+                        }`}>
+                          {h.beds_available}
+                        </span>
+                      )}
                       <span className="text-xs text-slate-400"> / {h.beds_total}</span>
                     </td>
                     <td className="px-5 text-right">
-                      <span className={`text-sm font-bold ${
-                        h.icu_available < 3 ? 'text-orange-700' : 'text-emerald-700'
-                      }`}>
-                        {h.icu_available} units
-                      </span>
+                      {isEditing ? (
+                        <input
+                          type="number" min={0} value={editForm.icu_available}
+                          onChange={e => setEditForm(f => ({ ...f, icu_available: Number(e.target.value) }))}
+                          className="w-16 h-7 px-2 text-right bg-white border border-blue-300 rounded-md text-sm font-bold focus:border-blue-600 focus:outline-none"
+                        />
+                      ) : (
+                        <span className={`text-sm font-bold ${
+                          h.icu_available < 3 ? 'text-orange-700' : 'text-emerald-700'
+                        }`}>
+                          {h.icu_available} units
+                        </span>
+                      )}
                     </td>
                     <td className="px-5">
                       <div className="flex gap-1.5 flex-wrap">
@@ -233,8 +274,31 @@ export function ResourcesPage() {
                       </div>
                     </td>
                     <td className="px-5 text-right text-xs text-slate-400">{formatRelativeTime(h.updated_at)}</td>
+                    {canManageResources && (
+                      <td className="px-5 text-right">
+                        {isEditing ? (
+                          <button
+                            onClick={() => saveHospitalCapacity(h.id)}
+                            disabled={savingHospital}
+                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer disabled:opacity-50"
+                            title="Save"
+                          >
+                            <Check size={14} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => startEditHospital(h)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                            title="Edit capacity"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

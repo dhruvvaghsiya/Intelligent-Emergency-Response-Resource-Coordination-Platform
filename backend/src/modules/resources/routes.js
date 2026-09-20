@@ -76,7 +76,7 @@ resourcesRouter.get('/hospitals', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-resourcesRouter.patch('/hospitals/:id/capacity', authenticate, requirePermission(PERMISSIONS.ADMIN), async (req, res, next) => {
+resourcesRouter.patch('/hospitals/:id/capacity', authenticate, requirePermission(PERMISSIONS.MANAGE_RESOURCES), async (req, res, next) => {
   try {
     const hospital = await Hospital.findById(req.params.id);
     if (!hospital) throw new AppError('NOT_FOUND', 'Hospital not found');

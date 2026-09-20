@@ -11,6 +11,7 @@ import { Button } from '../ui/Button';
 import { formatDuration } from '../../lib/format';
 import { dispatchApi } from '../../lib/api';
 import { useStore } from '../../lib/store';
+import { hasPermission, PERMISSIONS } from '../../lib/permissions';
 
 import { generateMockDispatchPlans } from '../../mocks/fixtures';
 
@@ -21,6 +22,8 @@ const STRATEGY_CONFIG = {
 };
 
 export function DispatchPanel({ incidentId }) {
+  const user = useStore(s => s.user);
+  const canDispatch = hasPermission(user, PERMISSIONS.APPROVE_DISPATCH);
   const [plans, setPlans] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -30,6 +33,22 @@ export function DispatchPanel({ incidentId }) {
   const [compare, setCompare] = useState(null);
   const fetchIncidentDetail = useStore(s => s.fetchIncidentDetail);
   const fetchUnits = useStore(s => s.fetchUnits);
+
+  if (!canDispatch) {
+    return (
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs font-sans text-slate-900">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+            <Shield size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Dispatch Recommendations</h3>
+            <p className="text-[11px] font-medium text-slate-500">Requires dispatch authority (Commander, Dispatcher, or Admin) to generate and approve plans.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const generatePlans = async () => {
     setLoading(true);

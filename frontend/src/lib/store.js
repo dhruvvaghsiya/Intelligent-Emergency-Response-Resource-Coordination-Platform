@@ -71,15 +71,10 @@ export const useStore = create((set, get) => ({
       get().fetchAll();
       return { ok: true };
     } catch (err) {
-      // Offline / network failure / sleep fallback for demo accounts & registered accounts
-      let registeredUsers = [];
-      try {
-        registeredUsers = JSON.parse(localStorage.getItem('resilio.registered_users') || '[]');
-      } catch {
-        registeredUsers = [];
-      }
-      const allUsers = [...DEMO_USERS, ...registeredUsers];
-      const matched = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+      // Offline / network failure fallback — seeded demo accounts only. Permissions are left
+      // empty (fail-closed): without the backend reachable there's no authority to grant them,
+      // so every gated action stays hidden until a real session is established.
+      const matched = DEMO_USERS.find(u => u.email.toLowerCase() === cleanEmail);
 
       if (matched && (matched.password === password || password === 'prahari123')) {
         const fallbackUser = {
@@ -88,6 +83,7 @@ export const useStore = create((set, get) => ({
           name: matched.name,
           role: matched.role,
           station_id: matched.station_id || null,
+          permissions: [],
         };
         const fallbackToken = 'mock_jwt_' + btoa(JSON.stringify(fallbackUser));
         storeTokens({ access_token: fallbackToken, refresh_token: fallbackToken });
@@ -99,48 +95,6 @@ export const useStore = create((set, get) => ({
       }
 
       const message = err?.response?.data?.error?.message || 'Invalid credentials. Please verify your email and password.';
-      set({ authLoading: false, authError: message });
-      return { ok: false, error: message };
-    }
-  },
-
-  register: async ({ name, email, role, station_id, password }) => {
-    set({ authLoading: true, authError: null });
-    const cleanEmail = (email || '').trim().toLowerCase();
-    try {
-      let userObj;
-      try {
-        const data = await authApi.register({ name, email: cleanEmail, role, station_id, password });
-        storeTokens(data);
-        userObj = data.user;
-      } catch {
-        // Fallback registration if backend unreachable
-        userObj = {
-          id: `usr_${Date.now().toString(36)}`,
-          name: name.trim(),
-          email: cleanEmail,
-          role: role || 'DISPATCHER',
-          station_id: station_id?.trim() || null,
-        };
-        const mockToken = 'mock_jwt_' + btoa(JSON.stringify(userObj));
-        storeTokens({ access_token: mockToken, refresh_token: mockToken });
-        let registered = [];
-        try {
-          registered = JSON.parse(localStorage.getItem('resilio.registered_users') || '[]');
-        } catch {
-          registered = [];
-        }
-        registered.push({ ...userObj, password });
-        localStorage.setItem('resilio.registered_users', JSON.stringify(registered));
-      }
-
-      localStorage.setItem('resilio.user', JSON.stringify(userObj));
-      localStorage.setItem('prahari.user', JSON.stringify(userObj));
-      set({ user: userObj, token: getStoredToken(), isAuthenticated: true, authLoading: false });
-      get().fetchAll();
-      return { ok: true };
-    } catch (err) {
-      const message = err?.response?.data?.error?.message || 'Registration failed. Please try again.';
       set({ authLoading: false, authError: message });
       return { ok: false, error: message };
     }
@@ -351,6 +305,11 @@ export const useStore = create((set, get) => ({
         console.warn('fetchHospitals failed', err);
       }
     }
+  },
+  patchHospitalCapacity: async (id, body) => {
+    const updated = await hospitalsApi.patchCapacity(id, body);
+    set(state => ({ hospitals: upsertById(state.hospitals, updated) }));
+    return updated;
   },
 
   addReport: (reportPayload) => {

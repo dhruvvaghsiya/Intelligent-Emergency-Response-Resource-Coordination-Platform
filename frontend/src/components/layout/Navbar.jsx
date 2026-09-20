@@ -9,8 +9,9 @@ import {
   LogOut, HeartHandshake, FileText, Bell, WifiOff
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
+import { hasPermission, PERMISSIONS } from '../../lib/permissions';
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { path: '/ops', label: 'Situation Ops', icon: Map },
   { path: '/resources', label: 'Fleet & Hospitals', icon: HeartHandshake },
   { path: '/alerts', label: 'Alert Center', icon: Bell, badge: true },
@@ -18,12 +19,14 @@ const NAV_ITEMS = [
   { path: '/replay', label: 'Incident Replay', icon: Clock },
   { path: '/ai-health', label: 'AI Health', icon: Sparkles },
 ];
+const ADMIN_NAV_ITEM = { path: '/admin', label: 'Admin Console', icon: ShieldCheck };
 
 export function Navbar() {
   const location = useLocation();
   const { user, logout, connectionStatus, alerts } = useStore();
 
   const unackedAlerts = (alerts || []).filter(a => !a.acked_at);
+  const NAV_ITEMS = hasPermission(user, PERMISSIONS.ADMIN) ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : BASE_NAV_ITEMS;
 
   return (
     <header className="absolute top-0 left-0 right-0 h-16 z-40 flex items-center justify-between px-6 pointer-events-none select-none">

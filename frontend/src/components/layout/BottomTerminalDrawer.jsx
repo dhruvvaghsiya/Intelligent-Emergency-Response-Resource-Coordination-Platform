@@ -9,6 +9,7 @@ import { useStore } from '../../lib/store';
 import { formatTime } from '../../lib/format';
 import { SEVERITY_CONFIG } from '../../lib/constants';
 import { adminApi } from '../../lib/api';
+import { hasPermission, PERMISSIONS } from '../../lib/permissions';
 
 // Only scenarios with a real backend handler (modules/admin/scenarios.js) belong here — this list
 // previously had 2 extra entries with no server-side implementation ("highway_pileup_sg",
@@ -27,7 +28,8 @@ const INTENSITY_STEPS = [0.5, 1, 2, 3];
 const SOURCE_ACTIVITY_WINDOW_MS = 60_000;
 
 export function BottomTerminalDrawer() {
-  const { liveFeed, sidebarOpen, selectedIncidentId, sourceActivityLog } = useStore();
+  const { liveFeed, sidebarOpen, selectedIncidentId, sourceActivityLog, user } = useStore();
+  const canRunSimulation = hasPermission(user, PERMISSIONS.RUN_SIMULATION);
   const [activeTerminal, setActiveTerminal] = useState(null); // 'feed' | 'sim' | null
 
   // Simulation Engine State (2 hand-scripted "signature" replays)
@@ -47,10 +49,11 @@ export function BottomTerminalDrawer() {
   };
 
   useEffect(() => {
+    if (!canRunSimulation) return;
     refreshWorldEngineStatus();
     const poll = setInterval(refreshWorldEngineStatus, 8000);
     return () => clearInterval(poll);
-  }, []);
+  }, [canRunSimulation]);
 
   const handleToggleWorldEngine = async () => {
     setWorldEngineBusy(true);
@@ -168,7 +171,9 @@ export function BottomTerminalDrawer() {
           </span>
         </button>
 
-        {/* Button 2: Simulation Engine */}
+        {/* Button 2: Simulation Engine — requires RUN_SIMULATION; nothing view-only lives in this
+            tab, so unauthorized operators don't see the button at all rather than a dead one. */}
+        {canRunSimulation && (
         <button
           type="button"
           onClick={() => setActiveTerminal(activeTerminal === 'sim' ? null : 'sim')}
@@ -204,6 +209,7 @@ export function BottomTerminalDrawer() {
             </span>
           )}
         </button>
+        )}
       </div>
 
       {/* Terminal Drawer — Transparent Container with Floating White Components (Matching Navbar Theme) */}

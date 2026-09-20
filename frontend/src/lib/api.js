@@ -78,7 +78,6 @@ const unwrap = (res) => res.data.data;
 
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }).then(unwrap),
-  register: (body) => api.post('/auth/register', body).then(unwrap),
   refresh: (refresh_token) => api.post('/auth/refresh', { refresh_token }).then(unwrap),
   me: () => api.get('/auth/me').then(unwrap),
 };
@@ -177,6 +176,9 @@ export const adminApi = {
   startWorldEngine: (intensity) => api.post('/worldengine/start', { intensity }).then(unwrap),
   stopWorldEngine: () => api.post('/worldengine/stop').then(unwrap),
   worldEngineStatus: () => api.get('/worldengine/status').then(unwrap),
+  listUsers: () => api.get('/admin/users').then(unwrap),
+  createUser: (body) => api.post('/admin/users', body).then(unwrap),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`).then(unwrap),
 };
 
 export const healthApi = {

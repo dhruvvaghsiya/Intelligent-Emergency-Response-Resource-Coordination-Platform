@@ -10,6 +10,7 @@ import { SEVERITY, SEVERITY_CONFIG } from '../../lib/constants';
 import { formatAttribute } from '../../lib/format';
 import { severityApi } from '../../lib/api';
 import { useStore } from '../../lib/store';
+import { hasPermission, PERMISSIONS } from '../../lib/permissions';
 
 export function SeverityPanel({ assessment, incidentId }) {
   const [showOverride, setShowOverride] = useState(false);
@@ -18,6 +19,8 @@ export function SeverityPanel({ assessment, incidentId }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const fetchIncidentDetail = useStore(s => s.fetchIncidentDetail);
+  const user = useStore(s => s.user);
+  const canOverride = hasPermission(user, PERMISSIONS.OVERRIDE_SEVERITY);
 
   if (!assessment) return null;
 
@@ -65,7 +68,7 @@ export function SeverityPanel({ assessment, incidentId }) {
             {assessment.confidence_note}
           </span>
         )}
-        {!showOverride && (
+        {!showOverride && canOverride && (
           <Button variant="ghost" size="compact" className="ml-auto shrink-0 text-slate-600 hover:text-slate-900" onClick={() => setShowOverride(true)}>
             <SlidersHorizontal size={12} />
             Override
@@ -73,7 +76,7 @@ export function SeverityPanel({ assessment, incidentId }) {
         )}
       </div>
 
-      {showOverride && (
+      {showOverride && canOverride && (
         <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
           <div className="flex gap-1.5 flex-wrap">
             {SEVERITY.map(sev => (
