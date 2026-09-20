@@ -8,7 +8,7 @@ import {
   authApi, incidentsApi, unitsApi, hospitalsApi, alertsApi,
   storeTokens, clearTokens, getStoredToken, setOnAuthFailure,
 } from './api';
-import { connectSocket, disconnectSocket } from './socket';
+import { connectSocket } from './socket';
 import { MOCK_INCIDENTS, MOCK_UNITS, MOCK_ALERTS, MOCK_HOSPITALS } from '../mocks/fixtures';
 
 const USE_MOCKS = import.meta.env?.VITE_USE_MOCKS !== 'false';
@@ -60,12 +60,10 @@ function upsertById(list, item) {
   return next;
 }
 
+// Single-role system — the one account that can sign in (offline/demo-mode fallback only; the
+// real backend is the source of truth for credentials).
 export const DEMO_USERS = [
-  { id: 'usr_commander', email: 'commander@prahari.in', name: 'Cdr. Arjun Shah',   role: 'COMMANDER',  password: 'prahari123' },
-  { id: 'usr_dispatcher', email: 'dispatch@prahari.in',  name: 'Disp. Priya Mehta', role: 'DISPATCHER', password: 'prahari123' },
-  { id: 'usr_analyst',    email: 'analyst@prahari.in',   name: 'Anl. Ravi Kumar',   role: 'ANALYST',    password: 'prahari123' },
-  { id: 'usr_unit07',     email: 'unit07@prahari.in',    name: 'FO Ketan Patel',    role: 'FIELD_UNIT', password: 'prahari123' },
-  { id: 'usr_admin',      email: 'admin@prahari.in',     name: 'System Admin',       role: 'ADMIN',      password: 'prahari123' },
+  { id: 'usr_admin', email: 'admin@prahari.in', name: 'System Admin', role: 'ADMIN', password: 'prahari123' },
 ];
 
 export const useStore = create((set, get) => ({
@@ -118,9 +116,17 @@ export const useStore = create((set, get) => ({
     }
   },
 
+  // §public-viewing — no account is required just to look. If there's no stored token this still
+  // opens an anonymous live connection and fetches the same public data an operator sees; only
+  // restoring an authenticated identity (and the extra permissions that come with it) needs a
+  // valid token.
   restoreSession: async () => {
     const token = getStoredToken();
-    if (!token) return;
+    if (!token) {
+      get().connectRealtime();
+      get().fetchAll();
+      return;
+    }
     try {
       const user = await authApi.me();
       set({ user, token, isAuthenticated: true });
@@ -131,6 +137,8 @@ export const useStore = create((set, get) => ({
       localStorage.removeItem('resilio.user');
       localStorage.removeItem('prahari.user');
       set({ user: null, token: null, isAuthenticated: false });
+      get().connectRealtime();
+      get().fetchAll();
     }
   },
 
@@ -138,14 +146,13 @@ export const useStore = create((set, get) => ({
     clearTokens();
     localStorage.removeItem('resilio.user');
     localStorage.removeItem('prahari.user');
-    disconnectSocket();
     set({ user: null, token: null, isAuthenticated: false });
+    get().connectRealtime(); // drop back to an anonymous live connection rather than going dark
   },
 
   // ——— Realtime ———
   connectRealtime: () => {
-    const token = getStoredToken();
-    if (!token) return;
+    const token = getStoredToken(); // may be null — an anonymous viewer still gets a live socket
     const socket = connectSocket(token);
 
     socket.on('heartbeat', () => set({ connectionStatus: 'connected', lastEventAt: new Date().toISOString() }));
@@ -324,34 +331,174 @@ export const useStore = create((set, get) => ({
       }
     }
   },
+  patchUnit: async (id, updates) => {
+    set(state => ({
+      units: state.units.map(u => u.id === id ? { ...u, ...updates } : u),
+    }));
+    try {
+      const updated = await unitsApi.patch(id, updates);
+      if (updated) {
+        set(state => ({ units: upsertById(state.units, updated) }));
+      }
+      return updated;
+    } catch (err) {
+      console.warn('patchUnit backend error (local state preserved):', err?.message || err);
+    }
+  },
+  createUnit: async (unitData) => {
+    try {
+      const created = await unitsApi.create(unitData);
+      if (created) {
+        set(state => ({ units: [created, ...state.units] }));
+        return created;
+      }
+    } catch (err) {
+      console.warn('createUnit backend error, fallback to local:', err?.message || err);
+      const fallback = {
+        id: `unit_${Date.now().toString(36)}`,
+        call_sign: unitData.call_sign,
+        type: unitData.type,
+        capabilities: unitData.capabilities || ['MEDICAL_BASIC'],
+        status: 'AVAILABLE',
+        station_id: unitData.station_id || 'STATION-MAIN',
+        location: unitData.location || { lng: 72.5714, lat: 23.0225 },
+        crew_size: unitData.crew_size || 3,
+        last_location_at: new Date().toISOString(),
+        version: 1,
+      };
+      set(state => ({ units: [fallback, ...state.units] }));
+      return fallback;
+    }
+  },
 
   // ——— Alerts ———
   alerts: [],
   fetchAlerts: async () => {
+    let ackedStored = [];
+    try {
+      ackedStored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+    } catch {}
+
     try {
       const data = await alertsApi.list();
-      set({ alerts: data });
+      const merged = (data || []).map(a =>
+        ackedStored.includes(a.id) && !a.acked_at
+          ? { ...a, acked_at: new Date().toISOString(), acked_by: 'Admin' }
+          : a
+      );
+      set({ alerts: merged });
     } catch (err) {
       if (USE_MOCKS) {
         console.warn('fetchAlerts failed, using mock data', err);
-        set({ alerts: MOCK_ALERTS });
+        const merged = MOCK_ALERTS.map(a =>
+          ackedStored.includes(a.id) && !a.acked_at
+            ? { ...a, acked_at: new Date().toISOString(), acked_by: 'Admin' }
+            : a
+        );
+        set({ alerts: merged });
       } else {
         console.warn('fetchAlerts failed', err);
       }
     }
   },
   ackAlert: async (alertId) => {
-    const prev = get().alerts;
+    const now = new Date().toISOString();
+    const user = get().user;
+    const actor = user?.name || user?.email || 'Admin';
+
+    // 1. Immediately update state so alert moves to acknowledged stream
     set(state => ({
       alerts: state.alerts.map(a =>
-        a.id === alertId ? { ...a, acked_by: state.user?.id, acked_at: new Date().toISOString() } : a
+        a.id === alertId ? { ...a, acked_by: actor, acked_at: now } : a
       ),
     }));
+
+    // 2. Persist in localStorage so it remains acknowledged
+    try {
+      const stored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+      if (!stored.includes(alertId)) {
+        stored.push(alertId);
+        localStorage.setItem('resilio.acked_alerts', JSON.stringify(stored));
+      }
+    } catch {}
+
+    // 3. Notify backend API without reverting on network/mock alert error
     try {
       await alertsApi.ack(alertId);
     } catch (err) {
-      console.warn('ackAlert failed, reverting', err);
-      set({ alerts: prev });
+      console.warn('Backend ackAlert API notification failed (local state preserved):', err?.message || err);
+    }
+  },
+  ackAllAlerts: async () => {
+    const now = new Date().toISOString();
+    const user = get().user;
+    const actor = user?.name || user?.email || 'Admin';
+    const unacked = get().alerts.filter(a => !a.acked_at);
+    if (unacked.length === 0) return;
+
+    // 1. Mark all as acknowledged in state
+    set(state => ({
+      alerts: state.alerts.map(a =>
+        !a.acked_at ? { ...a, acked_by: actor, acked_at: now } : a
+      ),
+    }));
+
+    // 2. Persist in localStorage
+    try {
+      const stored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+      unacked.forEach(a => {
+        if (!stored.includes(a.id)) stored.push(a.id);
+      });
+      localStorage.setItem('resilio.acked_alerts', JSON.stringify(stored));
+    } catch {}
+
+    // 3. Send to backend in background
+    await Promise.allSettled(unacked.map(a => alertsApi.ack(a.id)));
+  },
+  assignResourceToAlert: async (alertId, unitId, incidentId) => {
+    const user = get().user;
+    const actor = user?.name || user?.email || 'Admin';
+    const now = new Date().toISOString();
+
+    // 1. Mark unit as ASSIGNED and alert as acknowledged
+    set(state => ({
+      units: state.units.map(u =>
+        u.id === unitId ? { ...u, status: 'ASSIGNED' } : u
+      ),
+      alerts: state.alerts.map(a =>
+        a.id === alertId ? { ...a, acked_by: actor, acked_at: now } : a
+      ),
+    }));
+
+    // 2. Persist alert ack in localStorage
+    try {
+      const stored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+      if (!stored.includes(alertId)) {
+        stored.push(alertId);
+        localStorage.setItem('resilio.acked_alerts', JSON.stringify(stored));
+      }
+    } catch {}
+
+    // 3. Add to live event feed
+    const unit = get().units.find(u => u.id === unitId);
+    const incident = get().incidents.find(i => i.id === incidentId);
+    set(state => ({
+      liveFeed: pushFeed(state, {
+        type: 'assignment.created',
+        text: `Admin dispatched ${unit?.call_sign || unitId} to ${incident?.code || incidentId || 'Alert Location'}`,
+        severity: 'INFO',
+      }),
+    }));
+
+    // 4. Send API request to backend
+    try {
+      await alertsApi.assignResource(alertId, unitId, incidentId);
+    } catch (err) {
+      try {
+        await dispatchApi.createAssignment(incidentId, unitId);
+      } catch (fallbackErr) {
+        console.warn('Backend resource assign failed, keeping local state:', fallbackErr?.message || fallbackErr);
+      }
     }
   },
 

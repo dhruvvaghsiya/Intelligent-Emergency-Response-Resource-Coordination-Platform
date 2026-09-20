@@ -54,7 +54,10 @@ export const RELATION_TYPE = [
   'DUPLICATE_OF', 'LIKELY_SAME_AS', 'RELATED_TO', 'CAUSED_BY', 'CAUSES', 'ESCALATION_OF',
 ];
 
-export const ROLE = ['ADMIN', 'COMMANDER', 'DISPATCHER', 'ANALYST', 'FIELD_UNIT', 'VIEWER'];
+// §access-control — single role by design: anyone can view (see modules/*/routes.js's
+// optionalAuthenticate GETs), and the one authenticated tier does everything else. No more
+// COMMANDER/DISPATCHER/ANALYST/FIELD_UNIT/VIEWER split.
+export const ROLE = ['ADMIN'];
 
 export const ALERT_TYPE = [
   'NEW_CRITICAL', 'SEVERITY_ESCALATED', 'EVIDENCE_CONFLICT', 'DUPLICATE_SUSPECTED',

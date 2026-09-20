@@ -6,12 +6,9 @@
 const now = new Date().toISOString();
 const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString();
 
-// ——— USERS (§13.8) ———
+// ——— USERS — single-role system, one account type (Admin) ———
 export const MOCK_USERS = [
-  { id: 'usr_001', email: 'commander@prahari.in', name: 'Cdr. Arjun Shah', role: 'COMMANDER', station_id: 'stn_001' },
-  { id: 'usr_002', email: 'dispatch@prahari.in',  name: 'Disp. Priya Mehta', role: 'DISPATCHER', station_id: 'stn_001' },
-  { id: 'usr_003', email: 'analyst@prahari.in',   name: 'Anl. Ravi Kumar',  role: 'ANALYST', station_id: 'stn_001' },
-  { id: 'usr_004', email: 'unit07@prahari.in',    name: 'FO Ketan Patel',   role: 'FIELD_UNIT', station_id: 'stn_002' },
+  { id: 'usr_admin', email: 'admin@prahari.in', name: 'System Admin', role: 'ADMIN', station_id: 'stn_001' },
 ];
 
 // ——— STATIONS ———

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Incident } from '../../models/Incident.js';
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate, optionalAuthenticate } from '../../middleware/auth.js';
 import { requirePermission, PERMISSIONS } from '../../platform/rbac.js';
 import { validateBody } from '../../middleware/validate.js';
 import { SeverityOverrideSchema } from '../../contracts/schemas.js';
@@ -10,7 +10,7 @@ import { audit } from '../../platform/audit.js';
 
 export const severityRouter = Router();
 
-severityRouter.get('/incidents/:id/severity', authenticate, async (req, res, next) => {
+severityRouter.get('/incidents/:id/severity', optionalAuthenticate, async (req, res, next) => {
   try {
     const incident = await Incident.findById(req.params.id);
     if (!incident) throw new AppError('NOT_FOUND', 'Incident not found');

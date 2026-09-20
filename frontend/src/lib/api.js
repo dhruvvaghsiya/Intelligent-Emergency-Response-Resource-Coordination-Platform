@@ -111,6 +111,7 @@ export const severityApi = {
 export const unitsApi = {
   list: (params) => api.get('/units', { params }).then(unwrap),
   patch: (id, body) => api.patch(`/units/${id}`, body).then(unwrap),
+  create: (body) => api.post('/units', body).then(unwrap),
   postLocation: (id, body) => api.post(`/units/${id}/location`, body).then(unwrap),
 };
 
@@ -139,6 +140,8 @@ export const coverageApi = {
 export const alertsApi = {
   list: (params) => api.get('/alerts', { params }).then(unwrap),
   ack: (id) => api.post(`/alerts/${id}/ack`).then(unwrap),
+  assignResource: (alertId, unitId, incidentId) =>
+    api.post(`/alerts/${alertId}/assign`, { unit_id: unitId, incident_id: incidentId }).then(unwrap),
 };
 
 export const analyticsApi = {

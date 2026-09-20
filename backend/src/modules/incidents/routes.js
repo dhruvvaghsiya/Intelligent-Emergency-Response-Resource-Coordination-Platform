@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { Incident } from '../../models/Incident.js';
 import { EventLog } from '../../models/EventLog.js';
 import { Assignment } from '../../models/Assignment.js';
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate, optionalAuthenticate } from '../../middleware/auth.js';
 import { requirePermission } from '../../platform/rbac.js';
 import { PERMISSIONS } from '../../platform/rbac.js';
 import { validateBody } from '../../middleware/validate.js';
@@ -13,7 +13,7 @@ import { AppError } from '../../platform/errors.js';
 
 export const incidentsRouter = Router();
 
-incidentsRouter.get('/incidents', authenticate, async (req, res, next) => {
+incidentsRouter.get('/incidents', optionalAuthenticate, async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.status) filter.status = { $in: String(req.query.status).split(',') };
@@ -42,7 +42,7 @@ incidentsRouter.get('/incidents', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-incidentsRouter.get('/incidents/geojson', authenticate, async (req, res, next) => {
+incidentsRouter.get('/incidents/geojson', optionalAuthenticate, async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.status) filter.status = { $in: String(req.query.status).split(',') };
@@ -65,7 +65,7 @@ incidentsRouter.post('/incidents', authenticate, requirePermission(PERMISSIONS.E
   } catch (err) { next(err); }
 });
 
-incidentsRouter.get('/incidents/:id', authenticate, async (req, res, next) => {
+incidentsRouter.get('/incidents/:id', optionalAuthenticate, async (req, res, next) => {
   try {
     const doc = await Incident.findById(req.params.id);
     if (!doc) throw new AppError('NOT_FOUND', 'Incident not found');
@@ -94,7 +94,7 @@ incidentsRouter.patch('/incidents/:id', authenticate, requirePermission(PERMISSI
   } catch (err) { next(err); }
 });
 
-incidentsRouter.get('/incidents/:id/timeline', authenticate, async (req, res, next) => {
+incidentsRouter.get('/incidents/:id/timeline', optionalAuthenticate, async (req, res, next) => {
   try {
     const events = await EventLog.find({ 'entity.kind': 'incident', 'entity.id': req.params.id }).sort({ seq: 1 }).limit(1000);
     res.json({ data: events.map((e) => ({ event_id: e._id, seq: e.seq, type: e.type, ts: e.ts.toISOString(), actor: e.actor, payload: e.payload })) });

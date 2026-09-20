@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate, optionalAuthenticate } from '../../middleware/auth.js';
 import { requirePermission, PERMISSIONS } from '../../platform/rbac.js';
 import { computeCoverage, toCoverageGeoJson, suggestRepositioning } from './service.js';
 
 export const coverageRouter = Router();
 
-coverageRouter.get('/coverage', authenticate, async (req, res, next) => {
+coverageRouter.get('/coverage', optionalAuthenticate, async (req, res, next) => {
   try {
     const minutes = Number(req.query.minutes) || 8;
     const bbox = req.query.bbox ? String(req.query.bbox).split(',').map(Number) : undefined;

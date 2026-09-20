@@ -50,7 +50,8 @@ export const RELATION_TYPE = [
   'DUPLICATE_OF','LIKELY_SAME_AS','RELATED_TO','CAUSED_BY','CAUSES','ESCALATION_OF'
 ];
 
-export const ROLE = ['ADMIN','COMMANDER','DISPATCHER','ANALYST','FIELD_UNIT','VIEWER'];
+// Single-role system — ADMIN is the only account type; everyone else is an anonymous public viewer.
+export const ROLE = ['ADMIN'];
 
 export const ALERT_TYPE = [
   'NEW_CRITICAL','SEVERITY_ESCALATED','EVIDENCE_CONFLICT','DUPLICATE_SUSPECTED',

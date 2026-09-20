@@ -22,21 +22,28 @@ export function initRealtime(httpServer) {
     },
   });
 
+  // §public-viewing — anonymous visitors get a live read-only connection (they still only ever
+  // receive broadcasts to 'ops:global'/'sim', never a private `user:<id>` room). A present-but-bad
+  // token is also just treated as anonymous rather than rejecting the socket outright — mutating
+  // actions are what actually require a valid session, enforced by the REST API's own auth.
   io.use((socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (!token) {
+      socket.user = null;
+      return next();
+    }
     try {
-      const token = socket.handshake.auth?.token;
-      if (!token) return next(new Error('UNAUTHENTICATED'));
       const payload = jwt.verify(token, env.JWT_SECRET);
       socket.user = { id: payload.sub, role: payload.role, name: payload.name };
-      next();
     } catch {
-      next(new Error('UNAUTHENTICATED'));
+      socket.user = null;
     }
+    next();
   });
 
   io.on('connection', (socket) => {
     socket.join('ops:global');
-    socket.join(`user:${socket.user.id}`);
+    if (socket.user) socket.join(`user:${socket.user.id}`);
     if (env.SIM_ENABLED) socket.join('sim');
 
     socket.on('room:join', (room) => {

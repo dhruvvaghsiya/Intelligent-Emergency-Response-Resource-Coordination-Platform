@@ -50,11 +50,9 @@ async function reset() {
 }
 
 async function seedUsers() {
+  // Single-role system — everyone else is an anonymous public viewer (see platform/rbac.js);
+  // this is the one account that can sign in and do anything.
   const users = [
-    { email: 'commander@prahari.in', name: 'Cdr. Arjun Shah', role: 'COMMANDER' },
-    { email: 'dispatch@prahari.in', name: 'Disp. Priya Mehta', role: 'DISPATCHER' },
-    { email: 'analyst@prahari.in', name: 'Anl. Ravi Kumar', role: 'ANALYST' },
-    { email: 'unit07@prahari.in', name: 'FO Ketan Patel', role: 'FIELD_UNIT' },
     { email: 'admin@prahari.in', name: 'System Admin', role: 'ADMIN' },
   ];
   const password_hash = await bcrypt.hash('prahari123', 10);

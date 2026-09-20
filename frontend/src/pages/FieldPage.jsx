@@ -161,15 +161,15 @@ export function FieldPage() {
 
             {/* Quick status buttons */}
             <div className="grid grid-cols-3 gap-2.5">
-              <Button variant="primary" size="compact">
+              <Button variant="primary" size="compact" disabled={!unit.current_assignment_id || statusUpdating} onClick={() => sendStatusUpdate('EN_ROUTE')}>
                 <Navigation size={13} />
                 En Route
               </Button>
-              <Button variant="secondary" size="compact">
+              <Button variant="secondary" size="compact" disabled={!unit.current_assignment_id || statusUpdating} onClick={() => sendStatusUpdate('ON_SCENE')}>
                 <MapPin size={13} />
                 On Scene
               </Button>
-              <Button variant="secondary" size="compact">
+              <Button variant="secondary" size="compact" disabled={!unit.current_assignment_id || statusUpdating} onClick={() => sendStatusUpdate('COMPLETED')}>
                 <CheckCircle size={13} />
                 Clear Scene
               </Button>

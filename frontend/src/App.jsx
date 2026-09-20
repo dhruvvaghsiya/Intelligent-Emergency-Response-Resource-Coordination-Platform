@@ -5,9 +5,9 @@ import { StaleBanner } from './components/layout/StaleBanner';
 import { ToastProvider } from './components/ui/Toast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useStore } from './lib/store';
-import { hasPermission, PERMISSIONS } from './lib/permissions';
 
 // Pages
+import { HeroPage } from './pages/HeroPage';
 import { LoginPage } from './pages/LoginPage';
 import { OpsPage } from './pages/OpsPage';
 import { ResourcesPage } from './pages/ResourcesPage';
@@ -17,7 +17,7 @@ import { AIHealthPage } from './pages/AIHealthPage';
 import { ReplayPage } from './pages/ReplayPage';
 import { ReportPage } from './pages/ReportPage';
 import { FieldPage } from './pages/FieldPage';
-import { AdminPage } from './pages/AdminPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 import { MOCK_INCIDENTS, MOCK_UNITS, MOCK_ALERTS, MOCK_HOSPITALS } from './mocks/fixtures';
 
@@ -30,19 +30,11 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-function AdminRoute({ children }) {
-  const isAuthenticated = useStore((s) => s.isAuthenticated);
-  const user = useStore((s) => s.user);
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!hasPermission(user, PERMISSIONS.ADMIN)) return <Navigate to="/ops" replace />;
-  return children;
-}
-
 function AppShell() {
   const location = useLocation();
-  const isAuthenticated = useStore((s) => s.isAuthenticated);
   const isOps = location.pathname.startsWith('/ops');
   const isLogin = location.pathname === '/login';
+  const isHero = location.pathname === '/';
 
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-50 overflow-hidden relative">
@@ -50,70 +42,32 @@ function AppShell() {
       {!isLogin && <Navbar />}
 
       {/* Main Content Area */}
-      <main className={`flex-1 min-h-0 overflow-hidden relative flex flex-col ${isOps || isLogin ? 'h-full' : 'pt-16'}`}>
+      <main className={`flex-1 min-h-0 overflow-hidden relative flex flex-col ${isOps || isLogin || isHero ? 'h-full' : 'pt-16'}`}>
         {/* Routes */}
         <Routes>
+          <Route path="/" element={<HeroPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/report" element={<ReportPage />} />
-          <Route
-            path="/ops"
-            element={
-              <ProtectedRoute>
-                <OpsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/resources"
-            element={
-              <ProtectedRoute>
-                <ResourcesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/alerts"
-            element={
-              <ProtectedRoute>
-                <AlertsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <AnalyticsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/ai-health"
-            element={
-              <ProtectedRoute>
-                <AIHealthPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/replay"
-            element={
-              <ProtectedRoute>
-                <ReplayPage />
-              </ProtectedRoute>
-            }
-          />
+          {/* Public read access — no login needed to see live incidents, the map, fleet/hospital
+              status, or alerts. Every mutation on these pages is still gated by hasPermission()
+              (frontend/src/lib/permissions.js) and enforced again server-side. */}
+          <Route path="/ops" element={<OpsPage />} />
+          <Route path="/resources" element={<ResourcesPage />} />
+          <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/ai-health" element={<AIHealthPage />} />
+          <Route path="/replay" element={<ReplayPage />} />
           <Route path="/field" element={<FieldPage />} />
           <Route
-            path="/admin"
+            path="/profile"
             element={
-              <AdminRoute>
-                <AdminPage />
-              </AdminRoute>
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
             }
           />
-          {/* Default redirect */}
-          <Route path="*" element={<Navigate to={isAuthenticated ? "/ops" : "/login"} replace />} />
+          {/* Default redirect — the public hero page is home; unknown paths land there. */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>
@@ -131,10 +85,19 @@ export default function App() {
     // Ensure mock data is immediately present for instant preview
     const state = useStore.getState();
     if (!state.incidents || state.incidents.length === 0) {
+      let ackedStored = [];
+      try {
+        ackedStored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+      } catch {}
+      const initialAlerts = MOCK_ALERTS.map(a =>
+        ackedStored.includes(a.id) && !a.acked_at
+          ? { ...a, acked_at: new Date().toISOString(), acked_by: 'Admin' }
+          : a
+      );
       useStore.setState({
         incidents: MOCK_INCIDENTS,
         units: MOCK_UNITS,
-        alerts: MOCK_ALERTS,
+        alerts: initialAlerts,
         hospitals: MOCK_HOSPITALS,
         connectionStatus: 'connected',
         selectedIncidentId: null,

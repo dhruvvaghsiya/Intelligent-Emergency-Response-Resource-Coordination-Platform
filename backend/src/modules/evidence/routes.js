@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Evidence } from '../../models/Evidence.js';
 import { Incident } from '../../models/Incident.js';
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate, optionalAuthenticate } from '../../middleware/auth.js';
 import { requirePermission, PERMISSIONS } from '../../platform/rbac.js';
 import { validateBody } from '../../middleware/validate.js';
 import { EvidenceSupersedeSchema } from '../../contracts/schemas.js';
@@ -11,7 +11,7 @@ import { AppError } from '../../platform/errors.js';
 
 export const evidenceRouter = Router();
 
-evidenceRouter.get('/incidents/:id/evidence', authenticate, async (req, res, next) => {
+evidenceRouter.get('/incidents/:id/evidence', optionalAuthenticate, async (req, res, next) => {
   try {
     const incident = await Incident.findById(req.params.id);
     if (!incident) throw new AppError('NOT_FOUND', 'Incident not found');
