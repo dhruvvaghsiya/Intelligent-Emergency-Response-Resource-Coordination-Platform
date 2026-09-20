@@ -1,8 +1,12 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store';
 import { Button } from '../components/ui/Button';
 import { SeverityChip } from '../components/ui/Chip';
-import { Check, AlertTriangle, Bell, Shield, Radio, Cpu, Users, CheckCircle2, Clock, MapPin } from 'lucide-react';
+import {
+  Check, AlertTriangle, Bell, Shield, Radio, Cpu, Users,
+  CheckCircle2, Clock, MapPin, ArrowRight
+} from 'lucide-react';
 import { formatRelativeTime } from '../lib/format';
 import { hasPermission, PERMISSIONS } from '../lib/permissions';
 
@@ -21,7 +25,17 @@ const ALERT_ICONS = {
 };
 
 export function AlertsPage() {
-  const { alerts, ackAlert, incidents = [], units = [] } = useStore();
+  const { alerts, ackAlert, ackAllAlerts, incidents = [], units = [], user, isAuthenticated } = useStore();
+
+  // Admin and authorized incident operators can acknowledge/modify alerts
+  const canModify = Boolean(
+    isAuthenticated && (
+      user?.role === 'ADMIN' ||
+      hasPermission(user, PERMISSIONS.EDIT_INCIDENT) ||
+      hasPermission(user, PERMISSIONS.ADMIN)
+    )
+  );
+
   const unacked = alerts.filter(a => !a.acked_at);
   const acked = alerts.filter(a => a.acked_at);
 
@@ -40,23 +54,58 @@ export function AlertsPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {unacked.length > 0 && (
-              <Button
-                variant="primary"
-                size="compact"
-                onClick={() => unacked.forEach(a => ackAlert(a.id))}
-                className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs cursor-pointer flex items-center gap-1.5 rounded-lg px-3 py-1.5"
-              >
-                <CheckCircle2 size={15} />
-                Acknowledge All ({unacked.length})
-              </Button>
+            {canModify ? (
+              unacked.length > 0 && (
+                <Button
+                  variant="primary"
+                  size="compact"
+                  onClick={ackAllAlerts}
+                  className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs cursor-pointer flex items-center gap-1.5 rounded-lg px-3 py-1.5"
+                >
+                  <CheckCircle2 size={15} />
+                  Acknowledge All ({unacked.length})
+                </Button>
+              )
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1.5">
+                  <Shield size={13} className="text-slate-400" />
+                  Read-Only
+                </span>
+                {!isAuthenticated && (
+                  <Link
+                    to="/login"
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 px-3 py-1.5 rounded-lg shadow-2xs transition-colors flex items-center gap-1"
+                  >
+                    Admin Sign In <ArrowRight size={12} />
+                  </Link>
+                )}
+              </div>
             )}
             <span className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-xs flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
+              <span className={`w-2 h-2 rounded-full ${unacked.length > 0 ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
               <strong className="text-slate-900 font-bold">{unacked.length}</strong> Unacknowledged
             </span>
           </div>
         </div>
+
+        {/* Read-only Advisory Banner for non-logged-in visitors */}
+        {!canModify && (
+          <div className="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-800 shadow-2xs">
+            <div className="flex items-center gap-2 font-medium">
+              <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+              <span>Public Observer View: You can view live alert statuses. Sign in as Admin to acknowledge or modify notifications.</span>
+            </div>
+            {!isAuthenticated && (
+              <Link
+                to="/login"
+                className="font-bold text-blue-700 hover:text-blue-800 underline shrink-0 flex items-center gap-1"
+              >
+                Admin Login →
+              </Link>
+            )}
+          </div>
+        )}
 
         {/* Pending Unacknowledged Alerts */}
         <div className="space-y-3">
@@ -66,7 +115,7 @@ export function AlertsPage() {
 
           {unacked.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-xl p-8 text-center shadow-xs">
-              <CheckCircle2 size={32} className="text-slate-400 mx-auto mb-2" />
+              <CheckCircle2 size={32} className="text-emerald-500 mx-auto mb-2" />
               <div className="text-base text-slate-900 font-semibold">All Escalations Acknowledged</div>
               <div className="text-xs text-slate-500 mt-1">No active unacknowledged alerts in your queue.</div>
             </div>
@@ -78,6 +127,7 @@ export function AlertsPage() {
                   alert={alert}
                   incidents={incidents}
                   units={units}
+                  canModify={canModify}
                   onAck={() => ackAlert(alert.id)}
                 />
               ))}
@@ -89,15 +139,16 @@ export function AlertsPage() {
         {acked.length > 0 && (
           <div className="space-y-3 pt-6 border-t border-slate-200/80">
             <div className="text-xs font-bold uppercase tracking-wider text-slate-400 px-0.5">
-              Resolved & Acknowledged Stream ({acked.length})
+              Resolved &amp; Acknowledged Stream ({acked.length})
             </div>
-            <div className="space-y-4 sm:space-y-5 opacity-80">
+            <div className="space-y-4 sm:space-y-5 opacity-90">
               {acked.map(alert => (
                 <AlertCard
                   key={alert.id}
                   alert={alert}
                   incidents={incidents}
                   units={units}
+                  canModify={canModify}
                   acked
                 />
               ))}
@@ -109,7 +160,7 @@ export function AlertsPage() {
   );
 }
 
-function AlertCard({ alert, onAck, acked = false, incidents = [], units = [] }) {
+function AlertCard({ alert, onAck, acked = false, canModify = false, incidents = [], units = [] }) {
   const Icon = ALERT_ICONS[alert.type] || Bell;
 
   const incident = alert.incident_id ? incidents.find(i => i.id === alert.incident_id) : null;
@@ -205,29 +256,36 @@ function AlertCard({ alert, onAck, acked = false, incidents = [], units = [] }) 
             <>
               <span className="text-slate-300">·</span>
               <span className="flex items-center gap-1.5 text-slate-600 font-medium ml-auto">
-                <CheckCircle2 size={13.5} className="text-slate-400" />
-                Acknowledged {formatRelativeTime(alert.acked_at)}
+                <CheckCircle2 size={13.5} className="text-emerald-500" />
+                Acknowledged {formatRelativeTime(alert.acked_at)} {alert.acked_by ? `· by ${alert.acked_by}` : ''}
               </span>
             </>
           )}
         </div>
       </div>
 
-      {/* Acknowledge Button */}
-      {!acked && onAck && (
+      {/* Right-hand Action / Status Indicator */}
+      {acked ? (
+        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold select-none shadow-2xs mt-0.5">
+          <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+          <span>Acknowledged</span>
+        </div>
+      ) : canModify ? (
         <Button
           variant="primary"
           size="compact"
           onClick={onAck}
-          className="shrink-0 font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs transition-colors cursor-pointer mt-0.5"
+          className="shrink-0 font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 border-emerald-600 shadow-xs transition-colors cursor-pointer mt-0.5 flex items-center gap-1.5"
         >
           <Check size={14} strokeWidth={2.5} />
           Acknowledge
         </Button>
+      ) : (
+        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold select-none shadow-2xs mt-0.5">
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+          <span>Unacknowledged</span>
+        </div>
       )}
     </div>
   );
 }
-
-
-

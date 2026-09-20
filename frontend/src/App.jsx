@@ -106,10 +106,19 @@ export default function App() {
     // Ensure mock data is immediately present for instant preview
     const state = useStore.getState();
     if (!state.incidents || state.incidents.length === 0) {
+      let ackedStored = [];
+      try {
+        ackedStored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+      } catch {}
+      const initialAlerts = MOCK_ALERTS.map(a =>
+        ackedStored.includes(a.id) && !a.acked_at
+          ? { ...a, acked_at: new Date().toISOString(), acked_by: 'Admin' }
+          : a
+      );
       useStore.setState({
         incidents: MOCK_INCIDENTS,
         units: MOCK_UNITS,
-        alerts: MOCK_ALERTS,
+        alerts: initialAlerts,
         hospitals: MOCK_HOSPITALS,
         connectionStatus: 'connected',
         selectedIncidentId: null,

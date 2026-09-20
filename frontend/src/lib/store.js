@@ -335,31 +335,86 @@ export const useStore = create((set, get) => ({
   // ——— Alerts ———
   alerts: [],
   fetchAlerts: async () => {
+    let ackedStored = [];
+    try {
+      ackedStored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+    } catch {}
+
     try {
       const data = await alertsApi.list();
-      set({ alerts: data });
+      const merged = (data || []).map(a =>
+        ackedStored.includes(a.id) && !a.acked_at
+          ? { ...a, acked_at: new Date().toISOString(), acked_by: 'Admin' }
+          : a
+      );
+      set({ alerts: merged });
     } catch (err) {
       if (USE_MOCKS) {
         console.warn('fetchAlerts failed, using mock data', err);
-        set({ alerts: MOCK_ALERTS });
+        const merged = MOCK_ALERTS.map(a =>
+          ackedStored.includes(a.id) && !a.acked_at
+            ? { ...a, acked_at: new Date().toISOString(), acked_by: 'Admin' }
+            : a
+        );
+        set({ alerts: merged });
       } else {
         console.warn('fetchAlerts failed', err);
       }
     }
   },
   ackAlert: async (alertId) => {
-    const prev = get().alerts;
+    const now = new Date().toISOString();
+    const user = get().user;
+    const actor = user?.name || user?.email || 'Admin';
+
+    // 1. Immediately update state so alert moves to acknowledged stream
     set(state => ({
       alerts: state.alerts.map(a =>
-        a.id === alertId ? { ...a, acked_by: state.user?.id, acked_at: new Date().toISOString() } : a
+        a.id === alertId ? { ...a, acked_by: actor, acked_at: now } : a
       ),
     }));
+
+    // 2. Persist in localStorage so it remains acknowledged
+    try {
+      const stored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+      if (!stored.includes(alertId)) {
+        stored.push(alertId);
+        localStorage.setItem('resilio.acked_alerts', JSON.stringify(stored));
+      }
+    } catch {}
+
+    // 3. Notify backend API without reverting on network/mock alert error
     try {
       await alertsApi.ack(alertId);
     } catch (err) {
-      console.warn('ackAlert failed, reverting', err);
-      set({ alerts: prev });
+      console.warn('Backend ackAlert API notification failed (local state preserved):', err?.message || err);
     }
+  },
+  ackAllAlerts: async () => {
+    const now = new Date().toISOString();
+    const user = get().user;
+    const actor = user?.name || user?.email || 'Admin';
+    const unacked = get().alerts.filter(a => !a.acked_at);
+    if (unacked.length === 0) return;
+
+    // 1. Mark all as acknowledged in state
+    set(state => ({
+      alerts: state.alerts.map(a =>
+        !a.acked_at ? { ...a, acked_by: actor, acked_at: now } : a
+      ),
+    }));
+
+    // 2. Persist in localStorage
+    try {
+      const stored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+      unacked.forEach(a => {
+        if (!stored.includes(a.id)) stored.push(a.id);
+      });
+      localStorage.setItem('resilio.acked_alerts', JSON.stringify(stored));
+    } catch {}
+
+    // 3. Send to backend in background
+    await Promise.allSettled(unacked.map(a => alertsApi.ack(a.id)));
   },
 
   // ——— Hospitals ———
