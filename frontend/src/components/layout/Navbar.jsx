@@ -26,11 +26,11 @@ export function Navbar() {
   const unackedAlerts = (alerts || []).filter(a => !a.acked_at);
 
   return (
-    <header className="absolute top-0 left-0 right-0 h-14 sm:h-16 z-40 flex items-center justify-between px-2 sm:px-6 pointer-events-none select-none gap-1 sm:gap-2">
+    <header className="absolute top-0 left-0 right-0 h-16 z-40 flex items-center justify-between px-6 pointer-events-none select-none">
       {/* Brand Logo with Dedicated Azure Background */}
       <Link
         to="/"
-        className="pointer-events-auto flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl border border-sky-300/70 shadow-sm transition-all no-underline group shrink-0 hover:brightness-95"
+        className="pointer-events-auto flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl border border-sky-300/70 shadow-sm transition-all no-underline group shrink-0 hover:brightness-95"
         style={{
           backgroundColor: 'azure',
           backdropFilter: 'blur(10px)',
@@ -38,23 +38,23 @@ export function Navbar() {
         }}
         title="Resilio"
       >
-        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/25 group-hover:scale-105 transition-transform">
-          <ShieldCheck size={17} className="sm:w-[19px] sm:h-[19px]" strokeWidth={2.4} />
+        <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/25 group-hover:scale-105 transition-transform">
+          <ShieldCheck size={19} strokeWidth={2.4} />
         </div>
-        <div className="flex items-center gap-1 sm:gap-1.5 pr-0.5 sm:pr-1">
-          <span className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+        <div className="flex items-center gap-1.5 pr-1">
+          <span className="text-base font-bold text-slate-900 tracking-tight">
             Resilio
           </span>
-          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 border border-sky-200 hidden xs:inline">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 border border-sky-200">
             Ops
           </span>
         </div>
       </Link>
 
-      {/* Center Navigation Dock with Responsive Spacing */}
-      <div className="flex-1 flex justify-center items-center px-1 sm:px-4 overflow-x-auto no-scrollbar">
+      {/* Center Navigation Dock with Spaced Icons — Clean compact ends with preserved icon spacing */}
+      <div className="flex-1 flex justify-center items-center px-4">
         <nav
-          className="pointer-events-auto flex items-center gap-2 sm:gap-6 md:gap-10 lg:gap-14 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl border border-white/20 shadow-xs max-w-full overflow-x-auto no-scrollbar"
+          className="pointer-events-auto flex items-center gap-6 sm:gap-10 md:gap-12 lg:gap-14 px-3 py-1.5 rounded-2xl border border-white/20 shadow-xs"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.05)',
             backdropFilter: 'blur(8px)',
@@ -67,11 +67,11 @@ export function Navbar() {
             const hasBadge = item.badge && unackedAlerts.length > 0;
 
             return (
-              <div key={item.path} className="relative group flex items-center justify-center shrink-0">
+              <div key={item.path} className="relative group flex items-center justify-center">
                 <Link
                   to={item.path}
                   className={`
-                    w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 relative no-underline
+                    w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative no-underline
                     ${isActive
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 scale-105 border border-blue-500'
                       : 'bg-white/80 hover:bg-white text-slate-700 hover:text-blue-600 border border-white/60 shadow-xs hover:shadow-sm hover:scale-105'
@@ -80,21 +80,21 @@ export function Navbar() {
                   aria-label={item.label}
                 >
                   <item.icon
-                    size={18}
-                    className="shrink-0 sm:w-[20px] sm:h-[20px]"
+                    size={20}
+                    className="shrink-0"
                     strokeWidth={isActive ? 2.2 : 1.9}
                   />
 
                   {/* Badge Indicator */}
                   {hasBadge && (
-                    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] sm:min-w-[18px] sm:h-[18px] px-1 text-[9px] sm:text-[10px] font-bold bg-red-500 text-white rounded-full flex items-center justify-center ring-2 ring-white shadow-xs">
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-red-500 text-white rounded-full flex items-center justify-center ring-2 ring-white shadow-xs">
                       {unackedAlerts.length}
                     </span>
                   )}
                 </Link>
 
                 {/* Sleek Light Glass Tooltip on Hover */}
-                <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 px-3.5 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 text-slate-800 text-xs font-semibold rounded-xl whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 shadow-xl z-50 flex items-center gap-2 transform group-hover:translate-y-0 translate-y-1 hidden sm:flex">
+                <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 px-3.5 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 text-slate-800 text-xs font-semibold rounded-xl whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 shadow-xl z-50 flex items-center gap-2 transform group-hover:translate-y-0 translate-y-1">
                   <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white border-t border-l border-slate-200/90 rotate-45" />
                   <span className="text-slate-800 font-semibold">{item.label}</span>
                   {hasBadge && (
@@ -111,7 +111,7 @@ export function Navbar() {
 
       {/* Right Controls Island */}
       <div
-        className="pointer-events-auto flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl border border-white/20 shadow-xs shrink-0"
+        className="pointer-events-auto flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border border-white/20 shadow-xs shrink-0"
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.08)',
           backdropFilter: 'blur(8px)',

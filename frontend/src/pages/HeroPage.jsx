@@ -26,22 +26,22 @@ export function HeroPage() {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/40 to-slate-950/80" />
 
-      <div className="relative z-10 min-h-full py-8 sm:py-0 flex flex-col items-center justify-center px-4 sm:px-6 text-center overflow-y-auto">
+      <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 text-center">
         <span className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-[11px] font-semibold text-white mb-6">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           Ahmedabad Operations Grid · Live Daylight Feed
         </span>
 
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight max-w-3xl drop-shadow-sm">
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight max-w-3xl drop-shadow-sm">
           Every Second Counts In Critical Response.
         </h1>
-        <p className="mt-3 sm:mt-4 text-xs sm:text-base text-slate-100/90 font-medium max-w-xl leading-relaxed">
+        <p className="mt-4 text-sm sm:text-base text-slate-100/90 font-medium max-w-xl leading-relaxed">
           Live multi-source incident fusion, automated dispatch, and citywide situational awareness —
           open to anyone, in real time. No account needed to look.
         </p>
 
         {/* Live stat strip — real store data, already fetched publicly on load */}
-        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-10 mt-6 sm:mt-8 px-4 sm:px-6 py-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
+        <div className="flex items-center gap-6 sm:gap-10 mt-8 px-6 py-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
           <Stat value={activeIncidents} label="Active Incidents" />
           <div className="w-px h-8 bg-white/20" />
           <Stat value={unackedAlerts} label="Open Alerts" />
