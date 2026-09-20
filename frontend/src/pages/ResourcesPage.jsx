@@ -121,8 +121,8 @@ export function ResourcesPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 bg-slate-50 select-none">
-      <div className="max-w-[1300px] mx-auto space-y-6">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50 select-none">
+      <div className="max-w-[1300px] mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -248,7 +248,7 @@ export function ResourcesPage() {
 
         {/* Unit table */}
         {tab === 'units' && (
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-sm">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="h-11 bg-slate-50/70 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -384,7 +384,7 @@ export function ResourcesPage() {
 
         {/* Hospital table */}
         {tab === 'hospitals' && (
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-sm">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="h-11 bg-slate-50/70 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">

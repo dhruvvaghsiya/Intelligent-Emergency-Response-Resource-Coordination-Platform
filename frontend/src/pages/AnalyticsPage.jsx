@@ -128,10 +128,10 @@ export function AnalyticsPage() {
   const overallResponseP90 = percentile(allP90, 0.9);
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 select-none" style={{ backgroundColor: '#ffffff' }}>
-      <div className="max-w-[1300px] mx-auto space-y-6">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-8 select-none" style={{ backgroundColor: '#ffffff' }}>
+      <div className="max-w-[1300px] mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-sky-200/80">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-sky-200/80 gap-2.5">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
               <BarChart3 size={24} className="text-blue-600" />

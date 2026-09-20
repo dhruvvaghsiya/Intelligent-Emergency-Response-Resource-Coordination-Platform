@@ -17,8 +17,8 @@ export function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 sm:p-10 bg-slate-50 select-none">
-      <div className="max-w-[1150px] mx-auto space-y-8">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-10 bg-slate-50 select-none">
+      <div className="max-w-[1150px] mx-auto space-y-6 sm:space-y-8">
         {/* Identity Profile Header */}
         <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
