@@ -18,7 +18,7 @@ export function ResourcesPage() {
   const { units, hospitals, user, patchHospitalCapacity, patchUnit, createUnit } = useStore();
   const canManageResources = hasPermission(user, PERMISSIONS.MANAGE_RESOURCES);
   const [tab, setTab] = useState('units');
-  const [statusFilter, setStatusFilter] = useState(null);
+  const [selectedStatuses, setSelectedStatuses] = useState([]);
   const [editingHospitalId, setEditingHospitalId] = useState(null);
   const [editForm, setEditForm] = useState({ beds_available: 0, icu_available: 0 });
   const [savingHospital, setSavingHospital] = useState(false);
@@ -105,17 +105,19 @@ export function ResourcesPage() {
     return acc;
   }, {});
 
-  const filteredUnits = statusFilter
-    ? units.filter(u => u.status === statusFilter)
+  const filteredUnits = selectedStatuses.length > 0
+    ? units.filter(u => selectedStatuses.includes(u.status))
     : units;
 
   const handleStatusClick = (status) => {
-    if (statusFilter === status) {
-      setStatusFilter(null);
-    } else {
-      setStatusFilter(status);
-      setTab('units');
-    }
+    setSelectedStatuses((prev) => {
+      if (prev.includes(status)) {
+        return prev.filter(s => s !== status);
+      } else {
+        return [...prev, status];
+      }
+    });
+    setTab('units');
   };
 
   return (
@@ -151,14 +153,15 @@ export function ResourcesPage() {
           </div>
         </div>
 
-        {/* Status summary cards as interactive filters */}
+        {/* Status summary cards as interactive filters (Multi-select enabled) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {Object.entries(STATUS_CONFIG).map(([status, config]) => {
-            const isSelected = statusFilter === status;
+            const isSelected = selectedStatuses.includes(status);
             const count = unitsByStatus[status] || 0;
             return (
               <button
                 key={status}
+                type="button"
                 onClick={() => handleStatusClick(status)}
                 className={`text-left rounded-xl p-4 transition-all duration-200 cursor-pointer ${
                   isSelected
@@ -172,8 +175,8 @@ export function ResourcesPage() {
                     <span className={isSelected ? 'font-semibold text-blue-900' : ''}>{config.label}</span>
                   </div>
                   {isSelected && (
-                    <span className="text-[10px] font-bold uppercase bg-blue-600 text-white px-1.5 py-0.5 rounded">
-                      Active
+                    <span className="text-[10px] font-bold uppercase bg-blue-600 text-white px-1.5 py-0.5 rounded shadow-2xs">
+                      ACTIVE
                     </span>
                   )}
                 </div>
@@ -185,10 +188,11 @@ export function ResourcesPage() {
           })}
         </div>
 
-        {/* Tabs & Active Filter Pill */}
+        {/* Tabs & Active Filter Pills */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-px">
           <div className="flex gap-4">
             <button
+              type="button"
               onClick={() => setTab('units')}
               className={`pb-3 text-sm font-semibold cursor-pointer transition-all border-b-2 ${
                 tab === 'units'
@@ -196,9 +200,10 @@ export function ResourcesPage() {
                   : 'text-slate-500 border-transparent hover:text-slate-900'
               }`}
             >
-              Dispatch Units ({statusFilter ? `${filteredUnits.length} of ${units.length}` : units.length})
+              Dispatch Units ({selectedStatuses.length > 0 ? `${filteredUnits.length} of ${units.length}` : units.length})
             </button>
             <button
+              type="button"
               onClick={() => setTab('hospitals')}
               className={`pb-3 text-sm font-semibold cursor-pointer transition-all border-b-2 ${
                 tab === 'hospitals'
@@ -210,17 +215,32 @@ export function ResourcesPage() {
             </button>
           </div>
 
-          {statusFilter && tab === 'units' && (
-            <div className="flex items-center gap-2 pb-2">
-              <span className="text-xs text-slate-500">
-                Filtered by: <strong className="text-slate-800">{STATUS_CONFIG[statusFilter]?.label}</strong>
-              </span>
+          {selectedStatuses.length > 0 && tab === 'units' && (
+            <div className="flex items-center gap-2 pb-2 flex-wrap">
+              <span className="text-xs text-slate-500 font-medium">Filtered by:</span>
+              {selectedStatuses.map((st) => (
+                <span
+                  key={st}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-800 bg-blue-50 border border-blue-200/90 px-2.5 py-1 rounded-lg shadow-2xs"
+                >
+                  <span className={`w-2 h-2 rounded-full ${STATUS_CONFIG[st]?.dot}`} />
+                  {STATUS_CONFIG[st]?.label}
+                  <button
+                    type="button"
+                    onClick={() => handleStatusClick(st)}
+                    className="hover:text-red-600 text-slate-400 cursor-pointer transition-colors ml-0.5"
+                    title={`Remove ${STATUS_CONFIG[st]?.label} filter`}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
               <button
-                onClick={() => setStatusFilter(null)}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-100 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                type="button"
+                onClick={() => setSelectedStatuses([])}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-100 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ml-1"
               >
-                <X size={12} />
-                Clear filter
+                <X size={12} /> Clear all filters
               </button>
             </div>
           )}
