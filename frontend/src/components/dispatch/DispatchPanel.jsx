@@ -112,43 +112,75 @@ export function DispatchPanel({ incidentId }) {
 
   if (plans === null) {
     return (
-      <PanelSection title="Dispatch Recommendation">
-        {error && <div className="text-[12px] text-sev-critical mb-2">{error}</div>}
-        <Button variant="secondary" size="compact" onClick={generatePlans} disabled={loading}>
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4 font-sans text-slate-900">
+        <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold shrink-0 shadow-2xs">
+            <Zap size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+              Automated Dispatch Recommendations
+            </h3>
+            <p className="text-[11px] font-medium text-slate-500">
+              Hungarian algorithm solver · Optimal unit allocation
+            </p>
+          </div>
+        </div>
+        {error && <div className="text-xs text-red-600 font-semibold mb-2">{error}</div>}
+        <Button variant="secondary" size="compact" className="h-9 px-3.5 text-xs font-semibold rounded-xl border-slate-200" onClick={generatePlans} disabled={loading}>
+          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
           {loading ? 'Generating...' : 'Generate Dispatch Plans'}
         </Button>
-      </PanelSection>
+      </div>
     );
   }
 
   if (plans.length === 0) {
     return (
-      <PanelSection title="Dispatch Recommendation">
-        <div className="text-[13px] text-text-muted py-3 text-center">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4 font-sans text-slate-900">
+        <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold shrink-0 shadow-2xs">
+            <Zap size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+              Automated Dispatch Recommendations
+            </h3>
+            <p className="text-[11px] font-medium text-slate-500">
+              Hungarian algorithm solver · Optimal unit allocation
+            </p>
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 py-2 text-center font-medium">
           No dispatch plans could be generated for this incident.
         </div>
-      </PanelSection>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <PanelSection
-        title={`Dispatch Plans (${plans.length})`}
-        className=""
-      >
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] text-text-muted">
-            Compare plans by total cost (seconds-equivalent). Lower is better.
-          </p>
-          <Button variant="ghost" size="compact" onClick={generatePlans} disabled={loading}>
-            <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
-            Regenerate
-          </Button>
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4 font-sans text-slate-900">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold shrink-0 shadow-2xs">
+            <Zap size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+              Dispatch Plans ({plans.length})
+            </h3>
+            <p className="text-[11px] font-medium text-slate-500">
+              Compare plans by total cost (seconds-equivalent). Lower is better.
+            </p>
+          </div>
         </div>
+        <Button variant="secondary" size="compact" className="h-8 px-3 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50" onClick={generatePlans} disabled={loading}>
+          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+          Regenerate
+        </Button>
+      </div>
 
-        {error && <div className="text-[12px] text-sev-critical mb-2">{error}</div>}
+      {error && <div className="text-xs text-red-600 font-semibold mb-2">{error}</div>}
 
         <div className="space-y-3">
           {plans.map(plan => {
@@ -272,18 +304,17 @@ export function DispatchPanel({ incidentId }) {
             );
           })}
         </div>
-      </PanelSection>
 
       {/* Hungarian vs Greedy comparison — real numbers from the solver */}
       {compare && compare.savings_seconds > 0 && (
-        <div className="px-2.5 py-2 bg-inset border border-border-subtle rounded-[4px]">
-          <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Optimization Method</div>
-          <div className="flex items-center gap-2">
-            <span className="text-[12px] text-text-primary">Hungarian assignment</span>
-            <span className="text-[11px] font-mono font-medium text-accent">
-              −{formatDuration(compare.savings_seconds)} vs greedy
-            </span>
+        <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-xl flex items-center justify-between">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Optimization Engine</div>
+            <div className="text-xs font-semibold text-slate-800">Hungarian minimum-cost bipartite solver</div>
           </div>
+          <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg shrink-0">
+            −{formatDuration(compare.savings_seconds)} vs greedy
+          </span>
         </div>
       )}
     </div>

@@ -4,7 +4,7 @@
    ========================================================================= */
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin, Clock, Users, ChevronRight, ExternalLink, AlertTriangle, FileText, Shield } from 'lucide-react';
+import { X, MapPin, Clock, Users, ChevronRight, ExternalLink, AlertTriangle, FileText, Shield, Truck, ShieldCheck } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { Button } from '../ui/Button';
 import { PanelSection } from '../ui/Panel';
@@ -245,28 +245,54 @@ function EvidenceTab({ incident }) {
 // ——— RESPONSE TAB ———
 function ResponseTab({ incident }) {
   return (
-    <div className="space-y-6">
-      <PanelSection title={`Assigned Fleet (${incident.assigned_unit_count}/${incident.units_required})`}>
+    <div className="space-y-4 font-sans text-slate-900">
+      {/* 1. Assigned Fleet Card */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold shrink-0 shadow-2xs">
+              <Truck size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                Assigned Response Fleet
+              </h3>
+              <p className="text-[11px] font-medium text-slate-500">
+                Active unit dispatches and real-time transit telemetry
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full shrink-0">
+            {incident.assigned_unit_count}/{incident.units_required} Units
+          </span>
+        </div>
+
         {incident.assignments && incident.assignments.length > 0 ? (
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             {incident.assignments.map(asg => (
-              <div key={asg.id} className="bg-white border border-slate-200/80 rounded-2xl p-4.5 shadow-2xs space-y-2">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-sm font-bold text-slate-900">{asg.unit_call_sign}</span>
-                  <span className="text-xs font-semibold text-slate-600 px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200/80 capitalize">
-                    {asg.status?.replace(/_/g, ' ').toLowerCase()}
+              <div key={asg.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl shadow-2xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-extrabold text-slate-900 bg-white px-2.5 py-1 rounded-md border border-slate-200">
+                      {asg.unit_call_sign}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase px-2.5 py-1 rounded-md border text-emerald-700 bg-emerald-50 border-emerald-200">
+                    {asg.status?.replace(/_/g, ' ')}
                   </span>
                 </div>
+
                 {asg.eta_seconds != null && asg.status === 'EN_ROUTE' && (
-                  <div className="text-xs sm:text-sm text-slate-600 font-medium">
+                  <div className="text-xs text-slate-700 font-semibold bg-white p-2.5 rounded-lg border border-slate-200/70">
                     ETA: <strong className="font-bold text-blue-600">{formatDuration(asg.eta_seconds)}</strong>
                     {asg.eta_method === 'HAVERSINE_FALLBACK' && (
                       <span className="text-xs text-amber-700 ml-1.5 font-medium">(estimated)</span>
                     )}
                   </div>
                 )}
+
                 {asg.rationale && asg.rationale.length > 0 && (
-                  <div className="text-xs text-slate-500 pt-2 border-t border-slate-100">
+                  <div className="text-xs text-slate-600 font-medium bg-white p-2.5 rounded-lg border border-slate-200/70">
                     {asg.rationale.join(' · ')}
                   </div>
                 )}
@@ -274,27 +300,41 @@ function ResponseTab({ incident }) {
             ))}
           </div>
         ) : (
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 text-center">
-            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
+            <p className="text-xs font-medium text-slate-500">
               No units assigned yet. Review dispatch options below.
             </p>
           </div>
         )}
-      </PanelSection>
+      </div>
 
+      {/* 2. Required Capabilities Card */}
       {incident.required_capabilities && incident.required_capabilities.length > 0 && (
-        <PanelSection title="Required Capabilities">
-          <div className="flex flex-wrap gap-2">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold shrink-0 shadow-2xs">
+              <ShieldCheck size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                Required Capabilities
+              </h3>
+              <p className="text-[11px] font-medium text-slate-500">
+                Required apparatus and skill qualifications for response
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
             {incident.required_capabilities.map((cap, i) => (
-              <span key={i} className="px-3 py-1 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 shadow-2xs">
+              <span key={i} className="px-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 shadow-2xs">
                 {cap.replace(/_/g, ' ')}
               </span>
             ))}
           </div>
-        </PanelSection>
+        </div>
       )}
 
-      {/* Dispatch recommendations */}
+      {/* 3. Dispatch Recommendations Card */}
       {!['CLOSED', 'MERGED', 'FALSE_ALARM', 'RESOLVED'].includes(incident.status) &&
         incident.assigned_unit_count < incident.units_required && (
         <DispatchPanel incidentId={incident.id} />
