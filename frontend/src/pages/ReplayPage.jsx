@@ -669,6 +669,33 @@ export function ReplayPage() {
   const [scenarioMode, setScenarioMode] = useState('demo'); // 'demo' | 'live'
   const [customEvents, setCustomEvents] = useState([]);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+  const [incidentDropdownOpen, setIncidentDropdownOpen] = useState(false);
+  const incidentDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (incidentDropdownRef.current && !incidentDropdownRef.current.contains(e.target)) {
+        setIncidentDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const renderSeverityBadge = (severity) => {
+    const sev = (severity || 'INFO').toUpperCase();
+    let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-300';
+    if (sev === 'CRITICAL') badgeStyle = 'bg-red-100 text-red-700 border-red-300 shadow-2xs';
+    else if (sev === 'HIGH') badgeStyle = 'bg-amber-100 text-amber-800 border-amber-300 shadow-2xs';
+    else if (sev === 'MODERATE') badgeStyle = 'bg-blue-100 text-blue-700 border-blue-300 shadow-2xs';
+    else if (sev === 'LOW') badgeStyle = 'bg-emerald-100 text-emerald-700 border-emerald-300 shadow-2xs';
+
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide border ${badgeStyle}`}>
+        {sev}
+      </span>
+    );
+  };
 
   // Refs to always hold latest speed/playing for the interval (avoids stale closures)
   const speedRef = useRef(1);
@@ -1230,30 +1257,88 @@ export function ReplayPage() {
         <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-xs shrink-0 flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 shrink-0">Incident:</span>
-            <div className="relative min-w-[260px]">
-              <select
-                value={selectedIncidentFilters[0] || 'ALL'}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === 'ALL') {
-                    setSelectedIncidentFilters([]);
-                  } else {
-                    setSelectedIncidentFilters([val]);
-                  }
-                }}
-                className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-9 py-1.5 text-xs font-semibold text-slate-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all"
+            <div className="relative min-w-[280px]" ref={incidentDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIncidentDropdownOpen(!incidentDropdownOpen)}
+                className="w-full flex items-center justify-between gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all cursor-pointer shadow-2xs"
               >
-                <option value="ALL">All Incidents ({Object.keys(incidentsConfig).length})</option>
-                {Object.entries(incidentsConfig).map(([incId, conf]) => {
-                  const st = incidentStatuses[incId] || { label: 'Reported' };
-                  return (
-                    <option key={incId} value={incId}>
-                      [{conf.severity}] {conf.shortTitle} — {st.label}
-                    </option>
-                  );
-                })}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500" />
+                <div className="flex items-center gap-2 truncate">
+                  {selectedIncidentFilters.length === 0 ? (
+                    <span className="font-semibold text-slate-800">
+                      All Incidents ({Object.keys(incidentsConfig).length})
+                    </span>
+                  ) : (
+                    (() => {
+                      const selectedId = selectedIncidentFilters[0];
+                      const conf = incidentsConfig[selectedId];
+                      if (!conf) return <span>All Incidents</span>;
+                      return (
+                        <>
+                          {renderSeverityBadge(conf.severity)}
+                          <span className="font-semibold text-slate-800 truncate">{conf.shortTitle}</span>
+                        </>
+                      );
+                    })()
+                  )}
+                </div>
+                <ChevronDown size={14} className={`text-slate-500 shrink-0 transition-transform duration-200 ${incidentDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Custom Popover Dropdown Menu */}
+              {incidentDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1.5 w-[360px] sm:w-[420px] bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden py-1 max-h-80 overflow-y-auto animate-in fade-in duration-100">
+                  {/* Option: All Incidents */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedIncidentFilters([]);
+                      setIncidentDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-semibold hover:bg-blue-50/70 transition-colors border-b border-slate-100 cursor-pointer ${
+                      selectedIncidentFilters.length === 0 ? 'bg-blue-50/60 text-blue-700 font-bold' : 'text-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-300">
+                        ALL
+                      </span>
+                      <span>All Incidents ({Object.keys(incidentsConfig).length})</span>
+                    </div>
+                    {selectedIncidentFilters.length === 0 && <Check size={14} className="text-blue-600" />}
+                  </button>
+
+                  {/* Option Items with Severity Button Pills */}
+                  {Object.entries(incidentsConfig).map(([incId, conf]) => {
+                    const st = incidentStatuses[incId] || { label: 'Reported' };
+                    const isSelected = selectedIncidentFilters.includes(incId);
+                    return (
+                      <button
+                        key={incId}
+                        type="button"
+                        onClick={() => {
+                          setSelectedIncidentFilters([incId]);
+                          setIncidentDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs hover:bg-blue-50/70 transition-colors border-b border-slate-100/70 last:border-0 cursor-pointer ${
+                          isSelected ? 'bg-blue-50/60 text-blue-700 font-bold' : 'text-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                          {/* Severity Button Badge */}
+                          {renderSeverityBadge(conf.severity)}
+                          <span className="font-semibold text-slate-800 truncate">{conf.shortTitle}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[11px] font-medium text-slate-500">— {st.label}</span>
+                          {isSelected && <Check size={14} className="text-blue-600" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
