@@ -26,6 +26,7 @@ import {
   ShieldAlert,
   Sparkles
 } from 'lucide-react';
+import { useStore } from '../lib/store';
 import { adminApi } from '../lib/api';
 
 // Sample Decision Audit Log data
@@ -98,8 +99,53 @@ const MOCK_AUDIT_LOGS = [
 ];
 
 export function AIHealthPage() {
+  const { units = [], hospitals = [] } = useStore();
   const healthQ = useQuery({ queryKey: ['admin', 'ai-health'], queryFn: adminApi.aiHealth, refetchInterval: 10000 });
   const health = healthQ.data || {};
+
+  // Compute live available counts directly from the application store
+  const availableAmbulances = units.filter(u => u.type.includes('AMBULANCE') && u.status === 'AVAILABLE').length;
+  const availableFireUnits = units.filter(u => (u.type.includes('FIRE') || u.type === 'HAZMAT') && u.status === 'AVAILABLE').length;
+  const availableIcuBeds = hospitals.reduce((sum, h) => sum + (h.icu_available || 0), 0);
+
+  const neededAmbulances = 12;
+  const neededFireUnits = 7;
+  const neededIcuBeds = 18;
+
+  const getResourceStatus = (needed, available, unitName) => {
+    const diff = available - needed;
+    if (diff < 0) {
+      const deficit = Math.abs(diff);
+      const isSevere = deficit >= 4;
+      return {
+        isDeficit: true,
+        deficitVal: deficit,
+        text: `Deficit: -${deficit} ${unitName}${deficit !== 1 ? (unitName === 'bed' ? 's' : 's') : ''}`,
+        badge: isSevere ? (unitName === 'unit' ? 'HIGH RISK' : 'SEVERE DEFICIT') : 'MODERATE RISK',
+        borderColor: isSevere ? 'border-red-200 hover:border-red-500' : 'border-amber-200 hover:border-amber-500',
+        textColor: isSevere ? 'text-red-600' : 'text-amber-600',
+        badgeBg: isSevere ? 'bg-red-100 text-red-700 border-red-200' : 'bg-amber-100 text-amber-800 border-amber-200',
+        iconColor: isSevere ? 'text-red-600' : 'text-amber-600',
+      };
+    } else {
+      return {
+        isDeficit: false,
+        deficitVal: 0,
+        text: `Surplus: +${diff} ${unitName}${diff !== 1 ? (unitName === 'bed' ? 's' : 's') : ''}`,
+        badge: 'OPTIMAL CAPACITY',
+        borderColor: 'border-emerald-200 hover:border-emerald-500',
+        textColor: 'text-emerald-600',
+        badgeBg: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+        iconColor: 'text-emerald-600',
+      };
+    }
+  };
+
+  const ambStatus = getResourceStatus(neededAmbulances, availableAmbulances, 'unit');
+  const fireStatus = getResourceStatus(neededFireUnits, availableFireUnits, 'unit');
+  const icuStatus = getResourceStatus(neededIcuBeds, availableIcuBeds, 'bed');
+
+  const totalDeficit = ambStatus.deficitVal + fireStatus.deficitVal + icuStatus.deficitVal;
 
   // Decision Audit Log Filter
   const [filterStatus, setFilterStatus] = useState('ALL');
@@ -389,53 +435,53 @@ export function AIHealthPage() {
           {/* Demand vs Availability Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* 1. Ambulances */}
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-red-200 space-y-2 hover:border-red-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
+            <div className={`bg-slate-50 p-4.5 rounded-xl border ${ambStatus.borderColor} space-y-2 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer`}>
               <div className="flex items-center justify-between text-slate-500">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Ambulances</span>
-                <Truck size={16} className="text-red-600" />
+                <Truck size={16} className={ambStatus.iconColor} />
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold font-mono text-red-600">12</span>
+                <span className={`text-3xl font-bold font-mono ${ambStatus.textColor}`}>{neededAmbulances}</span>
                 <span className="text-xs font-medium text-slate-500">needed</span>
-                <span className="text-sm font-bold text-slate-900 ml-auto font-mono">8 available</span>
+                <span className="text-sm font-bold text-slate-900 ml-auto font-mono">{availableAmbulances} available</span>
               </div>
               <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200">
-                <span className="font-semibold text-red-700">Deficit: -4 units</span>
-                <span className="text-red-700 font-bold bg-red-100 px-2 py-0.5 rounded border border-red-200 text-[10px]">HIGH RISK</span>
+                <span className={`font-semibold ${ambStatus.textColor}`}>{ambStatus.text}</span>
+                <span className={`font-bold px-2 py-0.5 rounded border text-[10px] ${ambStatus.badgeBg}`}>{ambStatus.badge}</span>
               </div>
             </div>
 
             {/* 2. Fire Units */}
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-amber-200 space-y-2 hover:border-amber-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
+            <div className={`bg-slate-50 p-4.5 rounded-xl border ${fireStatus.borderColor} space-y-2 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer`}>
               <div className="flex items-center justify-between text-slate-500">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Fire Units</span>
-                <Flame size={16} className="text-amber-600" />
+                <Flame size={16} className={fireStatus.iconColor} />
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold font-mono text-amber-600">7</span>
+                <span className={`text-3xl font-bold font-mono ${fireStatus.textColor}`}>{neededFireUnits}</span>
                 <span className="text-xs font-medium text-slate-500">needed</span>
-                <span className="text-sm font-bold text-slate-900 ml-auto font-mono">6 available</span>
+                <span className="text-sm font-bold text-slate-900 ml-auto font-mono">{availableFireUnits} available</span>
               </div>
               <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200">
-                <span className="font-semibold text-amber-700">Deficit: -1 unit</span>
-                <span className="text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded border border-amber-200 text-[10px]">MODERATE RISK</span>
+                <span className={`font-semibold ${fireStatus.textColor}`}>{fireStatus.text}</span>
+                <span className={`font-bold px-2 py-0.5 rounded border text-[10px] ${fireStatus.badgeBg}`}>{fireStatus.badge}</span>
               </div>
             </div>
 
             {/* 3. ICU Beds */}
-            <div className="bg-slate-50 p-4.5 rounded-xl border border-red-200 space-y-2 hover:border-red-500 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer">
+            <div className={`bg-slate-50 p-4.5 rounded-xl border ${icuStatus.borderColor} space-y-2 hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer`}>
               <div className="flex items-center justify-between text-slate-500">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700">ICU Beds</span>
-                <Hospital size={16} className="text-red-600" />
+                <Hospital size={16} className={icuStatus.iconColor} />
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold font-mono text-red-600">18</span>
+                <span className={`text-3xl font-bold font-mono ${icuStatus.textColor}`}>{neededIcuBeds}</span>
                 <span className="text-xs font-medium text-slate-500">needed</span>
-                <span className="text-sm font-bold text-slate-900 ml-auto font-mono">11 available</span>
+                <span className="text-sm font-bold text-slate-900 ml-auto font-mono">{availableIcuBeds} available</span>
               </div>
               <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200">
-                <span className="font-semibold text-red-700">Deficit: -7 beds</span>
-                <span className="text-red-700 font-bold bg-red-100 px-2 py-0.5 rounded border border-red-200 text-[10px]">SEVERE DEFICIT</span>
+                <span className={`font-semibold ${icuStatus.textColor}`}>{icuStatus.text}</span>
+                <span className={`font-bold px-2 py-0.5 rounded border text-[10px] ${icuStatus.badgeBg}`}>{icuStatus.badge}</span>
               </div>
             </div>
 
@@ -456,18 +502,33 @@ export function AIHealthPage() {
           </div>
 
           {/* Resource Shortage Risk Banner */}
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-slate-900 hover:border-red-400 hover:shadow-md transition-all duration-200 cursor-pointer">
-            <ShieldAlert size={20} className="text-red-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-slate-900">Resource Shortage Risk: CRITICAL CAPACITY GAP</span>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-red-600 text-white">Action Required</span>
+          {totalDeficit > 0 ? (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-slate-900 hover:border-red-400 hover:shadow-md transition-all duration-200 cursor-pointer">
+              <ShieldAlert size={20} className="text-red-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-slate-900">Resource Shortage Risk: CRITICAL CAPACITY GAP</span>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-red-600 text-white">Action Required</span>
+                </div>
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  Predicted {totalDeficit}-unit resource deficit in Zone A & Zone C within 30 minutes. Pre-positioning mandatory to maintain sub-5 minute SLA.
+                </p>
               </div>
-              <p className="text-xs text-slate-700 leading-relaxed">
-                Predicted 12-unit resource deficit in Zone A & Zone C within 30 minutes due to concurrent industrial fire and SG Highway collision. Pre-positioning mandatory to maintain sub-5 minute SLA.
-              </p>
             </div>
-          </div>
+          ) : (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3 text-slate-900 hover:border-emerald-400 hover:shadow-md transition-all duration-200 cursor-pointer">
+              <CheckCircle2 size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-slate-900">Resource Status: OPTIMAL CAPACITATION</span>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-600 text-white">All Clear</span>
+                </div>
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  All emergency resource categories currently meet or exceed predicted spatio-temporal demand. High-capacity reserves active.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* AI Recommended Pre-positioning Section */}
           <div className="space-y-3.5">
