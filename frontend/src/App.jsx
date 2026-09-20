@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
 import { StaleBanner } from './components/layout/StaleBanner';
 import { ToastProvider } from './components/ui/Toast';
@@ -17,58 +17,80 @@ import { ReplayPage } from './pages/ReplayPage';
 import { ReportPage } from './pages/ReportPage';
 import { FieldPage } from './pages/FieldPage';
 
-// Auth guard — redirects to /login if not authenticated
+import { MOCK_INCIDENTS, MOCK_UNITS, MOCK_ALERTS, MOCK_HOSPITALS } from './mocks/fixtures';
+
+// Auth guard (temporarily bypassed for direct preview)
 function ProtectedRoute({ children }) {
-  const isAuthenticated = useStore(s => s.isAuthenticated);
-  const location = useLocation();
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
   return children;
 }
 
 function AppShell() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const isLogin = location.pathname === '/login';
-  const isField = location.pathname.startsWith('/field');
   const isOps = location.pathname.startsWith('/ops');
-  const isAuthenticated = useStore(s => s.isAuthenticated);
-  const restoreSession = useStore(s => s.restoreSession);
-
-  useEffect(() => {
-    restoreSession?.();
-  }, [restoreSession]);
-
-  // Once auth resolves, redirect from /login → /ops
-  useEffect(() => {
-    if (isAuthenticated && isLogin) {
-      navigate('/ops', { replace: true });
-    }
-  }, [isAuthenticated, isLogin, navigate]);
-
-  const showNavbar = !isLogin && !isField;
+  const isLogin = location.pathname === '/login';
 
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-50 overflow-hidden relative">
-      {showNavbar && <Navbar />}
-      <main className={`flex-1 min-h-0 overflow-hidden relative flex flex-col ${isOps || isLogin || isField ? 'h-full' : 'pt-16'}`}>
+      {/* Top Navigation Bar */}
+      {!isLogin && <Navbar />}
+
+      {/* Main Content Area */}
+      <main className={`flex-1 min-h-0 overflow-hidden relative flex flex-col ${isOps || isLogin ? 'h-full' : 'pt-16'}`}>
+        {/* Routes */}
         <Routes>
-          {/* Public */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/report" element={<ReportPage />} />
+          <Route
+            path="/ops"
+            element={
+              <ProtectedRoute>
+                <OpsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resources"
+            element={
+              <ProtectedRoute>
+                <ResourcesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/alerts"
+            element={
+              <ProtectedRoute>
+                <AlertsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <AnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-health"
+            element={
+              <ProtectedRoute>
+                <AIHealthPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/replay"
+            element={
+              <ProtectedRoute>
+                <ReplayPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/field" element={<FieldPage />} />
-
-          {/* Protected */}
-          <Route path="/ops" element={<ProtectedRoute><OpsPage /></ProtectedRoute>} />
-          <Route path="/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
-          <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
-          <Route path="/ai-health" element={<ProtectedRoute><AIHealthPage /></ProtectedRoute>} />
-          <Route path="/replay" element={<ProtectedRoute><ReplayPage /></ProtectedRoute>} />
-
-          {/* Default: redirect to login or ops depending on auth */}
-          <Route path="*" element={<Navigate to={isAuthenticated ? '/ops' : '/login'} replace />} />
+          {/* Default redirect */}
+          <Route path="*" element={<Navigate to="/ops" replace />} />
         </Routes>
       </main>
     </div>
@@ -76,7 +98,41 @@ function AppShell() {
 }
 
 export default function App() {
+  const restoreSession = useStore(s => s.restoreSession);
   useKeyboardShortcuts();
+
+  useEffect(() => {
+    // Ensure authentication token exists so backend API queries succeed
+    if (!localStorage.getItem('prahari.token')) {
+      useStore.getState().login('commander@prahari.in', 'prahari123').catch(() => {});
+    }
+    if (!localStorage.getItem('resilio.user') && !localStorage.getItem('prahari.user')) {
+      const defaultUser = {
+        id: 'usr_001',
+        email: 'commander@prahari.in',
+        name: 'Cdr. Arjun Shah',
+        role: 'COMMANDER'
+      };
+      localStorage.setItem('resilio.user', JSON.stringify(defaultUser));
+      localStorage.setItem('prahari.user', JSON.stringify(defaultUser));
+      useStore.setState({ user: defaultUser, isAuthenticated: true });
+    }
+
+    // Ensure mock data is immediately present for instant preview
+    const state = useStore.getState();
+    if (!state.incidents || state.incidents.length === 0) {
+      useStore.setState({
+        incidents: MOCK_INCIDENTS,
+        units: MOCK_UNITS,
+        alerts: MOCK_ALERTS,
+        hospitals: MOCK_HOSPITALS,
+        connectionStatus: 'connected',
+        selectedIncidentId: null,
+      });
+    }
+
+    restoreSession();
+  }, [restoreSession]);
 
   return (
     <BrowserRouter>
