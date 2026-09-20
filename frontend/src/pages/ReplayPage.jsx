@@ -664,7 +664,7 @@ export function ReplayPage() {
   const [selectedIncidentFilters, setSelectedIncidentFilters] = useState([]); // [] = all
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState([]); // [] = all
   const [quickFilter, setQuickFilter] = useState('all'); // 'all' | 'latest5' | 'critical' | 'recent'
-  const [inspectorTab, setInspectorTab] = useState('focus'); // 'focus' | 'citywide' | 'swimlane'
+  const [inspectorTab, setInspectorTab] = useState('focus'); // 'focus' | 'citywide'
   const [copied, setCopied] = useState(false);
   const [scenarioMode, setScenarioMode] = useState('demo'); // 'demo' | 'live'
   const [customEvents, setCustomEvents] = useState([]);
@@ -1164,14 +1164,6 @@ export function ReplayPage() {
               <Plus size={14} />
               Add Event
             </button>
-
-            <button
-              onClick={() => { setPosition(0); setPlaying(false); }}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-lg shadow-xs transition-colors cursor-pointer"
-            >
-              <RotateCcw size={13} />
-              Reset
-            </button>
           </div>
         </div>
 
@@ -1487,12 +1479,6 @@ export function ReplayPage() {
                         <span className="font-mono text-slate-400">seq #{evt.seq}</span>
                       </div>
                     </div>
-
-                    {isCurrent && (
-                      <div className="self-center text-blue-600 shrink-0">
-                        <ChevronRight size={18} />
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -1526,17 +1512,6 @@ export function ReplayPage() {
                 >
                   <Grid size={14} />
                   Citywide Multi-Incident State
-                </button>
-                <button
-                  onClick={() => setInspectorTab('swimlane')}
-                  className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    inspectorTab === 'swimlane'
-                      ? 'bg-white text-blue-700 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <GitCommit size={14} />
-                  Swimlane Tracks
                 </button>
               </div>
 
@@ -1717,75 +1692,6 @@ export function ReplayPage() {
                 </div>
               </div>
             )}
-
-            {/* Tab 3: Multi-Incident Timeline Swimlane Graph */}
-            {inspectorTab === 'swimlane' && (
-              <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
-                <div className="flex items-center justify-between text-xs text-slate-500 pb-2 border-b border-slate-200">
-                  <span className="font-semibold text-slate-700 text-xs">Concurrent Incident Swimlanes</span>
-                  <span className="text-xs">Click any event node to jump scrubber</span>
-                </div>
-
-                {/* Horizontal tracks for each incident */}
-                <div className="space-y-6 pt-2">
-                  {Object.entries(incidentsConfig).map(([incId, conf]) => {
-                    const incEvents = events.filter(e => e.incident_id === incId);
-                    return (
-                      <div key={incId} className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 text-xs sm:text-sm">{conf.shortTitle}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded border ${conf.badgeBg} ${conf.badgeText} ${conf.badgeBorder}`}>
-                              {conf.severity}
-                            </span>
-                          </div>
-                          <span className="text-xs font-mono text-slate-500">{incEvents.length} events</span>
-                        </div>
-
-                        {/* Track bar with node dots */}
-                        <div className="relative h-8 bg-slate-100 border border-slate-200 rounded-lg flex items-center px-2">
-                          {/* Current time scrubber indicator line */}
-                          <div
-                            className="absolute top-0 bottom-0 w-0.5 bg-blue-600 z-10"
-                            style={{ left: `${position}%` }}
-                          />
-
-                          {/* Event marker dots along the track */}
-                          {incEvents.map(evt => {
-                            const evtTime = new Date(evt.ts).getTime();
-                            const pct = Math.max(0, Math.min(100, ((evtTime - startTime.getTime()) / totalDurationMs) * 100));
-                            const isCurrent = evt.index === nearestEventIndex;
-                            const catConf = CATEGORY_COLORS[evt.category] || CATEGORY_COLORS.dispatch;
-
-                            return (
-                              <button
-                                key={evt.event_id}
-                                onClick={() => jumpToEvent(evt.index)}
-                                title={`${evt.type} (${formatTime(evt.ts)})`}
-                                style={{ left: `calc(${pct}% - 8px)` }}
-                                className={`absolute w-4 h-4 rounded-full border-2 transition-transform hover:scale-130 cursor-pointer ${
-                                  isCurrent
-                                    ? 'bg-blue-600 border-white ring-2 ring-blue-500 scale-125 z-20'
-                                    : `${catConf.bg} ${catConf.border} z-10`
-                                }`}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600" /> Current Scrubber Playhead
-                  </span>
-                  <span>Timeline duration: 20 minutes (08:15 - 08:35)</span>
-                </div>
-              </div>
-            )}
-
           </div>
         </div>
 
