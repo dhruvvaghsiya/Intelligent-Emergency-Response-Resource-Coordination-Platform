@@ -1479,12 +1479,6 @@ export function ReplayPage() {
                         <span className="font-mono text-slate-400">seq #{evt.seq}</span>
                       </div>
                     </div>
-
-                    {isCurrent && (
-                      <div className="self-center text-blue-600 shrink-0">
-                        <ChevronRight size={18} />
-                      </div>
-                    )}
                   </div>
                 );
               })}
