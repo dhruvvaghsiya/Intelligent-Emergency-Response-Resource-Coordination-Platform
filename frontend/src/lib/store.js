@@ -252,6 +252,42 @@ export const useStore = create((set, get) => ({
     }
   },
 
+  addReport: (reportPayload) => {
+    const state = get();
+    const newId = `RPT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const newIncCode = `INC-2026-${Math.floor(100 + Math.random() * 900)}`;
+    const newIncId = `inc_${Date.now().toString(36)}`;
+
+    const newIncident = {
+      id: newIncId,
+      code: newIncCode,
+      type: reportPayload.structured?.type || 'UNKNOWN',
+      status: 'TRIAGED',
+      priority: 'HIGH',
+      severity_score: 75,
+      title: `${(reportPayload.structured?.type || 'EMERGENCY').replace(/_/g, ' ')} — ${reportPayload.text ? reportPayload.text.slice(0, 40) : 'Citizen Report'}`,
+      description: reportPayload.text,
+      location: reportPayload.location || { lat: 23.0258, lng: 72.5714 },
+      reported_at: new Date().toISOString(),
+      occurred_at: new Date().toISOString(),
+      units_required: 2,
+      assigned_unit_count: 0,
+      report_count: 1,
+      required_capabilities: reportPayload.structured?.type === 'FIRE_INDUSTRIAL' ? ['FIRE_SUPPRESSION', 'HAZMAT_CONTAINMENT']
+        : reportPayload.structured?.type === 'FLOOD' ? ['WATER_RESCUE', 'CROWD_CONTROL']
+        : ['MEDICAL_BASIC', 'FIRE_SUPPRESSION'],
+      assignments: [],
+      is_simulated: false,
+    };
+
+    set({
+      incidents: [newIncident, ...state.incidents],
+      liveFeed: pushFeed(state, { type: 'report.created', text: `New Citizen Report: ${newIncCode}`, severity: 'HIGH' }),
+    });
+
+    return { report_id: newId, incident_id: newIncId, code: newIncCode, incident: newIncident };
+  },
+
   fetchAll: () => {
     get().fetchIncidents();
     get().fetchUnits();
