@@ -111,16 +111,19 @@ const SEV_RADIUS = {
   INFO: 8,
 };
 
+const SYNC_PULSE_DURATION = 2.0;
+
+function getSyncAnimationDelay() {
+  const elapsedSec = (performance.now() / 1000) % SYNC_PULSE_DURATION;
+  return `-${elapsedSec.toFixed(3)}s`;
+}
+
 function incidentMarkerEl(incident, isSelected) {
   const color = SEV_COLORS[incident.severity] || SEV_COLORS.INFO;
   const r = SEV_RADIUS[incident.severity] || 11;
   const d = r * 2;
   const inner = Math.max(5, Math.round(r * 0.45));
-
-  const speed = incident.severity === 'CRITICAL' ? '1.2s'
-    : incident.severity === 'HIGH' ? '1.8s'
-    : incident.severity === 'MODERATE' ? '2.2s'
-    : '2.6s';
+  const animDelay = getSyncAnimationDelay();
 
   // CRITICAL: Do NOT set position:relative on el!
   // MapLibre's marker element must remain position:absolute at (0,0) of the canvas container
@@ -141,7 +144,8 @@ function incidentMarkerEl(incident, isSelected) {
       height: ${d}px;
       border-radius: 50%;
       background: ${color};
-      animation: incident-pulse-anim ${speed} cubic-bezier(0, 0, 0.2, 1) infinite;
+      animation: incident-pulse-anim ${SYNC_PULSE_DURATION}s cubic-bezier(0, 0, 0.2, 1) infinite;
+      animation-delay: ${animDelay};
       pointer-events: none;
     "></div>
 
