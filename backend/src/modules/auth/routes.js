@@ -65,6 +65,36 @@ authRouter.post('/refresh', validateBody(RefreshSchema), async (req, res, next) 
   } catch (err) { next(err); }
 });
 
+authRouter.post('/register', async (req, res, next) => {
+  try {
+    const { name, email, password, role = 'DISPATCHER', station_id = null } = req.body;
+    if (!name || !email || !password) {
+      throw new AppError('BAD_REQUEST', 'Name, email, and password are required');
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const existing = await User.findOne({ email: cleanEmail });
+    if (existing) {
+      throw new AppError('CONFLICT', 'An operator account with this email already exists');
+    }
+    const password_hash = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      _id: `user_${Date.now()}`,
+      name: name.trim(),
+      email: cleanEmail,
+      role: role.toUpperCase(),
+      station_id: station_id || null,
+      password_hash,
+    });
+    res.status(201).json({
+      data: {
+        access_token: signAccessToken(user),
+        refresh_token: signRefreshToken(user),
+        user: toWireUser(user),
+      },
+    });
+  } catch (err) { next(err); }
+});
+
 authRouter.get('/me', authenticate, async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
