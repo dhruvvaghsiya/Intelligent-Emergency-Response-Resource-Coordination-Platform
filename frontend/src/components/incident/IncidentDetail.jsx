@@ -4,7 +4,7 @@
    ========================================================================= */
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin, Clock, Users, ChevronRight, ExternalLink, AlertTriangle, FileText, Shield, Truck, ShieldCheck } from 'lucide-react';
+import { X, MapPin, Clock, Users, ChevronRight, ExternalLink, AlertTriangle, FileText, Shield, Truck, ShieldCheck, Activity } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { Button } from '../ui/Button';
 import { PanelSection } from '../ui/Panel';
@@ -156,10 +156,24 @@ export function IncidentDetail() {
 // ——— OVERVIEW TAB ———
 function OverviewTab({ incident }) {
   return (
-    <div className="space-y-6">
-      {/* Description */}
-      <PanelSection title="Incident Summary">
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
+    <div className="space-y-4 font-sans text-slate-900">
+      {/* 1. Incident Summary Card */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold shrink-0 shadow-2xs">
+            <FileText size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+              Incident Summary
+            </h3>
+            <p className="text-[11px] font-medium text-slate-500">
+              AI-generated briefing and operator report synthesis
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
           <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">{incident.description}</p>
           {incident.ai?.briefing && (
             <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-200/70 space-y-1.5">
@@ -171,30 +185,58 @@ function OverviewTab({ incident }) {
             </div>
           )}
         </div>
-      </PanelSection>
+      </div>
 
-      {/* Severity Model */}
+      {/* 2. Severity Attribution Model Card */}
       <SeverityPanel assessment={incident.severity_assessment} incidentId={incident.id} />
 
-      {/* Beliefs summary */}
+      {/* 3. Probabilistic State Beliefs Card */}
       {incident.beliefs && incident.beliefs.length > 0 && (
-        <PanelSection title="Probabilistic State Beliefs">
-          <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold shrink-0 shadow-2xs">
+              <Activity size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                Probabilistic State Beliefs
+              </h3>
+              <p className="text-[11px] font-medium text-slate-500">
+                Fused Bayesian belief probabilities across incident attributes
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-1">
             {incident.beliefs.map(belief => (
               <BeliefBar key={belief.attribute} belief={belief} />
             ))}
           </div>
-        </PanelSection>
+        </div>
       )}
 
-      {/* Quick stats */}
-      <PanelSection title="Response Units Overview">
-        <div className="grid grid-cols-3 gap-3.5">
+      {/* 4. Response Units Overview Card */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold shrink-0 shadow-2xs">
+            <Users size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+              Response Units Overview
+            </h3>
+            <p className="text-[11px] font-medium text-slate-500">
+              Aggregated reports, dispatch counts & ward allocation
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 pt-1">
           <StatCard label="Reports" value={incident.report_count} />
           <StatCard label="Units Dispatched" value={`${incident.assigned_unit_count}/${incident.units_required}`} />
           <StatCard label="Ward" value={incident.ward || '—'} small />
         </div>
-      </PanelSection>
+      </div>
     </div>
   );
 }
@@ -228,9 +270,9 @@ function BeliefBar({ belief }) {
 
 function StatCard({ label, value, small = false }) {
   return (
-    <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs text-center">
-      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">{label}</div>
-      <div className={`font-bold text-slate-900 ${small ? 'text-sm sm:text-base' : 'text-lg sm:text-xl'}`}>
+    <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 shadow-2xs text-center">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{label}</div>
+      <div className={`font-bold text-slate-900 ${small ? 'text-xs sm:text-sm' : 'text-base sm:text-lg'}`}>
         {value}
       </div>
     </div>

@@ -151,16 +151,16 @@ export function RelatedTab({ incident }) {
 
       {/* Find Related Incidents Main Section */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold shrink-0 shadow-2xs">
               <Search size={18} />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight truncate">
                 Find Related & Duplicate Incidents
               </h3>
-              <p className="text-[11px] font-medium text-slate-500">
+              <p className="text-[11px] font-medium text-slate-500 truncate">
                 Spatial & temporal vector correlation engine
               </p>
             </div>
@@ -168,7 +168,7 @@ export function RelatedTab({ incident }) {
           <Button
             variant="secondary"
             size="compact"
-            className="h-8 px-3 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50"
+            className="h-8 px-3.5 text-xs font-bold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 whitespace-nowrap shrink-0"
             onClick={findCandidates}
             disabled={loading}
           >

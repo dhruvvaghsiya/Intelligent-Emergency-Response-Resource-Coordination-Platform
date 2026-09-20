@@ -174,7 +174,7 @@ export function DispatchPanel({ incidentId }) {
             </p>
           </div>
         </div>
-        <Button variant="secondary" size="compact" className="h-8 px-3 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50" onClick={generatePlans} disabled={loading}>
+        <Button variant="secondary" size="compact" className="h-8 px-3 text-xs font-bold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 whitespace-nowrap shrink-0" onClick={generatePlans} disabled={loading}>
           <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
           Regenerate
         </Button>
