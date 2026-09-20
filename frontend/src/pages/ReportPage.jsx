@@ -352,8 +352,17 @@ export function ReportPage() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="w-full h-full p-6 sm:p-8 flex flex-col items-center justify-center space-y-5 overflow-y-auto"
+              className="relative w-full h-full p-6 sm:p-8 flex flex-col items-center justify-center space-y-5 overflow-y-auto"
             >
+              <button
+                type="button"
+                onClick={() => navigate('/ops')}
+                className="absolute top-4 right-4 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer border border-slate-200/80"
+                title="Close to Situation Map"
+                aria-label="Close report menu and go to map"
+              >
+                <X size={18} />
+              </button>
               <div className="text-center max-w-lg">
                 <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Emergency Ingest Transmitted</h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
@@ -453,18 +462,30 @@ export function ReportPage() {
                   {/* Top Form Fields Area */}
                   <div className="space-y-3.5">
                     {/* Header */}
-                    <div className="flex items-center gap-3.5 mb-3.5 pb-3 border-b border-slate-100">
-                      <div className="w-10 h-10 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0 shadow-xs">
-                        <ShieldAlert size={20} />
+                    <div className="flex items-center justify-between mb-3.5 pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0 shadow-xs">
+                          <ShieldAlert size={20} />
+                        </div>
+                        <div>
+                          <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight leading-tight">
+                            Citizen Emergency Report
+                          </h1>
+                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                            Direct Ingest into Municipal Dispatch Matrix
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight leading-tight">
-                          Citizen Emergency Report
-                        </h1>
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                          Direct Ingest into Municipal Dispatch Matrix
-                        </p>
-                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => navigate('/ops')}
+                        className="md:hidden p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer border border-slate-200"
+                        title="Close to Situation Map"
+                        aria-label="Close report menu and go to map"
+                      >
+                        <X size={18} />
+                      </button>
                     </div>
 
                     {/* Incident Type */}
@@ -598,12 +619,24 @@ export function ReportPage() {
                     <p className="text-xs sm:text-sm font-medium text-slate-400 mt-0.5">Speech-to-Structured Form Parser</p>
                   </div>
 
-                  <div className={`px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 border ${isRecording
-                      ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse'
-                      : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                    }`}>
-                    <span className={`w-2.5 h-2.5 rounded-full ${isRecording ? 'bg-red-400 animate-ping' : 'bg-emerald-400'}`} />
-                    {isRecording ? 'Listening Active' : 'AI Mic Ready'}
+                  <div className="flex items-center gap-2.5">
+                    <div className={`px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 border ${isRecording
+                        ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse'
+                        : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                      }`}>
+                      <span className={`w-2.5 h-2.5 rounded-full ${isRecording ? 'bg-red-400 animate-ping' : 'bg-emerald-400'}`} />
+                      {isRecording ? 'Listening Active' : 'AI Mic Ready'}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate('/ops')}
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer border border-slate-700/80 shadow-sm"
+                      title="Close to Situation Map"
+                      aria-label="Close report menu and go to map"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
                 </div>
 
