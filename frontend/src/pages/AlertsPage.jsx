@@ -141,35 +141,50 @@ export function AlertsPage() {
 
       {/* ── Admin Assign Resource Modal ──────────────────────────────── */}
       {dispatchAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-[500px] overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
-              <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
-                <Truck size={17} className="text-blue-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs select-none">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-[580px] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200/80 bg-slate-50/90">
+              <div className="flex items-center gap-3 font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-600 shrink-0 shadow-xs">
+                  <Truck size={20} strokeWidth={2.2} />
+                </div>
                 Assign Resource to Alert Location
               </div>
               <button
                 type="button"
                 onClick={() => setDispatchAlert(null)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer p-2 rounded-xl transition-colors"
+                title="Close modal"
               >
-                <X size={17} />
+                <X size={20} />
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
-              {/* Alert Summary */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-700 space-y-1">
-                <div className="font-bold text-slate-900">{dispatchAlert.title}</div>
-                <div className="text-slate-500">{dispatchAlert.body}</div>
+            <div className="p-6 sm:p-7 space-y-6">
+              {/* Alert Summary Box */}
+              <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200/90 space-y-1.5 shadow-xs">
+                <div className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                  {dispatchAlert.title}
+                </div>
+                <div className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+                  {dispatchAlert.body}
+                </div>
               </div>
 
               {/* Unit Selection */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Select Unit to Deploy
-                </label>
-                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-0.5">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Select Unit to Deploy
+                  </label>
+                  <span className="text-xs font-semibold text-slate-400">
+                    {units.filter(u => u.status === 'AVAILABLE').length} Available
+                  </span>
+                </div>
+
+                <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
                   {units.map((u) => {
                     const isAvail = u.status === 'AVAILABLE';
                     const isSelected = selectedUnitId === u.id;
@@ -178,21 +193,26 @@ export function AlertsPage() {
                         key={u.id}
                         onClick={() => setSelectedUnitId(u.id)}
                         className={`
-                          p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 text-xs
+                          p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4
                           ${isSelected
-                            ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20 shadow-xs'
-                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                            ? 'bg-blue-50/80 border-blue-400 ring-2 ring-blue-500/20 shadow-md scale-[1.01]'
+                            : 'bg-white border-slate-200/90 hover:bg-slate-50/80 hover:border-slate-300 shadow-xs'
                           }
                         `}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={`w-2 h-2 rounded-full shrink-0 ${isAvail ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                          <div className="font-bold text-slate-900">{u.call_sign}</div>
-                          <span className="text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isAvail ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50' : 'bg-amber-500'}`} />
+                          <div className="font-extrabold text-slate-900 text-sm sm:text-base">{u.call_sign}</div>
+                          <span className="text-xs font-bold uppercase px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200/80">
                             {u.type.replace(/_/g, ' ')}
                           </span>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isAvail ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                          isAvail
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
                           {u.status}
                         </span>
                       </div>
@@ -201,26 +221,24 @@ export function AlertsPage() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              {/* Action Footer */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200/80">
                 <Button
                   variant="ghost"
-                  size="compact"
                   onClick={() => setDispatchAlert(null)}
-                  className="text-xs font-semibold text-slate-600"
+                  className="h-11 px-5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="primary"
-                  size="compact"
                   disabled={dispatchBusy || !selectedUnitId}
                   onClick={handleConfirmDispatch}
-                  className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5"
+                  className="h-11 px-6 text-sm font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {dispatchBusy ? 'Dispatching…' : (
                     <>
-                      <Send size={13} />
+                      <Send size={16} />
                       Deploy Unit &amp; Resolve Alert
                     </>
                   )}
