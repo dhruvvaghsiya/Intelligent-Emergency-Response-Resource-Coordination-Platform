@@ -8,6 +8,7 @@ import { newId } from '../../utils/ids.js';
 import { toGeoJson } from '../../utils/geo.js';
 import { enqueueJob } from '../../platform/jobs.js';
 import { appendEvent } from '../../platform/events.js';
+import { raiseAlert } from '../alerts/service.js';
 import { logger } from '../../platform/logger.js';
 
 export async function ingestSimulatedReport({
@@ -32,6 +33,17 @@ export async function ingestSimulatedReport({
       processing_status: 'QUEUED',
     });
     await enqueueJob('PROCESS_REPORT', { report_id: reportId });
+
+    if (notable) {
+      await raiseAlert({
+        type: 'NEW_REPORT',
+        severity: 'HIGH',
+        title: headline || `Municipal Alert: ${source_type.replace(/_/g, ' ')}`,
+        body: text ? text.slice(0, 160) : `Automated telemetry incident reported via ${source_type}`,
+        payload: { report_id: reportId, source_type, source_label, location },
+        dedupe_key: `WORLD_REPORT:${reportId}`,
+      });
+    }
 
     // Lightweight, pipeline-independent event so the frontend can show source activity the
     // instant a report lands, without waiting for extraction/correlation to finish.

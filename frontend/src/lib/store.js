@@ -261,9 +261,31 @@ export const useStore = create((set, get) => ({
       };
       const updatedEvents = [...(state.timelineEvents || []), storeEvt];
       try { localStorage.setItem('resilio.reported_timeline_events', JSON.stringify(updatedEvents)); } catch {}
+
+      let updatedAlerts = state.alerts;
+      if (evt.payload?.notable || evt.payload?.headline) {
+        const reportAlertId = `alert_${evt.payload?.report_id || Date.now()}`;
+        if (!state.alerts.some(a => a.id === reportAlertId)) {
+          const reportAlert = {
+            id: reportAlertId,
+            type: 'NEW_REPORT',
+            severity: 'HIGH',
+            incident_id: evt.payload?.incident_id || null,
+            title: evt.payload?.headline || `Municipal Alert: ${(evt.payload?.source_type || 'INCIDENT').replace(/_/g, ' ')}`,
+            body: evt.payload?.text || `Automated emergency telemetry ingested from ${evt.payload?.source_label || evt.payload?.source_type || 'Sensor'}`,
+            payload: evt.payload,
+            raised_at: evt.ts || new Date().toISOString(),
+            acked_at: null,
+            acked_by: null,
+          };
+          updatedAlerts = [reportAlert, ...state.alerts];
+        }
+      }
+
       return {
         lastEventAt: evt.ts,
         timelineEvents: updatedEvents,
+        alerts: updatedAlerts,
         sourceActivityLog: bumpSourceActivity(state.sourceActivityLog, evt.payload?.source_type),
         ...(evt.payload?.notable ? {
           liveFeed: pushFeed(state, { type: evt.type, text: `${evt.payload.source_label}: ${evt.payload.headline || 'new report'}`, severity: 'INFO' }),
@@ -375,13 +397,17 @@ export const useStore = create((set, get) => ({
   alerts: [],
   fetchAlerts: async () => {
     let ackedStored = [];
+    let repStoredAlerts = [];
     try {
       ackedStored = JSON.parse(localStorage.getItem('resilio.acked_alerts') || '[]');
+      repStoredAlerts = JSON.parse(localStorage.getItem('resilio.reported_alerts') || '[]');
     } catch {}
 
     try {
       const data = await alertsApi.list();
-      const merged = (data || []).map(a =>
+      const existingIds = new Set((data || []).map(a => a.id));
+      const unmerged = repStoredAlerts.filter(a => !existingIds.has(a.id));
+      const merged = [...unmerged, ...(data || [])].map(a =>
         ackedStored.includes(a.id) && !a.acked_at
           ? { ...a, acked_at: new Date().toISOString(), acked_by: 'Admin' }
           : a
@@ -390,7 +416,9 @@ export const useStore = create((set, get) => ({
     } catch (err) {
       if (USE_MOCKS) {
         console.warn('fetchAlerts failed, using mock data', err);
-        const merged = MOCK_ALERTS.map(a =>
+        const existingIds = new Set(MOCK_ALERTS.map(a => a.id));
+        const unmerged = repStoredAlerts.filter(a => !existingIds.has(a.id));
+        const merged = [...unmerged, ...MOCK_ALERTS].map(a =>
           ackedStored.includes(a.id) && !a.acked_at
             ? { ...a, acked_at: new Date().toISOString(), acked_by: 'Admin' }
             : a
@@ -607,16 +635,40 @@ export const useStore = create((set, get) => ({
     const updatedReported = [newIncident, ...(state.reportedIncidents || []).filter(i => i.id !== newIncId)];
     const updatedTimelineEvents = [...(state.timelineEvents || []), newTimelineEvent, triageTimelineEvent];
 
+    const newAlert = {
+      id: `alert_rep_${newId}`,
+      type: 'NEW_REPORT',
+      severity: newIncident.priority || 'HIGH',
+      incident_id: newIncId,
+      title: `Emergency Report: ${newIncident.title}`,
+      body: reportPayload.text || `Emergency reported via ${(reportPayload.source_type || 'CITIZEN_APP').replace(/_/g, ' ')}`,
+      payload: {
+        report_id: newId,
+        source_type: reportPayload.source_type || 'CITIZEN_APP',
+        source_label: reportPayload.source_label || 'Citizen Report',
+        location: reportPayload.location,
+        incident_id: newIncId,
+      },
+      raised_at: nowIso,
+      acked_at: null,
+      acked_by: null,
+    };
+
+    const updatedAlerts = [newAlert, ...(state.alerts || [])];
+
     try {
       localStorage.setItem('resilio.reported_incidents', JSON.stringify(updatedReported));
       localStorage.setItem('resilio.reported_timeline_events', JSON.stringify(updatedTimelineEvents));
+      const storedAlerts = JSON.parse(localStorage.getItem('resilio.reported_alerts') || '[]');
+      localStorage.setItem('resilio.reported_alerts', JSON.stringify([newAlert, ...storedAlerts]));
     } catch {}
 
     set({
       incidents: updatedIncidents,
       reportedIncidents: updatedReported,
       timelineEvents: updatedTimelineEvents,
-      liveFeed: pushFeed(state, { type: 'report.created', text: `New Citizen Report: ${newIncCode}`, severity: 'HIGH' }),
+      alerts: updatedAlerts,
+      liveFeed: pushFeed(state, { type: 'report.created', text: `New Emergency Report: ${newIncCode}`, severity: 'HIGH' }),
     });
 
     return { report_id: newId, incident_id: newIncId, code: newIncCode, incident: newIncident };
@@ -625,13 +677,20 @@ export const useStore = create((set, get) => ({
   syncReportedFromStorage: () => {
     const reported = loadStoredReportedIncidents();
     const timeline = loadStoredTimelineEvents();
+    let storedAlerts = [];
+    try {
+      storedAlerts = JSON.parse(localStorage.getItem('resilio.reported_alerts') || '[]');
+    } catch {}
     set(state => {
       const existingIds = new Set(state.incidents.map(i => i.id));
       const newItems = reported.filter(r => !existingIds.has(r.id));
+      const existingAlertIds = new Set(state.alerts.map(a => a.id));
+      const newAlerts = storedAlerts.filter(a => !existingAlertIds.has(a.id));
       return {
         reportedIncidents: reported,
         timelineEvents: timeline,
         incidents: [...newItems, ...state.incidents],
+        alerts: [...newAlerts, ...state.alerts],
       };
     });
   },

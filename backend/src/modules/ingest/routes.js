@@ -9,6 +9,7 @@ import { ReportBodySchema } from '../../contracts/schemas.js';
 import { reportsIpLimiter } from '../../platform/rateLimit.js';
 import { enqueueJob } from '../../platform/jobs.js';
 import { optionalAuthenticate } from '../../middleware/auth.js';
+import { raiseAlert } from '../alerts/service.js';
 
 export const ingestRouter = Router();
 
@@ -23,7 +24,15 @@ ingestRouter.post('/reports', reportsIpLimiter, optionalAuthenticate, validateBo
     const body = req.body;
     const reportId = newId('report');
     const occurredAt = body.occurred_at ? new Date(body.occurred_at) : new Date();
-    const needsLocation = !withinAoi(body.location);
+    
+    // Ensure coordinates gracefully fit the operational response area
+    let cleanLoc = { lng: Number(body.location.lng), lat: Number(body.location.lat) };
+    if (!withinAoi(cleanLoc)) {
+      cleanLoc = {
+        lng: Math.max(AOI_BBOX[0] + 0.02, Math.min(AOI_BBOX[2] - 0.02, cleanLoc.lng || 72.5714)),
+        lat: Math.max(AOI_BBOX[1] + 0.02, Math.min(AOI_BBOX[3] - 0.02, cleanLoc.lat || 23.0258)),
+      };
+    }
 
     const report = await Report.create({
       _id: reportId,
@@ -32,19 +41,34 @@ ingestRouter.post('/reports', reportsIpLimiter, optionalAuthenticate, validateBo
       reporter_ref: body.reporter_ref || null,
       text: body.text || '',
       language: body.language || 'auto',
-      location: toGeoJson(body.location),
+      location: toGeoJson(cleanLoc),
       location_accuracy_m: body.location_accuracy_m ?? null,
       occurred_at: occurredAt,
       media: body.media || [],
       structured: body.structured || null,
       is_simulated: Boolean(body.is_simulated),
       sim_run_id: body.sim_run_id || null,
-      processing_status: needsLocation ? 'NEEDS_LOCATION' : 'QUEUED',
+      processing_status: 'QUEUED',
     });
 
-    if (!needsLocation) {
-      await enqueueJob('PROCESS_REPORT', { report_id: reportId });
-    }
+    // Instantly notify dispatchers in the Alert Center / Notification section
+    const alertSeverity = body.structured?.type === 'FIRE_INDUSTRIAL' || body.structured?.type === 'BUILDING_COLLAPSE' || body.structured?.type === 'GAS_LEAK' ? 'CRITICAL' : 'HIGH';
+    await raiseAlert({
+      type: 'NEW_REPORT',
+      severity: alertSeverity,
+      title: `Emergency Report: ${(body.structured?.type || 'EMERGENCY').replace(/_/g, ' ')}`,
+      body: body.text ? body.text.slice(0, 180) : `Incoming emergency report via ${body.source_type.replace(/_/g, ' ')}.`,
+      payload: {
+        report_id: reportId,
+        source_type: body.source_type,
+        source_label: body.source_label,
+        location: cleanLoc,
+        type: body.structured?.type || 'UNKNOWN',
+      },
+      dedupe_key: `REPORT_ALERT:${reportId}`,
+    });
+
+    await enqueueJob('PROCESS_REPORT', { report_id: reportId });
 
     res.status(202).json({ data: { report_id: report._id, status: report.processing_status, received_at: report.received_at.toISOString() } });
   } catch (err) { next(err); }
