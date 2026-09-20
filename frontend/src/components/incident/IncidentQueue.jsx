@@ -74,9 +74,9 @@ export function IncidentQueue() {
   }, [incidents, filters]);
 
   return (
-    <div className="w-[440px] h-full border-r border-slate-200/80 bg-slate-50/60 flex flex-col shrink-0 overflow-hidden select-none">
+    <div className="w-full h-full flex flex-col shrink-0 overflow-hidden select-none bg-transparent gap-2">
       {/* ——— Sidebar Header & Close Control ——— */}
-      <div className="px-5 py-3 bg-white border-b border-slate-200/80 flex items-center justify-between shrink-0">
+      <div className="px-4 py-2.5 bg-white rounded-xl border border-slate-200/90 shadow-xs flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
           <span className="text-sm font-bold text-slate-900 uppercase tracking-wider">Incident Queue</span>
           <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80">
@@ -85,7 +85,7 @@ export function IncidentQueue() {
         </div>
         <button
           onClick={toggleSidebar}
-          className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
           title="Close Sidebar Menu"
           aria-label="Close Sidebar Menu"
         >
@@ -95,26 +95,26 @@ export function IncidentQueue() {
 
       {/* ——— Attention Banner ——— */}
       {(pendingAlerts.length > 0 || contestedIncidents.length > 0 || pendingRecommendations.length > 0) && (
-        <div className="border-b border-amber-200/60 bg-amber-50/70 px-5 py-3 shrink-0">
-          <div className="flex items-center justify-between mb-2">
+        <div className="border border-amber-200/90 bg-amber-50/95 rounded-xl px-4 py-2.5 shrink-0 shadow-xs">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
               <Radio size={14} className="text-amber-600 animate-pulse" />
               Active Operational Attention
             </span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {pendingAlerts.filter(a => a.severity === 'CRITICAL').length > 0 && (
-              <span className="px-2.5 py-1 rounded-lg bg-red-100 text-red-800 text-xs font-bold border border-red-200/80 flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-lg bg-red-100 text-red-800 text-[11px] font-bold border border-red-200/80 flex items-center gap-1">
                 <span>{pendingAlerts.filter(a => a.severity === 'CRITICAL').length}</span> critical alerts
               </span>
             )}
             {contestedIncidents.length > 0 && (
-              <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 text-xs font-bold border border-amber-200/80 flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-900 text-[11px] font-bold border border-amber-200/80 flex items-center gap-1">
                 <span>{contestedIncidents.length}</span> contested
               </span>
             )}
             {pendingRecommendations.length > 0 && (
-              <span className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-900 text-xs font-bold border border-blue-200/80 flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-lg bg-blue-100 text-blue-900 text-[11px] font-bold border border-blue-200/80 flex items-center gap-1">
                 <span>{pendingRecommendations.length}</span> pending dispatch
               </span>
             )}
@@ -123,55 +123,55 @@ export function IncidentQueue() {
       )}
 
       {/* ——— Search & Filters Header ——— */}
-      <div className="p-4 border-b border-slate-200/80 bg-white space-y-3 shrink-0">
+      <div className="p-3 bg-white rounded-xl border border-slate-200/90 shadow-xs space-y-2.5 shrink-0">
         {/* Search Bar */}
         <div className="relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Search incident title, location, code..."
             value={filters.search}
             onChange={(e) => setFilter('search', e.target.value)}
             className="
-              w-full h-10 pl-10 pr-3.5 bg-slate-50 border border-slate-200/90 rounded-xl
-              text-xs sm:text-sm text-slate-900 placeholder:text-slate-400
+              w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/90 rounded-lg
+              text-xs text-slate-900 placeholder:text-slate-400
               focus:bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20
-              transition-all duration-150 shadow-2xs
+              transition-all duration-150
             "
           />
         </div>
 
-        {/* Severity Filter Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+        {/* Severity Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
           <button
             onClick={() => setFilter('severity', [])}
             className={`
-              h-7 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0
+              h-6 px-2.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 border
               ${filters.severity.length === 0
-                ? 'bg-slate-900 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100 hover:text-slate-900'
               }
             `}
           >
-            All ({incidents.length})
+            All ({incidents.filter(i => !['CLOSED', 'MERGED', 'FALSE_ALARM'].includes(i.status)).length})
           </button>
-          {SEVERITY.slice(0, 4).map(sev => {
+          {SEVERITY.map(sev => {
             const isSelected = filters.severity.includes(sev);
             return (
               <button
                 key={sev}
                 onClick={() => {
-                  const current = filters.severity;
-                  setFilter('severity', current.includes(sev)
-                    ? current.filter(s => s !== sev)
-                    : [...current, sev]
-                  );
+                  if (isSelected) {
+                    setFilter('severity', filters.severity.filter(s => s !== sev));
+                  } else {
+                    setFilter('severity', [...filters.severity, sev]);
+                  }
                 }}
                 className={`
-                  h-7 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 border
+                  h-6 px-2.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 border
                   ${isSelected
                     ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                    : 'bg-white text-slate-600 border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
+                    : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100 hover:text-slate-900'
                   }
                 `}
               >
@@ -183,9 +183,9 @@ export function IncidentQueue() {
       </div>
 
       {/* ——— Incident Cards Feed ——— */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/50">
+      <div className="flex-1 overflow-y-auto space-y-2 pr-1">
         {filteredIncidents.length === 0 ? (
-          <div className="p-12 text-center text-xs text-slate-400 font-medium">
+          <div className="p-8 text-center text-xs text-slate-400 font-medium bg-white/60 rounded-xl border border-white/40">
             No incidents found matching the selected filters.
           </div>
         ) : (
@@ -204,7 +204,7 @@ export function IncidentQueue() {
       </div>
 
       {/* ——— Footer Stats Bar ——— */}
-      <div className="h-10 px-5 border-t border-slate-200/80 bg-white flex items-center justify-between text-xs text-slate-500 font-medium shrink-0">
+      <div className="h-9 px-4 bg-white rounded-xl border border-slate-200/90 shadow-xs flex items-center justify-between text-xs text-slate-500 font-medium shrink-0">
         <span>
           Showing <strong className="text-slate-800 font-bold">{filteredIncidents.length}</strong> active incidents
         </span>
