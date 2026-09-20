@@ -452,7 +452,7 @@ export function SituationMap() {
 
       {/* Floating 3-Line Sidebar Menu Toggle Button on Map (Only visible when sidebar is closed) */}
       {!sidebarOpen && (
-        <div className="absolute top-20 left-4 z-20">
+        <div className="absolute top-20 left-4 z-[4000]">
           <button
             type="button"
             onClick={toggleSidebar}
@@ -469,7 +469,7 @@ export function SituationMap() {
       )}
 
       {/* Map floating controls */}
-      <div className="absolute top-20 right-4 flex flex-col gap-2 z-10">
+      <div className="absolute top-20 right-4 flex flex-col gap-2 z-[4000]">
         <div className="bg-white border border-slate-200 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] flex flex-col overflow-hidden">
           <button
             onClick={() => mapRef.current?.zoomIn()}
@@ -512,7 +512,7 @@ export function SituationMap() {
 
           {/* Popover anchored to the left of the button */}
           {showLayersPopup && (
-            <div className="absolute right-full mr-2 top-0 bg-white border border-slate-200 rounded-xl p-3.5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] z-30 min-w-[220px] animate-in fade-in zoom-in-95 duration-150 select-none">
+            <div className="absolute right-full mr-2 top-0 bg-white border border-slate-200 rounded-xl p-3.5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] z-[5000] min-w-[220px] animate-in fade-in zoom-in-95 duration-150 select-none">
               {/* Basemap Mode Selector */}
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Globe size={13} className="text-blue-600" />
