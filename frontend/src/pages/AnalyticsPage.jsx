@@ -240,7 +240,7 @@ export function AnalyticsPage() {
             {shortages.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {shortages.map(s => (
-                  <div key={s.ward} className="kpi-azure-card-wrapper group">
+                  <div key={s.ward} className="kpi-azure-card-wrapper group cursor-pointer">
                     <div className="kpi-border-spinner" />
                     <div
                       className="kpi-azure-card-inner flex items-center justify-between p-3.5"
@@ -276,7 +276,7 @@ export function AnalyticsPage() {
 
 function KPICard({ icon: Icon, label, value, subtitle, accent = false }) {
   return (
-    <div className="kpi-azure-card-wrapper group">
+    <div className="kpi-azure-card-wrapper group cursor-pointer">
       <div className="kpi-border-spinner" />
       <div className="kpi-azure-card-inner p-5 flex flex-col justify-between">
         <div>
@@ -296,7 +296,7 @@ function KPICard({ icon: Icon, label, value, subtitle, accent = false }) {
 
 function MetricCard({ label, value }) {
   return (
-    <div className="kpi-azure-card-wrapper group">
+    <div className="kpi-azure-card-wrapper group cursor-pointer">
       <div className="kpi-border-spinner" />
       <div className="kpi-azure-card-inner p-4 flex flex-col justify-between">
         <div className="text-xs text-slate-500 font-medium mb-1">{label}</div>
