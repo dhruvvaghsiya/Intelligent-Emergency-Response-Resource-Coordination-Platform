@@ -1164,14 +1164,6 @@ export function ReplayPage() {
               <Plus size={14} />
               Add Event
             </button>
-
-            <button
-              onClick={() => { setPosition(0); setPlaying(false); }}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-lg shadow-xs transition-colors cursor-pointer"
-            >
-              <RotateCcw size={13} />
-              Reset
-            </button>
           </div>
         </div>
 
