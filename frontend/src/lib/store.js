@@ -8,7 +8,7 @@ import {
   authApi, incidentsApi, unitsApi, hospitalsApi, alertsApi,
   storeTokens, clearTokens, getStoredToken, setOnAuthFailure,
 } from './api';
-import { connectSocket, disconnectSocket } from './socket';
+import { connectSocket } from './socket';
 import { MOCK_INCIDENTS, MOCK_UNITS, MOCK_ALERTS, MOCK_HOSPITALS } from '../mocks/fixtures';
 
 const USE_MOCKS = import.meta.env?.VITE_USE_MOCKS !== 'false';
@@ -60,12 +60,10 @@ function upsertById(list, item) {
   return next;
 }
 
+// Single-role system — the one account that can sign in (offline/demo-mode fallback only; the
+// real backend is the source of truth for credentials).
 export const DEMO_USERS = [
-  { id: 'usr_commander', email: 'commander@prahari.in', name: 'Cdr. Arjun Shah',   role: 'COMMANDER',  password: 'prahari123' },
-  { id: 'usr_dispatcher', email: 'dispatch@prahari.in',  name: 'Disp. Priya Mehta', role: 'DISPATCHER', password: 'prahari123' },
-  { id: 'usr_analyst',    email: 'analyst@prahari.in',   name: 'Anl. Ravi Kumar',   role: 'ANALYST',    password: 'prahari123' },
-  { id: 'usr_unit07',     email: 'unit07@prahari.in',    name: 'FO Ketan Patel',    role: 'FIELD_UNIT', password: 'prahari123' },
-  { id: 'usr_admin',      email: 'admin@prahari.in',     name: 'System Admin',       role: 'ADMIN',      password: 'prahari123' },
+  { id: 'usr_admin', email: 'admin@prahari.in', name: 'System Admin', role: 'ADMIN', password: 'prahari123' },
 ];
 
 export const useStore = create((set, get) => ({
@@ -118,9 +116,17 @@ export const useStore = create((set, get) => ({
     }
   },
 
+  // §public-viewing — no account is required just to look. If there's no stored token this still
+  // opens an anonymous live connection and fetches the same public data an operator sees; only
+  // restoring an authenticated identity (and the extra permissions that come with it) needs a
+  // valid token.
   restoreSession: async () => {
     const token = getStoredToken();
-    if (!token) return;
+    if (!token) {
+      get().connectRealtime();
+      get().fetchAll();
+      return;
+    }
     try {
       const user = await authApi.me();
       set({ user, token, isAuthenticated: true });
@@ -131,6 +137,8 @@ export const useStore = create((set, get) => ({
       localStorage.removeItem('resilio.user');
       localStorage.removeItem('prahari.user');
       set({ user: null, token: null, isAuthenticated: false });
+      get().connectRealtime();
+      get().fetchAll();
     }
   },
 
@@ -138,14 +146,13 @@ export const useStore = create((set, get) => ({
     clearTokens();
     localStorage.removeItem('resilio.user');
     localStorage.removeItem('prahari.user');
-    disconnectSocket();
     set({ user: null, token: null, isAuthenticated: false });
+    get().connectRealtime(); // drop back to an anonymous live connection rather than going dark
   },
 
   // ——— Realtime ———
   connectRealtime: () => {
-    const token = getStoredToken();
-    if (!token) return;
+    const token = getStoredToken(); // may be null — an anonymous viewer still gets a live socket
     const socket = connectSocket(token);
 
     socket.on('heartbeat', () => set({ connectionStatus: 'connected', lastEventAt: new Date().toISOString() }));

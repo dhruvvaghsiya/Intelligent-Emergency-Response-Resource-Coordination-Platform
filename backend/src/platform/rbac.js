@@ -21,21 +21,11 @@ export const PERMISSIONS = {
 
 const P = PERMISSIONS;
 
-// role -> Set(permission)
+// role -> Set(permission) — a single role (ADMIN, see contracts/enums.js ROLE) holds every
+// permission there is. Anonymous/public visitors hold none (req.user is null — see
+// optionalAuthenticate in middleware/auth.js) rather than being modeled as a "VIEWER" role.
 const MATRIX = {
   ADMIN: Object.values(P),
-  COMMANDER: [
-    P.VIEW_INCIDENTS, P.EDIT_INCIDENT, P.APPROVE_DISPATCH, P.APPROVE_PREEMPTION,
-    P.OVERRIDE_SEVERITY, P.MERGE_INCIDENT, P.SUPERSEDE_EVIDENCE, P.CLOSE_INCIDENT,
-    P.UPDATE_OWN_UNIT, P.ANALYTICS, P.SEE_REPORTER_CONTACT, P.RUN_SIMULATION, P.MANAGE_RESOURCES,
-  ],
-  DISPATCHER: [
-    P.VIEW_INCIDENTS, P.EDIT_INCIDENT, P.APPROVE_DISPATCH, P.MERGE_INCIDENT,
-    P.SUPERSEDE_EVIDENCE, P.UPDATE_OWN_UNIT, P.ANALYTICS, P.SEE_REPORTER_CONTACT, P.RUN_SIMULATION, P.MANAGE_RESOURCES,
-  ],
-  ANALYST: [P.VIEW_INCIDENTS, P.ANALYTICS],
-  FIELD_UNIT: [P.VIEW_INCIDENTS, P.UPDATE_OWN_UNIT],
-  VIEWER: [P.VIEW_INCIDENTS],
 };
 
 export function can(role, permission) {
@@ -47,16 +37,6 @@ export function requirePermission(permission) {
     if (!req.user) return next(new AppError('UNAUTHENTICATED'));
     if (!can(req.user.role, permission)) {
       return next(new AppError('FORBIDDEN', 'Insufficient role for this action', { required_role: permission }));
-    }
-    next();
-  };
-}
-
-export function requireAnyRole(...roles) {
-  return (req, res, next) => {
-    if (!req.user) return next(new AppError('UNAUTHENTICATED'));
-    if (!roles.includes(req.user.role)) {
-      return next(new AppError('FORBIDDEN', 'Insufficient role for this action', { required_role: roles }));
     }
     next();
   };

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { Unit } from '../../models/Unit.js';
 import { UnitLocationHistory } from '../../models/UnitLocationHistory.js';
 import { Hospital } from '../../models/Hospital.js';
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate, optionalAuthenticate } from '../../middleware/auth.js';
 import { requirePermission, PERMISSIONS } from '../../platform/rbac.js';
 import { validateBody } from '../../middleware/validate.js';
 import { UnitPatchSchema, UnitLocationSchema } from '../../contracts/schemas.js';
@@ -22,7 +22,7 @@ function toUnitWire(u) {
   };
 }
 
-resourcesRouter.get('/units', authenticate, async (req, res, next) => {
+resourcesRouter.get('/units', optionalAuthenticate, async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.status) filter.status = { $in: String(req.query.status).split(',') };
@@ -69,7 +69,7 @@ resourcesRouter.post('/units/:id/location', authenticate, validateBody(UnitLocat
   } catch (err) { next(err); }
 });
 
-resourcesRouter.get('/hospitals', authenticate, async (req, res, next) => {
+resourcesRouter.get('/hospitals', optionalAuthenticate, async (req, res, next) => {
   try {
     const hospitals = await Hospital.find();
     res.json({ data: hospitals.map(toHospitalWire) });

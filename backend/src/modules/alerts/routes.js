@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { Alert } from '../../models/Alert.js';
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate, optionalAuthenticate } from '../../middleware/auth.js';
 import { requirePermission, PERMISSIONS } from '../../platform/rbac.js';
 import { ackAlert, toAlertWire } from './service.js';
 
 export const alertsRouter = Router();
 
-alertsRouter.get('/alerts', authenticate, async (req, res, next) => {
+alertsRouter.get('/alerts', optionalAuthenticate, async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.unacked === 'true') filter.acked_at = null;

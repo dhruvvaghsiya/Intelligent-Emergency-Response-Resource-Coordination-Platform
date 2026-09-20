@@ -6,12 +6,11 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   ShieldCheck, Map, BarChart3, Clock, Sparkles,
-  LogOut, HeartHandshake, FileText, Bell, WifiOff
+  LogOut, LogIn, HeartHandshake, FileText, Bell, WifiOff
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
-import { hasPermission, PERMISSIONS } from '../../lib/permissions';
 
-const BASE_NAV_ITEMS = [
+const NAV_ITEMS = [
   { path: '/ops', label: 'Situation Ops', icon: Map },
   { path: '/resources', label: 'Fleet & Hospitals', icon: HeartHandshake },
   { path: '/alerts', label: 'Alert Center', icon: Bell, badge: true },
@@ -19,27 +18,25 @@ const BASE_NAV_ITEMS = [
   { path: '/replay', label: 'Incident Replay', icon: Clock },
   { path: '/ai-health', label: 'AI Health', icon: Sparkles },
 ];
-const ADMIN_NAV_ITEM = { path: '/admin', label: 'Admin Console', icon: ShieldCheck };
 
 export function Navbar() {
   const location = useLocation();
   const { user, logout, connectionStatus, alerts } = useStore();
 
   const unackedAlerts = (alerts || []).filter(a => !a.acked_at);
-  const NAV_ITEMS = hasPermission(user, PERMISSIONS.ADMIN) ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : BASE_NAV_ITEMS;
 
   return (
     <header className="absolute top-0 left-0 right-0 h-16 z-40 flex items-center justify-between px-6 pointer-events-none select-none">
       {/* Brand Logo with Dedicated Azure Background */}
       <Link
-        to="/ops"
+        to="/"
         className="pointer-events-auto flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl border border-sky-300/70 shadow-sm transition-all no-underline group shrink-0 hover:brightness-95"
         style={{
           backgroundColor: 'azure',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)'
         }}
-        title="Resilio Ops"
+        title="Resilio"
       >
         <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/25 group-hover:scale-105 transition-transform">
           <ShieldCheck size={19} strokeWidth={2.4} />
@@ -151,17 +148,26 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* User Cockpit */}
+        {/* User Cockpit — avatar opens the role-aware Profile page */}
         {user && (
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200/80 shrink-0">
             <div className="relative group flex items-center justify-center">
-              <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center shrink-0 cursor-default">
+              <Link
+                to="/profile"
+                className={`w-8 h-8 rounded-xl border text-xs font-bold flex items-center justify-center shrink-0 no-underline transition-colors ${
+                  location.pathname === '/profile'
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'bg-slate-100 border-slate-200 text-slate-800 hover:bg-slate-200'
+                }`}
+                aria-label="Profile"
+              >
                 {user.name ? user.name.slice(0, 2).toUpperCase() : 'OP'}
-              </div>
+              </Link>
               <div className="absolute top-full mt-3 right-0 px-3.5 py-2 bg-white/95 backdrop-blur-md border border-slate-200/90 text-slate-800 rounded-xl whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 shadow-xl z-50 text-left">
                 <div className="absolute -top-1 right-3.5 w-2.5 h-2.5 bg-white border-t border-l border-slate-200/90 rotate-45" />
                 <div className="text-xs font-bold text-slate-900">{user.name}</div>
                 <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{user.role}</div>
+                <div className="text-[10px] text-blue-600 font-semibold mt-1">View Profile →</div>
               </div>
             </div>
 
@@ -174,6 +180,19 @@ export function Navbar() {
               <LogOut size={16} />
             </button>
           </div>
+        )}
+
+        {/* Anonymous visitor — everything up to here is already visible read-only; the single
+            Admin role signs in here to modify or update anything */}
+        {!user && (
+          <Link
+            to="/login"
+            className="h-8 pl-2.5 pr-3 ml-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 no-underline shrink-0 border-l border-slate-200/80 transition-colors"
+            title="Admin sign in"
+          >
+            <LogIn size={14} />
+            Admin
+          </Link>
         )}
       </div>
     </header>

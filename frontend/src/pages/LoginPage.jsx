@@ -1,30 +1,22 @@
 /* =========================================================================
-   LOGIN PAGE — Resilio Emergency Response Console
-   Sign-in only. Operator accounts are provisioned by an admin (Admin Console →
-   Create Operator), never self-registered — see backend/src/modules/admin/routes.js.
-   Theme: Bright White Theme, Daylight Aerial Cartography Hero,
-   Consistent with app typography (Inter/Geist sans-serif) and brand colors (Blue-600).
+   LOGIN PAGE — Resilio Admin Sign-In
+   Single-role system: this is the one account type (Admin) that can sign in and manage the
+   platform. Everyone else browses live, public, unauthenticated (see App.jsx) — no self-service
+   registration, no role picker. Additional admin accounts are provisioned from the Admin Console
+   (Profile page) by an already-signed-in admin.
    ========================================================================= */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
-import { useStore, DEMO_USERS } from '../lib/store';
+import { useStore } from '../lib/store';
 import { BackgroundMap } from '../components/map/BackgroundMap';
-
-const ROLE_PRESETS = [
-  { id: 'COMMANDER',  label: 'Commander',   badge: 'bg-red-50 text-red-700 border-red-200',      email: 'commander@prahari.in' },
-  { id: 'DISPATCHER', label: 'Dispatcher',  badge: 'bg-blue-50 text-blue-700 border-blue-200',    email: 'dispatch@prahari.in' },
-  { id: 'ANALYST',    label: 'Analyst',     badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', email: 'analyst@prahari.in' },
-  { id: 'FIELD_UNIT', label: 'Field Unit',  badge: 'bg-amber-50 text-amber-700 border-amber-200',   email: 'unit07@prahari.in' },
-  { id: 'ADMIN',      label: 'Admin',       badge: 'bg-purple-50 text-purple-700 border-purple-200', email: 'admin@prahari.in' },
-];
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated, login, authLoading } = useStore();
 
-  const [email, setEmail] = useState('dispatch@prahari.in');
+  const [email, setEmail] = useState('admin@prahari.in');
   const [password, setPassword] = useState('prahari123');
   const [showPass, setShowPass] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -43,14 +35,6 @@ export function LoginPage() {
   const handleSignInSubmit = async (e) => {
     e.preventDefault();
     await executeLogin(email, password);
-  };
-
-  const handleQuickLogin = (demoEmail) => {
-    const demo = DEMO_USERS.find(u => u.email === demoEmail);
-    if (demo) {
-      setEmail(demo.email);
-      setPassword(demo.password);
-    }
   };
 
   return (
@@ -131,7 +115,7 @@ export function LoginPage() {
                 <div className="flex items-center gap-1.5">
                   <span className="text-base font-bold text-slate-900 tracking-tight">Resilio</span>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 border border-sky-200">
-                    Ops
+                    Admin
                   </span>
                 </div>
               </div>
@@ -154,10 +138,10 @@ export function LoginPage() {
               {/* Heading (Consistent font-sans typography) */}
               <div className="text-center mb-6">
                 <h1 className="text-2xl sm:text-[30px] font-extrabold text-slate-900 tracking-tight leading-tight">
-                  Welcome Back
+                  Admin Sign In
                 </h1>
                 <p className="text-xs font-medium text-slate-500 mt-1">
-                  Enter your operator credentials to access the console
+                  Everyone can view live operations without an account — sign in only to manage incidents, dispatch, and resources.
                 </p>
               </div>
 
@@ -183,7 +167,7 @@ export function LoginPage() {
                     htmlFor="signin-email"
                     className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"
                   >
-                    Email / Operator ID
+                    Admin Email
                   </label>
                   <div className="relative">
                     <input
@@ -191,7 +175,7 @@ export function LoginPage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="dispatch@prahari.in"
+                      placeholder="admin@prahari.in"
                       className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none transition-colors"
                       required
                       autoComplete="username"
@@ -241,7 +225,7 @@ export function LoginPage() {
                     <span className="font-medium">Remember me</span>
                   </label>
                   <span className="text-slate-400 font-medium">
-                    Pass: <span className="font-bold text-slate-700">prahari123</span>
+                    Demo pass: <span className="font-bold text-slate-700">prahari123</span>
                   </span>
                 </div>
 
@@ -263,47 +247,13 @@ export function LoginPage() {
                     'Sign In & Launch Console'
                   )}
                 </button>
-
-                {/* ── Quick Operator 1-Click Select Chips ─────────── */}
-                <div className="pt-3.5 border-t border-slate-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      Quick Operator Select
-                    </span>
-                    <span className="text-[10px] font-semibold text-slate-400">
-                      1-Click Autofill
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {ROLE_PRESETS.map((r) => {
-                      const isSelected = email === r.email;
-                      return (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => handleQuickLogin(r.email)}
-                          className={`
-                            px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1
-                            ${isSelected
-                              ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-xs'
-                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                            }
-                          `}
-                        >
-                          <span>{r.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
               </form>
             </div>
 
             {/* Bottom note — no self-registration by design */}
             <div className="text-center pt-4">
               <p className="text-xs text-slate-500 font-medium">
-                Need an account? Ask your administrator to create one from the Admin Console.
+                Need an admin account? Ask an existing admin to create one from the Admin Console.
               </p>
             </div>
 

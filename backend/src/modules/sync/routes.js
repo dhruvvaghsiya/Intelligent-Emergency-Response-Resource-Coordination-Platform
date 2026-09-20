@@ -1,12 +1,12 @@
 // §13.5 gap recovery — GET /sync?room=&since_seq=
 
 import { Router } from 'express';
-import { authenticate } from '../../middleware/auth.js';
+import { optionalAuthenticate } from '../../middleware/auth.js';
 import { eventsSince } from '../../platform/events.js';
 
 export const syncRouter = Router();
 
-syncRouter.get('/sync', authenticate, async (req, res, next) => {
+syncRouter.get('/sync', optionalAuthenticate, async (req, res, next) => {
   try {
     const room = String(req.query.room || 'ops:global');
     const sinceSeq = Number(req.query.since_seq) || 0;
