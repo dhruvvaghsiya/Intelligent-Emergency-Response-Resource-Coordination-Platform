@@ -3,6 +3,7 @@
    Auth: Authorization: Bearer <access_token>, refreshed on 401 via /auth/refresh
    ========================================================================= */
 import axios from 'axios';
+import { generateMockDispatchPlans } from '../mocks/fixtures';
 
 const TOKEN_KEY = 'prahari.token';
 const REFRESH_KEY = 'prahari.refresh_token';
@@ -77,6 +78,7 @@ const unwrap = (res) => res.data.data;
 
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }).then(unwrap),
+  register: (body) => api.post('/auth/register', body).then(unwrap),
   refresh: (refresh_token) => api.post('/auth/refresh', { refresh_token }).then(unwrap),
   me: () => api.get('/auth/me').then(unwrap),
 };

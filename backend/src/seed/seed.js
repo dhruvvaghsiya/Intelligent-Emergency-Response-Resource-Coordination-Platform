@@ -51,15 +51,19 @@ async function reset() {
 
 async function seedUsers() {
   const users = [
-    { email: 'commander@prahari.in', name: 'Cdr. Shah', role: 'COMMANDER' },
-    { email: 'dispatch@prahari.in', name: 'Dispatcher Patel', role: 'DISPATCHER' },
-    { email: 'analyst@prahari.in', name: 'Analyst Mehta', role: 'ANALYST' },
-    { email: 'unit07@prahari.in', name: 'Unit 07 Crew', role: 'FIELD_UNIT' },
-    { email: 'admin@prahari.in', name: 'Admin', role: 'ADMIN' },
+    { email: 'commander@prahari.in', name: 'Cdr. Arjun Shah', role: 'COMMANDER' },
+    { email: 'dispatch@prahari.in', name: 'Disp. Priya Mehta', role: 'DISPATCHER' },
+    { email: 'analyst@prahari.in', name: 'Anl. Ravi Kumar', role: 'ANALYST' },
+    { email: 'unit07@prahari.in', name: 'FO Ketan Patel', role: 'FIELD_UNIT' },
+    { email: 'admin@prahari.in', name: 'System Admin', role: 'ADMIN' },
   ];
   const password_hash = await bcrypt.hash('prahari123', 10);
   for (const u of users) {
-    await User.findOneAndUpdate({ email: u.email }, { $setOnInsert: { _id: newId('user'), ...u, password_hash } }, { upsert: true });
+    await User.findOneAndUpdate(
+      { email: u.email },
+      { $set: { name: u.name, role: u.role, password_hash }, $setOnInsert: { _id: newId('user') } },
+      { upsert: true }
+    );
   }
   logger.info('Seeded %d users (password: prahari123)', users.length);
 }

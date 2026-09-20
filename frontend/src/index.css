@@ -210,3 +210,31 @@
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono);
 }
+
+/* ——— KPI & Analytics Azure Cards — Simple Hover Border ——— */
+.kpi-azure-card-wrapper {
+  position: relative;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  background-color: azure;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.kpi-azure-card-wrapper:hover {
+  border-color: #38bdf8; /* sky-400 — thin solid static border */
+  box-shadow: 0 2px 8px -2px rgba(14, 165, 233, 0.12);
+}
+
+/* Spinner div kept as no-op so existing JSX doesn't break */
+.kpi-border-spinner {
+  display: none;
+}
+
+.kpi-azure-card-inner {
+  background-color: azure;
+  border-radius: 11px;
+  height: 100%;
+  width: 100%;
+}
+

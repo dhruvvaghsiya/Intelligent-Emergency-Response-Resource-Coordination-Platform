@@ -19,13 +19,18 @@ import { FieldPage } from './pages/FieldPage';
 
 import { MOCK_INCIDENTS, MOCK_UNITS, MOCK_ALERTS, MOCK_HOSPITALS } from './mocks/fixtures';
 
-// Auth guard (temporarily bypassed for direct preview)
+// Re-enabled Auth Guard
 function ProtectedRoute({ children }) {
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
   return children;
 }
 
 function AppShell() {
   const location = useLocation();
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
   const isOps = location.pathname.startsWith('/ops');
   const isLogin = location.pathname === '/login';
 
@@ -90,7 +95,7 @@ function AppShell() {
           />
           <Route path="/field" element={<FieldPage />} />
           {/* Default redirect */}
-          <Route path="*" element={<Navigate to="/ops" replace />} />
+          <Route path="*" element={<Navigate to={isAuthenticated ? "/ops" : "/login"} replace />} />
         </Routes>
       </main>
     </div>
@@ -102,21 +107,8 @@ export default function App() {
   useKeyboardShortcuts();
 
   useEffect(() => {
-    // Ensure authentication token exists so backend API queries succeed
-    if (!localStorage.getItem('prahari.token')) {
-      useStore.getState().login('commander@prahari.in', 'prahari123').catch(() => {});
-    }
-    if (!localStorage.getItem('resilio.user') && !localStorage.getItem('prahari.user')) {
-      const defaultUser = {
-        id: 'usr_001',
-        email: 'commander@prahari.in',
-        name: 'Cdr. Arjun Shah',
-        role: 'COMMANDER'
-      };
-      localStorage.setItem('resilio.user', JSON.stringify(defaultUser));
-      localStorage.setItem('prahari.user', JSON.stringify(defaultUser));
-      useStore.setState({ user: defaultUser, isAuthenticated: true });
-    }
+    // Restore session if user was previously logged in
+    restoreSession();
 
     // Ensure mock data is immediately present for instant preview
     const state = useStore.getState();
@@ -130,8 +122,6 @@ export default function App() {
         selectedIncidentId: null,
       });
     }
-
-    restoreSession();
   }, [restoreSession]);
 
   return (
