@@ -17,6 +17,7 @@ Resilio treats this as an **inference + optimization** problem, not a CRUD dashb
 | | |
 |---|---|
 | 🧮 **Bayesian evidence fusion** | Conflicting reports are combined with source reliability and time decay, not "latest message wins". |
+| 🎙️ **Voice-to-Report AI** | Real-time voice recording & transcription transforms spoken emergency narrations into structured, geo-tagged incident reports instantly. |
 | 🔍 **Explainable severity** | A 7-factor weighted score with hard safety rules (escalate-only) and counterfactuals. No black box. |
 | 🚒 **Optimal dispatch** | Hungarian (Kuhn–Munkres) assignment with preemption-regret and 3 strategies, not "nearest unit". |
 | 🧩 **Duplicate detection** | 2-stage geo-blocking + 6-feature score, race-proof and reversible. |
@@ -30,6 +31,7 @@ Resilio treats this as an **inference + optimization** problem, not a CRUD dashb
 | Required capability | Where it lives |
 |---|---|
 | Multi-source incident collection | 11 source types → single ingest door (`backend/src/modules/ingest`) |
+| Voice-to-Report & Audio Ingest | Web Speech recognition + multi-attribute emergency intent parser (`frontend/src/pages/ReportPage.jsx`) |
 | Classification, severity, priority | AI extraction + deterministic severity engine (`core-logic/severity.js`) |
 | Duplicate detection | `core-logic/correlation.js`, `modules/correlation` |
 | Resource recommendation (teams, vehicles, equipment, facilities) | `modules/dispatch` (units + capabilities), hospital ranking |
@@ -107,6 +109,12 @@ Bands: **CRITICAL ≥ 80 · HIGH ≥ 60 · MODERATE ≥ 35 · LOW ≥ 15**.
 - **Fallback chain:** LLM → keyword rules and regex → hashing embedding.
 - **Classifier:** a TF-IDF + LinearSVC model is served at `/ai/v1/classify` and benchmarked against the keyword baseline (see below).
 
+### 7. Voice-to-Report synthesis — `frontend/src/pages/ReportPage.jsx`
+- **Continuous Voice Streaming:** Real-time browser speech recognition captures live spoken emergency audio from callers, witnesses, or field personnel.
+- **Multi-Attribute Intent Engine:** Spoken audio is analyzed across 14 incident categories (building collapse, chemical spill, structure fire, road collision, gas leak, medical emergency, flood/waterlogging, etc.) using weighted keyword and semantic intent scoring.
+- **Zero-Touch Form Generation:** Automatically populates the entire incident report—classifying incident type, extracting situational description, assigning GPS coordinates, and contact details from voice alone without manual typing.
+- **Resilient Fallback:** Includes interactive simulated audio presets for environments without microphone access.
+
 ---
 
 ## Reliability
@@ -150,7 +158,7 @@ cd ai      && python -m pytest tests -q        # 83 AI tests
 
 ## The screens
 
-**Ops** (live map, queue, evidence, severity and dispatch panels) · **Resources** (units and hospitals) · **Alerts** · **Analytics** (dedup ratio, p50/p90 response by type, fleet utilization, plan acceptance) · **AI Health** (circuit-breaker state, latency, fallback rate) · **Replay** (scrub any incident's event timeline) · **Report** (citizen form with GPS and voice-to-form) · **Field** (status updates and observations).
+**Ops** (live map, queue, evidence, severity and dispatch panels) · **Resources** (units and hospitals) · **Alerts** · **Analytics** (dedup ratio, p50/p90 response by type, fleet utilization, plan acceptance) · **AI Health** (circuit-breaker state, latency, fallback rate) · **Replay** (scrub any incident's event timeline) · **Report** (citizen portal with live voice recording, voice-to-report AI synthesis, and GPS geocoding) · **Field** (status updates and observations).
 
 Anyone can **view** the live picture. Actions (approve dispatch, override severity, start demos) need the admin login.
 
@@ -192,6 +200,7 @@ No API key? Keep `LLM_PROVIDER=mock`; it runs fully offline on keyword rules. Sk
 Log in, open **Ops**, and start a scenario from the simulation panel:
 - **Sabarmati flood:** many reports merge into one incident, and nearby roads are marked blocked.
 - **Vatva chemical fire:** a sensor contradicts callers, the conflict is flagged, and severity holds CRITICAL until a field officer confirms.
+- **Voice-to-Report generation:** open **Report**, click the microphone or trigger simulated voice sessions, speak an emergency description, and watch the platform transcribe and auto-generate the complete structured incident report in real time.
 
 ---
 
