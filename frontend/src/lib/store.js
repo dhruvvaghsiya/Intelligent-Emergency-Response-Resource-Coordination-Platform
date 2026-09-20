@@ -27,6 +27,13 @@ function pushFeed(state, { type, text, severity = 'INFO' }) {
   return [entry, ...state.liveFeed].slice(0, 100);
 }
 
+// Rolling log of {source_type, ts} — capped, windowed by the reading component (e.g. "last 60s"
+// per source) rather than pruned here, so there's a single place that decides the window size.
+function bumpSourceActivity(log, sourceType) {
+  if (!sourceType) return log;
+  return [{ source_type: sourceType, ts: Date.now() }, ...log].slice(0, 300);
+}
+
 function upsertById(list, item) {
   const idx = list.findIndex((x) => x.id === item.id);
   if (idx === -1) return [item, ...list];
@@ -232,6 +239,22 @@ export const useStore = create((set, get) => ({
       lastEventAt: evt.ts,
       liveFeed: pushFeed(state, { type: evt.type, text: `Dispatch plans generated for ${evt.entity?.id}`, severity: 'INFO' }),
     })));
+
+    // Live World Engine feed — fires the instant a multi-source report lands, ahead of the
+    // pipeline finishing. `notable` reports (director-spawned incident clusters, hospital strain)
+    // surface in the Event Stream; routine ambient sensor/CCTV hum only updates the source tally
+    // so the feed doesn't get flooded with "sensor nominal" lines.
+    socket.on('report.ingested', (evt) => set((state) => ({
+      lastEventAt: evt.ts,
+      sourceActivityLog: bumpSourceActivity(state.sourceActivityLog, evt.payload?.source_type),
+      ...(evt.payload?.notable ? {
+        liveFeed: pushFeed(state, { type: evt.type, text: `${evt.payload.source_label}: ${evt.payload.headline || 'new report'}`, severity: 'INFO' }),
+      } : {}),
+    })));
+    socket.on('hospital.updated', (evt) => set((state) => ({
+      hospitals: upsertById(state.hospitals, evt.payload),
+      lastEventAt: evt.ts,
+    })));
   },
 
   // ——— Incidents (live overlay) ———
@@ -416,6 +439,7 @@ export const useStore = create((set, get) => ({
   liveFeed: [],
   liveFeedExpanded: false,
   toggleLiveFeed: () => set(state => ({ liveFeedExpanded: !state.liveFeedExpanded })),
+  sourceActivityLog: [], // rolling {source_type, ts} log fed by the report.ingested socket event
 
   // ——— Right rail state ———
   rightRailTab: 'overview', // 'overview' | 'evidence' | 'response' | 'related' | 'timeline'

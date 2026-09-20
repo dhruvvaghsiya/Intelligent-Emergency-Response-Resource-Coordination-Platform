@@ -174,6 +174,9 @@ export const adminApi = {
   simStatus: () => api.get('/sim/status').then(unwrap),
   aiHealth: () => api.get('/ai/health').then(unwrap),
   aiEval: () => api.get('/ai/eval').then(unwrap),
+  startWorldEngine: (intensity) => api.post('/worldengine/start', { intensity }).then(unwrap),
+  stopWorldEngine: () => api.post('/worldengine/stop').then(unwrap),
+  worldEngineStatus: () => api.get('/worldengine/status').then(unwrap),
 };
 
 export const healthApi = {
