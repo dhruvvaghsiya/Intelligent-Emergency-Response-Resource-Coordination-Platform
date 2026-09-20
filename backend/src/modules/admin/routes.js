@@ -10,6 +10,7 @@ import { AiCall } from '../../models/AiCall.js';
 import { SCENARIOS, buildReportBody } from './scenarios.js';
 import { isDbHealthy } from '../../platform/db.js';
 import { AppError } from '../../platform/errors.js';
+import { startWorldEngine, stopWorldEngine, getWorldEngineStatus } from '../worldengine/engine.js';
 
 export const adminRouter = Router();
 
@@ -65,6 +66,28 @@ adminRouter.post('/sim/stop', authenticate, requirePermission(PERMISSIONS.RUN_SI
 adminRouter.get('/sim/status', authenticate, async (req, res, next) => {
   try {
     res.json({ data: activeSim ? { running: true, name: activeSim.name, sim_run_id: activeSim.sim_run_id, started_at: activeSim.started_at, speed: activeSim.speed } : { running: false } });
+  } catch (err) { next(err); }
+});
+
+// §worldengine — the always-on multi-source live feed, distinct from the 2 hand-scripted
+// scenarios above. Runs by default (env.SIM_ENABLED) from server startup; these let an operator
+// pause it or turn the intensity dial for a demo.
+adminRouter.post('/worldengine/start', authenticate, requirePermission(PERMISSIONS.RUN_SIMULATION), async (req, res, next) => {
+  try {
+    const intensity = Number(req.body?.intensity) || 1;
+    res.json({ data: startWorldEngine({ intensity }) });
+  } catch (err) { next(err); }
+});
+
+adminRouter.post('/worldengine/stop', authenticate, requirePermission(PERMISSIONS.RUN_SIMULATION), async (req, res, next) => {
+  try {
+    res.json({ data: stopWorldEngine() });
+  } catch (err) { next(err); }
+});
+
+adminRouter.get('/worldengine/status', authenticate, async (req, res, next) => {
+  try {
+    res.json({ data: await getWorldEngineStatus() });
   } catch (err) { next(err); }
 });
 
