@@ -5,7 +5,7 @@
    Inspired by clean municipal data dashboards (wardalerts.com)
    ======================================================================== */
 
-@theme {
+:root {
   /* ——— Base: Slate 50 background & Pure White elevated surfaces ——— */
   --color-canvas: #F8FAFC;
   --color-surface: #FFFFFF;
@@ -240,4 +240,22 @@
   width: 100%;
   transition: background-color 0.25s ease;
 }
+
+/* ——— Satellite Map Panning Background Animation ——— */
+@keyframes sat-map-pan {
+  0% {
+    transform: scale(1.05) translate(0px, 0px);
+  }
+  50% {
+    transform: scale(1.12) translate(-16px, -12px);
+  }
+  100% {
+    transform: scale(1.05) translate(0px, 0px);
+  }
+}
+
+.animate-sat-pan {
+  animation: sat-map-pan 28s ease-in-out infinite;
+}
+
 
