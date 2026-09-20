@@ -23,12 +23,29 @@ import { replayRouter } from './modules/replay/routes.js';
 import { analyticsRouter } from './modules/analytics/routes.js';
 import { notifyRouter } from './modules/notify/routes.js';
 import { adminRouter, healthRouter } from './modules/admin/routes.js';
+import { isOriginAllowed } from './utils/cors.js';
 
 export function buildApp() {
   const app = express();
 
-  app.use(helmet());
-  app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
+  const corsOptions = {
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Request-Id', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['X-Request-Id'],
+    optionsSuccessStatus: 204,
+  };
+
+  app.use(helmet({ crossOriginResourcePolicy: false, crossOriginOpenerPolicy: false }));
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
   app.use(express.json({ limit: '2mb' }));
   app.use(requestIdMiddleware);
   app.use(pinoHttp({ logger, customLogLevel: (req, res) => (res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'debug') }));

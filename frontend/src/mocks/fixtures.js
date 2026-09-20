@@ -281,36 +281,128 @@ export const MOCK_ALERTS = [
   { id: 'alr_005', type: 'SLA_BREACH', severity: 'HIGH', incident_id: 'inc_005', unit_id: 'unt_002', title: 'SLA breach warning', body: 'A-02 ETA to INC-0151 exceeds 8-min SLA by 2:20', payload: {}, raised_at: minutesAgo(8), acked_by: null, acked_at: null },
 ];
 
-// ——— DISPATCH PLANS (for inc_001) ———
-export const MOCK_DISPATCH_PLANS = [
-  {
-    id: 'pln_001', incident_id: 'inc_001', strategy: 'BALANCED', total_cost: 860,
-    moves: [
-      { unit_id: 'unt_010', unit_call_sign: 'RT-01', from_incident_id: null, from_incident_code: null, eta_seconds: 380, eta_method: 'ROAD_GRAPH', capability_match: 1.0, preemption_regret: 0, impact_note: 'Available — no disruption' },
-      { unit_id: 'unt_004', unit_call_sign: 'A-07', from_incident_id: null, from_incident_code: null, eta_seconds: 420, eta_method: 'ROAD_GRAPH', capability_match: 1.0, preemption_regret: 0, impact_note: 'Available — no disruption' },
-    ],
-    unmet_requirements: ['COMMAND'], feasible: true, requires_preemption: false,
-    generated_at: minutesAgo(3), expires_at: new Date(Date.now() + 87000).toISOString(),
-  },
-  {
-    id: 'pln_002', incident_id: 'inc_001', strategy: 'FASTEST_RESPONSE', total_cost: 1240,
-    moves: [
-      { unit_id: 'unt_006', unit_call_sign: 'FE-02', from_incident_id: null, from_incident_code: null, eta_seconds: 280, eta_method: 'ROAD_GRAPH', capability_match: 1.0, preemption_regret: 0, impact_note: 'Available — nearest fire engine' },
-      { unit_id: 'unt_010', unit_call_sign: 'RT-01', from_incident_id: null, from_incident_code: null, eta_seconds: 380, eta_method: 'ROAD_GRAPH', capability_match: 1.0, preemption_regret: 0, impact_note: 'Available — extrication capable' },
-      { unit_id: 'unt_004', unit_call_sign: 'A-07', from_incident_id: null, from_incident_code: null, eta_seconds: 420, eta_method: 'ROAD_GRAPH', capability_match: 1.0, preemption_regret: 0, impact_note: 'ALS unit — advanced medical' },
-    ],
-    unmet_requirements: [], feasible: true, requires_preemption: false,
-    generated_at: minutesAgo(3), expires_at: new Date(Date.now() + 87000).toISOString(),
-  },
-  {
-    id: 'pln_003', incident_id: 'inc_001', strategy: 'MINIMAL_DISRUPTION', total_cost: 920,
-    moves: [
-      { unit_id: 'unt_010', unit_call_sign: 'RT-01', from_incident_id: null, from_incident_code: null, eta_seconds: 380, eta_method: 'ROAD_GRAPH', capability_match: 1.0, preemption_regret: 0, impact_note: 'Available — no disruption' },
-    ],
-    unmet_requirements: ['MEDICAL_ADVANCED', 'COMMAND'], feasible: false, requires_preemption: false,
-    generated_at: minutesAgo(3), expires_at: new Date(Date.now() + 87000).toISOString(),
-  },
-];
+// ——— DISPATCH PLANS (dynamic generator for any incident) ———
+export function generateMockDispatchPlans(incidentId, customIncidents = null, customUnits = null) {
+  const incidents = customIncidents || MOCK_INCIDENTS;
+  const units = customUnits || MOCK_UNITS;
+
+  const incident = incidents.find(i => i.id === incidentId || i.code === incidentId) ||
+    MOCK_INCIDENTS.find(i => i.id === incidentId || i.code === incidentId) ||
+    MOCK_INCIDENTS[0];
+
+  const caps = (incident.required_capabilities && incident.required_capabilities.length > 0)
+    ? incident.required_capabilities
+    : (incident.type === 'FLOOD' ? ['WATER_RESCUE', 'CROWD_CONTROL']
+      : incident.type === 'FIRE_STRUCTURE' ? ['FIRE_SUPPRESSION', 'EXTRICATION']
+      : incident.type === 'ROAD_ACCIDENT' ? ['EXTRICATION', 'MEDICAL_BASIC']
+      : incident.type === 'GAS_LEAK' ? ['HAZMAT_CONTAINMENT', 'CROWD_CONTROL']
+      : ['MEDICAL_BASIC', 'CROWD_CONTROL']);
+
+  const pool = (units && units.length > 0) ? units : MOCK_UNITS;
+
+  // Find candidate unit for each capability
+  const selectedUnits = [];
+  const usedUnitIds = new Set();
+
+  for (const cap of caps) {
+    const candidate = pool.find(u =>
+      !usedUnitIds.has(u.id) &&
+      (u.capabilities || []).includes(cap) &&
+      u.status === 'AVAILABLE'
+    ) || pool.find(u =>
+      !usedUnitIds.has(u.id) &&
+      (u.capabilities || []).includes(cap)
+    ) || pool.find(u => !usedUnitIds.has(u.id) && u.status === 'AVAILABLE') || pool[0];
+
+    if (candidate) {
+      usedUnitIds.add(candidate.id);
+      selectedUnits.push({ unit: candidate, cap });
+    }
+  }
+
+  // Strategy 1: BALANCED
+  const balancedMoves = selectedUnits.map(({ unit, cap }, idx) => ({
+    unit_id: unit.id,
+    unit_call_sign: unit.call_sign,
+    from_incident_id: null,
+    from_incident_code: null,
+    eta_seconds: 240 + idx * 70,
+    eta_method: 'ROAD_GRAPH',
+    capability_match: (unit.capabilities || []).includes(cap) ? 1.0 : 0.5,
+    preemption_regret: 0,
+    impact_note: unit.status === 'AVAILABLE' ? 'Available — optimal sector route' : 'Assigned from adjacent sector',
+  }));
+
+  // Strategy 2: FASTEST_RESPONSE
+  const fastestMoves = selectedUnits.map(({ unit, cap }, idx) => ({
+    unit_id: unit.id,
+    unit_call_sign: unit.call_sign,
+    from_incident_id: null,
+    from_incident_code: null,
+    eta_seconds: 180 + idx * 50,
+    eta_method: 'ROAD_GRAPH',
+    capability_match: (unit.capabilities || []).includes(cap) ? 1.0 : 0.5,
+    preemption_regret: idx > 0 ? 90 : 0,
+    impact_note: 'Direct high-speed corridor routing',
+  }));
+
+  // Strategy 3: MINIMAL_DISRUPTION
+  const minimalMoves = selectedUnits.slice(0, Math.max(1, selectedUnits.length - 1)).map(({ unit, cap }, idx) => ({
+    unit_id: unit.id,
+    unit_call_sign: unit.call_sign,
+    from_incident_id: null,
+    from_incident_code: null,
+    eta_seconds: 320 + idx * 90,
+    eta_method: 'ROAD_GRAPH',
+    capability_match: 1.0,
+    preemption_regret: 0,
+    impact_note: 'Available unit from nearest base depot',
+  }));
+
+  const now = new Date();
+  const expires = new Date(now.getTime() + 180000).toISOString();
+
+  return [
+    {
+      id: `pln_${incident.id || 'inc'}_balanced`,
+      incident_id: incident.id,
+      strategy: 'BALANCED',
+      total_cost: balancedMoves.reduce((s, m) => s + m.eta_seconds, 0),
+      moves: balancedMoves,
+      unmet_requirements: [],
+      feasible: true,
+      requires_preemption: false,
+      generated_at: now.toISOString(),
+      expires_at: expires,
+    },
+    {
+      id: `pln_${incident.id || 'inc'}_fastest`,
+      incident_id: incident.id,
+      strategy: 'FASTEST_RESPONSE',
+      total_cost: fastestMoves.reduce((s, m) => s + m.eta_seconds + m.preemption_regret, 0),
+      moves: fastestMoves,
+      unmet_requirements: [],
+      feasible: true,
+      requires_preemption: fastestMoves.some(m => m.preemption_regret > 0),
+      generated_at: now.toISOString(),
+      expires_at: expires,
+    },
+    {
+      id: `pln_${incident.id || 'inc'}_disruption`,
+      incident_id: incident.id,
+      strategy: 'MINIMAL_DISRUPTION',
+      total_cost: minimalMoves.reduce((s, m) => s + m.eta_seconds, 0) + (caps.length > minimalMoves.length ? 300 : 0),
+      moves: minimalMoves,
+      unmet_requirements: caps.length > minimalMoves.length ? [caps[caps.length - 1]] : [],
+      feasible: caps.length <= minimalMoves.length,
+      requires_preemption: false,
+      generated_at: now.toISOString(),
+      expires_at: expires,
+    },
+  ];
+}
+
+export const MOCK_DISPATCH_PLANS = generateMockDispatchPlans('inc_001');
 
 // ——— ANALYTICS OVERVIEW ———
 export const MOCK_ANALYTICS = {
