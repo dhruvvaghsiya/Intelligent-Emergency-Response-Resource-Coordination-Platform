@@ -42,11 +42,13 @@ const RESET = process.argv.includes('--reset');
 const AHMEDABAD = { lng: 72.5797, lat: 23.0225 };
 
 async function reset() {
-  const models = [User, Station, Unit, Hospital, RoadSegment, Counter, Incident, Evidence, Report,
+  const models = [Station, Unit, Hospital, RoadSegment, Counter, Incident, Evidence, Report,
     IncidentLink, MergeJournal, Assignment, DispatchPlan, Alert, EventLog, Outbox, Job, AuditLog,
     AiCall, IdempotencyKey, Lock, CoverageCell];
   for (const m of models) await m.deleteMany({});
-  logger.info('All collections cleared');
+  // Preserve all ADMIN user accounts, clear any non-admin
+  await User.deleteMany({ role: { $ne: 'ADMIN' } });
+  logger.info('Operational collections cleared; Admin accounts preserved');
 }
 
 async function seedUsers() {
@@ -145,7 +147,7 @@ async function seedRoadSegments() {
 
 async function seedDemoIncidents() {
   const existing = await Incident.countDocuments({});
-  if (existing > 0) {
+  if (!RESET && existing > 5) {
     logger.info('Incidents already present — skipping demo incident seed');
     return;
   }

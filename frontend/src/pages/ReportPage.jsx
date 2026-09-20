@@ -286,7 +286,11 @@ export function ReportPage() {
     setSubmitting(true);
     setError('');
 
-    const location = form.location || { lat: 23.0258, lng: 72.5714 };
+    const rawLoc = form.location || { lat: 23.0258, lng: 72.5714 };
+    const location = {
+      lng: Number(rawLoc.lng ?? 72.5714),
+      lat: Number(rawLoc.lat ?? 23.0258),
+    };
     const payload = {
       source_type: 'CITIZEN_APP',
       source_label: form.contact || 'Anonymous citizen report',

@@ -4,13 +4,16 @@ import { Button } from '../components/ui/Button';
 import { SeverityChip } from '../components/ui/Chip';
 import {
   Check, AlertTriangle, Bell, Shield, Radio, Cpu, Users,
-  CheckCircle2, Clock, MapPin, Truck, X, Send
+  CheckCircle2, Clock, MapPin, Truck, X, Send, Flame, FileText
 } from 'lucide-react';
 import { formatRelativeTime } from '../lib/format';
 import { hasPermission, PERMISSIONS } from '../lib/permissions';
 
 const ALERT_ICONS = {
   NEW_CRITICAL: AlertTriangle,
+  NEW_REPORT: Flame,
+  INCIDENT_REPORTED: AlertTriangle,
+  CITIZEN_REPORT: FileText,
   SEVERITY_ESCALATED: AlertTriangle,
   EVIDENCE_CONFLICT: AlertTriangle,
   DUPLICATE_SUSPECTED: Users,
@@ -257,7 +260,8 @@ function AlertCard({
 }) {
   const Icon = ALERT_ICONS[alert.type] || Bell;
 
-  const incident = alert.incident_id ? incidents.find(i => i.id === alert.incident_id) : null;
+  const targetIncidentId = alert.incident_id || alert.payload?.incident_id;
+  const incident = targetIncidentId ? incidents.find(i => i.id === targetIncidentId) : null;
   const unit = alert.unit_id ? units.find(u => u.id === alert.unit_id) : null;
 
   const leftBorderColor = alert.severity === 'CRITICAL' ? 'border-l-red-500'
@@ -265,7 +269,7 @@ function AlertCard({
     : alert.severity === 'MODERATE' ? 'border-l-amber-500'
     : 'border-l-blue-500';
 
-  const locationLabel = incident?.address || incident?.ward || incident?.title || '';
+  const locationLabel = incident?.address || incident?.ward || incident?.title || (alert.payload?.source_label ? `Source: ${alert.payload.source_label}` : '');
 
   return (
     <div

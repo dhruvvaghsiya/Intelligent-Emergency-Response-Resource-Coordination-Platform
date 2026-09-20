@@ -5,6 +5,7 @@
 
 import { Report } from '../../models/Report.js';
 import { Incident } from '../../models/Incident.js';
+import { Alert } from '../../models/Alert.js';
 import { newId } from '../../utils/ids.js';
 import { toGeoJson, toWirePoint } from '../../utils/geo.js';
 import { computeBlockKey } from '../../utils/blockKey.js';
@@ -96,6 +97,10 @@ export async function processReport(reportId) {
 
   // attach report + update the incident's correlation snapshot / report_count
   report.incident_id = incident._id;
+  await Alert.updateMany(
+    { 'payload.report_id': reportId },
+    { $set: { incident_id: incident._id, 'payload.incident_id': incident._id } }
+  );
   await Incident.updateOne({ _id: incident._id }, {
     $inc: { report_count: 1 },
     $set: {
