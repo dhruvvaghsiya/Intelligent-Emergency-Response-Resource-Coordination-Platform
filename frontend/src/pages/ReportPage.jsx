@@ -339,8 +339,12 @@ export function ReportPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-slate-950/40 via-slate-950/20 to-slate-950/50" />
       </div>
 
-      {/* ── Card Container with width: 92vw and height: 84vh (spacious, bottom border visible) ── */}
-      <div className="relative z-10 w-[92vw] max-w-[1280px] h-[84vh] max-h-[calc(100vh-4.25rem)] my-auto bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-[24px] sm:rounded-[30px] shadow-2xl overflow-hidden flex flex-col md:flex-row">
+      {/* ── Card Container ── */}
+      <div className={`relative z-10 my-auto bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-[24px] sm:rounded-[30px] shadow-2xl overflow-hidden transition-all duration-300 ${
+        submitted
+          ? 'w-[92vw] max-w-[640px] h-auto max-h-[88vh] flex flex-col'
+          : 'w-[92vw] max-w-[1280px] h-[84vh] max-h-[calc(100vh-4.25rem)] flex flex-col md:flex-row'
+      }`}>
         <AnimatePresence mode="wait">
           {submitted && submittedReport ? (
             <motion.div
@@ -348,20 +352,17 @@ export function ReportPage() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="w-full h-full p-6 sm:p-10 flex flex-col items-center justify-center space-y-6 overflow-y-auto"
+              className="w-full h-full p-6 sm:p-8 flex flex-col items-center justify-center space-y-5 overflow-y-auto"
             >
               <div className="text-center max-w-lg">
-                <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto mb-4 text-emerald-600 shadow-md">
-                  <CheckCircle2 size={36} strokeWidth={2.2} />
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Emergency Ingest Transmitted</h2>
-                <p className="text-sm text-slate-500 mt-1.5 font-medium">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Emergency Ingest Transmitted</h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
                   Voice payload and structured telemetry verified and routed into municipal dispatch queue.
                 </p>
               </div>
 
               {/* Showcase Summary Card */}
-              <div className="w-full max-w-xl bg-slate-50 border border-slate-200/90 rounded-2xl p-6 space-y-4 shadow-sm">
+              <div className="w-full bg-slate-50 border border-slate-200/90 rounded-2xl p-5 space-y-4 shadow-sm">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-200 text-sm">
                   <div>
                     <span className="text-slate-400 font-bold uppercase tracking-wider block text-xs">REPORT ID</span>
@@ -373,7 +374,7 @@ export function ReportPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3.5">
                   <div className="bg-white p-3.5 rounded-xl border border-slate-200">
                     <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Classification</div>
                     <div className="text-sm font-extrabold text-blue-600 mt-0.5">
@@ -389,11 +390,11 @@ export function ReportPage() {
                   </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-slate-200">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
                   <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                     <FileText size={14} /> Voice Transcript & Narrative
                   </div>
-                  <p className="text-sm text-slate-800 leading-relaxed font-sans">
+                  <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-sans">
                     {submittedReport.description}
                   </p>
                 </div>
@@ -418,10 +419,10 @@ export function ReportPage() {
                 </div>
               </div>
 
-              <div className="flex gap-4 w-full max-w-xl">
+              <div className="flex flex-col sm:flex-row gap-3 w-full">
                 <Button
                   variant="primary"
-                  className="flex-1 h-12 text-sm font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                  className="flex-1 h-11 text-xs sm:text-sm font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                   onClick={() => {
                     setSubmitted(false);
                     setSubmittedReport(null);
@@ -429,16 +430,16 @@ export function ReportPage() {
                     setTranscript('');
                   }}
                 >
-                  <Plus size={18} />
-                  Submit New Incident Report
+                  <Plus size={16} />
+                  Submit New Report
                 </Button>
                 <Button
                   variant="secondary"
-                  className="flex-1 h-12 text-sm font-bold rounded-xl border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
+                  className="flex-1 h-11 text-xs sm:text-sm font-bold rounded-xl border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
                   onClick={() => navigate('/ops')}
                 >
                   Open Command Console
-                  <ArrowRight size={16} />
+                  <ArrowRight size={15} />
                 </Button>
               </div>
             </motion.div>
