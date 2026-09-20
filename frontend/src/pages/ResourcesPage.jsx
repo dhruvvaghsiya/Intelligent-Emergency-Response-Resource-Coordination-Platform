@@ -348,20 +348,31 @@ export function ResourcesPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={canManageResources ? 8 : 7} className="px-5 py-12 text-center text-slate-500">
-                      <div className="max-w-xs mx-auto space-y-2">
-                        <p className="text-sm font-medium text-slate-700">
-                          No units currently in "{STATUS_CONFIG[statusFilter]?.label || statusFilter}" status
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          Try selecting another status category or clear the filter.
-                        </p>
-                        <button
-                          onClick={() => setStatusFilter(null)}
-                          className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                        >
-                          View All Units
-                        </button>
+                    <td colSpan={canManageResources ? 8 : 7} className="px-5 py-16 text-center">
+                      <div className="max-w-md mx-auto flex flex-col items-center justify-center space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-xs">
+                          <Truck size={24} />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                            No Apparatus Matching Selection
+                          </h3>
+                          <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-sm">
+                            {selectedStatuses.length > 0
+                              ? `No dispatch units found matching filter(s): ${selectedStatuses.map(s => STATUS_CONFIG[s]?.label || s).join(', ')}`
+                              : 'There are currently no dispatch units registered in the system.'}
+                          </p>
+                        </div>
+                        {selectedStatuses.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStatuses([])}
+                            className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 border border-blue-200/90 px-3.5 py-2 rounded-xl transition-colors cursor-pointer shadow-xs"
+                          >
+                            <X size={14} />
+                            Reset Filter & Show All Units ({units.length})
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
