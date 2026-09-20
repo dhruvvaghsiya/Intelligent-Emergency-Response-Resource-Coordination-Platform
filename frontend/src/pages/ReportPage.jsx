@@ -69,21 +69,18 @@ export function ReportPage() {
       console.warn('Backend submission failed, falling back to local store:', apiErr);
     }
 
-    // Always fallback to store.addReport if API call failed or didn't return report_id
+    // Always record the report and incident in real-time in the store & timeline
+    const store = useStore.getState();
+    const localRes = store.addReport ? store.addReport(payload) : null;
     if (!result || !result.report_id) {
-      const store = useStore.getState();
-      if (store.addReport) {
-        result = store.addReport(payload);
-      } else {
-        result = { report_id: `RPT-${Math.random().toString(36).substring(2, 8).toUpperCase()}` };
-      }
+      result = localRes || { report_id: `RPT-${Math.random().toString(36).substring(2, 8).toUpperCase()}` };
     }
 
-    const finalReportId = result.report_id || `RPT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const finalReportId = result.report_id || localRes?.report_id || `RPT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     setReportId(finalReportId);
     setSubmittedReport({
       report_id: finalReportId,
-      code: result.code || `INC-2026-${Math.floor(100 + Math.random() * 900)}`,
+      code: result.code || localRes?.code || `INC-2026-${Math.floor(100 + Math.random() * 900)}`,
       type: form.type,
       description: form.description,
       location,

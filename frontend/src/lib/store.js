@@ -22,6 +22,24 @@ function loadStoredUser() {
   }
 }
 
+function loadStoredReportedIncidents() {
+  try {
+    const raw = localStorage.getItem('resilio.reported_incidents');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function loadStoredTimelineEvents() {
+  try {
+    const raw = localStorage.getItem('resilio.reported_timeline_events');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
 function pushFeed(state, { type, text, severity = 'INFO' }) {
   const entry = { id: `feed_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, type, text, severity, ts: new Date().toISOString() };
   return [entry, ...state.liveFeed].slice(0, 100);
@@ -141,7 +159,29 @@ export const useStore = create((set, get) => ({
       liveFeed: pushFeed(state, { type: evt.type, text: `${label}: ${evt.payload?.code || evt.payload?.id}`, severity: evt.payload?.severity || 'INFO' }),
     }));
 
-    socket.on('incident.created', upsertIncidentEvent('New incident'));
+    socket.on('incident.created', (evt) => {
+      upsertIncidentEvent('New incident')(evt);
+      if (evt.payload) {
+        const storeEvt = {
+          event_id: `evt_sock_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          seq: evt.seq || Date.now(),
+          incident_id: evt.payload.id || evt.payload.incident_id,
+          room: 'incidents',
+          type: 'INCIDENT_REPORTED',
+          category: 'incident',
+          ts: evt.ts || new Date().toISOString(),
+          entity: { kind: 'incident', id: evt.payload.id },
+          actor: evt.actor || { kind: 'SYSTEM', name: 'Emergency Ingest' },
+          summary: `Citizen Emergency Ingest: ${evt.payload.title || evt.payload.code || 'Incident Ingested'}`,
+          payload: evt.payload,
+        };
+        set(s => {
+          const updated = [...(s.timelineEvents || []), storeEvt];
+          try { localStorage.setItem('resilio.reported_timeline_events', JSON.stringify(updated)); } catch {}
+          return { timelineEvents: updated };
+        });
+      }
+    });
     socket.on('incident.updated', upsertIncidentEvent('Incident updated'));
     socket.on('incident.status_changed', upsertIncidentEvent('Status changed'));
     socket.on('incident.severity_changed', upsertIncidentEvent('Severity changed'));
@@ -198,13 +238,31 @@ export const useStore = create((set, get) => ({
     // pipeline finishing. `notable` reports (director-spawned incident clusters, hospital strain)
     // surface in the Event Stream; routine ambient sensor/CCTV hum only updates the source tally
     // so the feed doesn't get flooded with "sensor nominal" lines.
-    socket.on('report.ingested', (evt) => set((state) => ({
-      lastEventAt: evt.ts,
-      sourceActivityLog: bumpSourceActivity(state.sourceActivityLog, evt.payload?.source_type),
-      ...(evt.payload?.notable ? {
-        liveFeed: pushFeed(state, { type: evt.type, text: `${evt.payload.source_label}: ${evt.payload.headline || 'new report'}`, severity: 'INFO' }),
-      } : {}),
-    })));
+    socket.on('report.ingested', (evt) => set((state) => {
+      const storeEvt = {
+        event_id: `evt_rep_sock_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        seq: evt.seq || Date.now(),
+        incident_id: evt.payload?.incident_id || 'inc_live',
+        room: 'incidents',
+        type: 'INCIDENT_REPORTED',
+        category: 'incident',
+        ts: evt.ts || new Date().toISOString(),
+        entity: { kind: 'report', id: evt.payload?.id },
+        actor: { kind: 'CITIZEN_APP', name: evt.payload?.source_label || 'Citizen Report' },
+        summary: `Citizen Report Ingested: ${evt.payload?.headline || evt.payload?.text || 'Emergency call'}`,
+        payload: evt.payload,
+      };
+      const updatedEvents = [...(state.timelineEvents || []), storeEvt];
+      try { localStorage.setItem('resilio.reported_timeline_events', JSON.stringify(updatedEvents)); } catch {}
+      return {
+        lastEventAt: evt.ts,
+        timelineEvents: updatedEvents,
+        sourceActivityLog: bumpSourceActivity(state.sourceActivityLog, evt.payload?.source_type),
+        ...(evt.payload?.notable ? {
+          liveFeed: pushFeed(state, { type: evt.type, text: `${evt.payload.source_label}: ${evt.payload.headline || 'new report'}`, severity: 'INFO' }),
+        } : {}),
+      };
+    }));
     socket.on('hospital.updated', (evt) => set((state) => ({
       hospitals: upsertById(state.hospitals, evt.payload),
       lastEventAt: evt.ts,
@@ -212,7 +270,9 @@ export const useStore = create((set, get) => ({
   },
 
   // ——— Incidents (live overlay) ———
-  incidents: [],
+  incidents: loadStoredReportedIncidents(),
+  reportedIncidents: loadStoredReportedIncidents(),
+  timelineEvents: loadStoredTimelineEvents(),
   selectedIncidentId: null,
   selectIncident: (id) => {
     set({ selectedIncidentId: id });
@@ -234,11 +294,15 @@ export const useStore = create((set, get) => ({
   fetchIncidents: async () => {
     try {
       const data = await incidentsApi.list();
-      set({ incidents: data });
+      const reported = get().reportedIncidents || [];
+      const existingIds = new Set((data || []).map(d => d.id));
+      const unsubmitted = reported.filter(r => !existingIds.has(r.id));
+      set({ incidents: [...unsubmitted, ...(data || [])] });
     } catch (err) {
       if (USE_MOCKS) {
         console.warn('fetchIncidents failed, using mock data', err);
-        set({ incidents: MOCK_INCIDENTS });
+        const reported = get().reportedIncidents || [];
+        set({ incidents: [...reported, ...MOCK_INCIDENTS] });
       } else {
         console.warn('fetchIncidents failed', err);
       }
@@ -317,6 +381,7 @@ export const useStore = create((set, get) => ({
     const newId = `RPT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const newIncCode = `INC-2026-${Math.floor(100 + Math.random() * 900)}`;
     const newIncId = `inc_${Date.now().toString(36)}`;
+    const nowIso = new Date().toISOString();
 
     const newIncident = {
       id: newIncId,
@@ -328,8 +393,8 @@ export const useStore = create((set, get) => ({
       title: `${(reportPayload.structured?.type || 'EMERGENCY').replace(/_/g, ' ')} — ${reportPayload.text ? reportPayload.text.slice(0, 40) : 'Citizen Report'}`,
       description: reportPayload.text,
       location: reportPayload.location || { lat: 23.0258, lng: 72.5714 },
-      reported_at: new Date().toISOString(),
-      occurred_at: new Date().toISOString(),
+      reported_at: nowIso,
+      occurred_at: nowIso,
       units_required: 2,
       assigned_unit_count: 0,
       report_count: 1,
@@ -337,15 +402,91 @@ export const useStore = create((set, get) => ({
         : reportPayload.structured?.type === 'FLOOD' ? ['WATER_RESCUE', 'CROWD_CONTROL']
         : ['MEDICAL_BASIC', 'FIRE_SUPPRESSION'],
       assignments: [],
+      reports: [{
+        id: newId,
+        source_type: reportPayload.source_type || 'CITIZEN_APP',
+        source_label: reportPayload.source_label || 'Citizen Report',
+        text: reportPayload.text,
+        location: reportPayload.location || { lat: 23.0258, lng: 72.5714 },
+        occurred_at: nowIso,
+        received_at: nowIso,
+        processing_status: 'PROCESSED',
+      }],
       is_simulated: false,
     };
 
+    const newTimelineEvent = {
+      event_id: `evt_rep_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      seq: (state.timelineEvents?.length || 0) + 1,
+      incident_id: newIncId,
+      room: 'incidents',
+      type: 'INCIDENT_REPORTED',
+      category: 'incident',
+      ts: nowIso,
+      entity: { kind: 'incident', id: newIncId },
+      actor: { kind: 'CITIZEN_APP', id: 'usr_citizen', name: reportPayload.source_label || 'Citizen Reporter' },
+      summary: `Citizen Emergency Report: ${reportPayload.text || newIncident.title}`,
+      payload: {
+        incident_id: newIncId,
+        code: newIncCode,
+        type: newIncident.type,
+        description: reportPayload.text,
+        location: reportPayload.location,
+        status: 'INGESTED',
+        report_id: newId,
+      },
+    };
+
+    const triageTimelineEvent = {
+      event_id: `evt_triage_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      seq: (state.timelineEvents?.length || 0) + 2,
+      incident_id: newIncId,
+      room: 'incidents',
+      type: 'AI_TRIAGE_COMPLETE',
+      category: 'ai',
+      ts: new Date(Date.now() + 2000).toISOString(),
+      entity: { kind: 'incident', id: newIncId },
+      actor: { kind: 'AI_AGENT', name: 'Llama-3.3-70B Ingest Core' },
+      summary: `Automated Belief Fusion: Severity ${newIncident.priority} (${newIncident.severity_score}/100)`,
+      payload: {
+        incident_id: newIncId,
+        severity: newIncident.priority,
+        severity_score: newIncident.severity_score,
+        required_capabilities: newIncident.required_capabilities,
+      },
+    };
+
+    const updatedIncidents = [newIncident, ...state.incidents.filter(i => i.id !== newIncId)];
+    const updatedReported = [newIncident, ...(state.reportedIncidents || []).filter(i => i.id !== newIncId)];
+    const updatedTimelineEvents = [...(state.timelineEvents || []), newTimelineEvent, triageTimelineEvent];
+
+    try {
+      localStorage.setItem('resilio.reported_incidents', JSON.stringify(updatedReported));
+      localStorage.setItem('resilio.reported_timeline_events', JSON.stringify(updatedTimelineEvents));
+    } catch {}
+
     set({
-      incidents: [newIncident, ...state.incidents],
+      incidents: updatedIncidents,
+      reportedIncidents: updatedReported,
+      timelineEvents: updatedTimelineEvents,
       liveFeed: pushFeed(state, { type: 'report.created', text: `New Citizen Report: ${newIncCode}`, severity: 'HIGH' }),
     });
 
     return { report_id: newId, incident_id: newIncId, code: newIncCode, incident: newIncident };
+  },
+
+  syncReportedFromStorage: () => {
+    const reported = loadStoredReportedIncidents();
+    const timeline = loadStoredTimelineEvents();
+    set(state => {
+      const existingIds = new Set(state.incidents.map(i => i.id));
+      const newItems = reported.filter(r => !existingIds.has(r.id));
+      return {
+        reportedIncidents: reported,
+        timelineEvents: timeline,
+        incidents: [...newItems, ...state.incidents],
+      };
+    });
   },
 
   fetchAll: () => {

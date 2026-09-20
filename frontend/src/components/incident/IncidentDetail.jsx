@@ -387,36 +387,102 @@ function ResponseTab({ incident }) {
 
 // ——— TIMELINE TAB ———
 function TimelineTab({ incident }) {
+  const storeTimelineEvents = useStore(s => s.timelineEvents);
+
+  // Match timeline events for this incident from the real-time store
+  const matchingStoreEvents = (storeTimelineEvents || []).filter(
+    e => e.incident_id === incident.id || e.payload?.incident_id === incident.id
+  );
+
+  const reportItems = (incident.reports && incident.reports.length > 0)
+    ? incident.reports.map(r => ({
+        ts: r.received_at || r.occurred_at || incident.reported_at || incident.occurred_at,
+        type: 'report.ingested',
+        text: `Citizen Report Ingested: "${r.text || incident.description || incident.title}"`,
+        subtext: `Source: ${r.source_label || r.source_type || 'Citizen App'} · Status: ${r.processing_status || 'PROCESSED'}`,
+        badge: 'REPORT',
+        badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      }))
+    : [{
+        ts: incident.reported_at || incident.occurred_at,
+        type: 'report.received',
+        text: `Incoming Emergency Report Ingested: "${incident.description || incident.title}"`,
+        subtext: `Citizen Ingest · Severity Score: ${incident.severity_score || 75}/100`,
+        badge: 'REPORT',
+        badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      }];
+
   const events = [
-    { ts: incident.occurred_at, type: 'incident.created', text: `Incident created from ${incident.report_count} reports` },
+    ...reportItems,
+    {
+      ts: incident.occurred_at || incident.reported_at,
+      type: 'incident.created',
+      text: `Incident ${incident.code || ''} initialized and queued for triage`,
+      subtext: `Status: ${incident.status || 'ACTIVE'} · Priority: ${incident.priority || 'HIGH'}`,
+      badge: 'INCIDENT',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+    },
+    ...(incident.ai?.briefing ? [{
+      ts: new Date(new Date(incident.reported_at || incident.occurred_at || Date.now()).getTime() + 5000).toISOString(),
+      type: 'ai.triage',
+      text: 'AI Reasoning Core: Briefing Synthesized & Attributes Fused',
+      subtext: incident.ai.briefing,
+      badge: 'AI TRIAGE',
+      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+    }] : []),
+    ...(matchingStoreEvents || []).map(e => ({
+      ts: e.ts,
+      type: e.type,
+      text: e.summary || e.type,
+      subtext: e.actor?.name ? `Actor: ${e.actor.name}` : undefined,
+      badge: e.category?.toUpperCase() || 'EVENT',
+      badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    })),
     ...(incident.assignments || []).map(a => ({
       ts: a.proposed_at,
       type: 'assignment.proposed',
       text: `${a.unit_call_sign} proposed — ${a.rationale?.[0] || ''}`,
+      subtext: 'Automated Dispatch Recommendation',
+      badge: 'DISPATCH',
+      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
     })),
     ...(incident.assignments || []).filter(a => a.approved_at).map(a => ({
       ts: a.approved_at,
       type: 'assignment.approved',
       text: `${a.unit_call_sign} approved and dispatched`,
+      subtext: 'Commander Authorised',
+      badge: 'DISPATCH',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     })),
     ...(incident.assignments || []).filter(a => a.arrived_at).map(a => ({
       ts: a.arrived_at,
       type: 'unit.on_scene',
       text: `${a.unit_call_sign} on scene`,
+      subtext: 'Unit Telemetry Confirmed',
+      badge: 'UNITS',
+      badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
     })),
   ].sort((a, b) => new Date(b.ts) - new Date(a.ts));
 
   return (
     <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-0 relative">
       {events.map((evt, i) => (
-        <div key={i} className="flex gap-4 py-3 border-b border-slate-100 last:border-b-0">
+        <div key={i} className="flex gap-4 py-3.5 border-b border-slate-100 last:border-b-0">
           <div className="flex flex-col items-center">
             <div className="w-3 h-3 rounded-full bg-blue-600 mt-1 shadow-2xs" />
-            {i < events.length - 1 && <div className="w-[1.5px] flex-1 bg-slate-200 mt-1" />}
+            {i < events.length - 1 && <div className="w-[1.5px] flex-1 bg-slate-200 mt-1.5" />}
           </div>
           <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${evt.badgeColor || 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                {evt.badge || 'EVENT'}
+              </span>
+              <span className="text-[11px] text-slate-400 font-mono font-medium">{formatTime(evt.ts)}</span>
+            </div>
             <div className="text-xs sm:text-sm text-slate-800 font-semibold leading-snug">{evt.text}</div>
-            <div className="text-[11px] text-slate-400 font-mono mt-0.5 font-medium">{formatTime(evt.ts)}</div>
+            {evt.subtext && (
+              <div className="text-xs text-slate-500 mt-1 leading-relaxed">{evt.subtext}</div>
+            )}
           </div>
         </div>
       ))}
