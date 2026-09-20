@@ -389,99 +389,102 @@ function ResponseTab({ incident }) {
 function TimelineTab({ incident }) {
   const storeTimelineEvents = useStore(s => s.timelineEvents);
 
-  // Match timeline events for this incident from the real-time store
+  // Match timeline events for this incident from the real-time store, excluding raw duplicate initial ingests
   const matchingStoreEvents = (storeTimelineEvents || []).filter(
-    e => e.incident_id === incident.id || e.payload?.incident_id === incident.id
+    e => (e.incident_id === incident.id || e.payload?.incident_id === incident.id) &&
+         !['INCIDENT_REPORTED', 'report.ingested', 'report.received', 'AI_TRIAGE_COMPLETE', 'AI_TRIAGE_COMPLETED', 'ai.triage'].includes(e.type)
   );
 
-  const reportItems = (incident.reports && incident.reports.length > 0)
-    ? incident.reports.map(r => ({
-        ts: r.received_at || r.occurred_at || incident.reported_at || incident.occurred_at,
-        type: 'report.ingested',
-        text: `Citizen Report Ingested: "${r.text || incident.description || incident.title}"`,
-        subtext: `Source: ${r.source_label || r.source_type || 'Citizen App'} · Status: ${r.processing_status || 'PROCESSED'}`,
-        badge: 'REPORT',
-        badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
-      }))
-    : [{
-        ts: incident.reported_at || incident.occurred_at,
-        type: 'report.received',
-        text: `Incoming Emergency Report Ingested: "${incident.description || incident.title}"`,
-        subtext: `Citizen Ingest · Severity Score: ${incident.severity_score || 75}/100`,
-        badge: 'REPORT',
-        badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
-      }];
+  // Single authoritative reporting milestone
+  const primaryReport = incident.reports?.[0];
+  const reportTime = primaryReport?.received_at || primaryReport?.occurred_at || incident.reported_at || incident.occurred_at || new Date().toISOString();
+  
+  const reportEvent = {
+    ts: reportTime,
+    type: 'report.ingested',
+    text: `Citizen Report Ingested: "${incident.description || incident.title}"`,
+    subtext: `Source: ${primaryReport?.source_label || 'Citizen Mobile App'} · Incident Code: ${incident.code || 'INC'} · Status: ${incident.status?.replace(/_/g, ' ') || 'ACTIVE'}`,
+    badge: 'REPORT INGEST',
+    badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+  };
 
-  const events = [
-    ...reportItems,
-    {
-      ts: incident.occurred_at || incident.reported_at,
-      type: 'incident.created',
-      text: `Incident ${incident.code || ''} initialized and queued for triage`,
-      subtext: `Status: ${incident.status || 'ACTIVE'} · Priority: ${incident.priority || 'HIGH'}`,
-      badge: 'INCIDENT',
-      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
-    },
-    ...(incident.ai?.briefing ? [{
-      ts: new Date(new Date(incident.reported_at || incident.occurred_at || Date.now()).getTime() + 5000).toISOString(),
-      type: 'ai.triage',
-      text: 'AI Reasoning Core: Briefing Synthesized & Attributes Fused',
-      subtext: incident.ai.briefing,
-      badge: 'AI TRIAGE',
-      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
-    }] : []),
+  // Single authoritative AI triage milestone
+  const triageTime = new Date(new Date(reportTime).getTime() + 5000).toISOString();
+  const triageEvent = {
+    ts: triageTime,
+    type: 'ai.triage',
+    text: `AI Triage & Synthesis: Severity ${incident.severity || 'HIGH'} (${incident.severity_score || 75}/100)`,
+    subtext: incident.ai?.briefing || `Multi-attribute Bayesian fusion computed ${incident.priority || 'HIGH'} operational response profile.`,
+    badge: 'AI TRIAGE',
+    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+  };
+
+  const operationalEvents = [
+    reportEvent,
+    triageEvent,
     ...(matchingStoreEvents || []).map(e => ({
       ts: e.ts,
       type: e.type,
-      text: e.summary || e.type,
+      text: e.summary || e.type?.replace(/_/g, ' '),
       subtext: e.actor?.name ? `Actor: ${e.actor.name}` : undefined,
-      badge: e.category?.toUpperCase() || 'EVENT',
+      badge: e.category?.toUpperCase() || 'UPDATE',
       badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     })),
     ...(incident.assignments || []).map(a => ({
       ts: a.proposed_at,
       type: 'assignment.proposed',
-      text: `${a.unit_call_sign} proposed — ${a.rationale?.[0] || ''}`,
-      subtext: 'Automated Dispatch Recommendation',
-      badge: 'DISPATCH',
+      text: `${a.unit_call_sign} Proposed for Dispatch`,
+      subtext: a.rationale?.[0] || 'Multi-criteria optimizer selected unit based on ETA and required capabilities.',
+      badge: 'PROPOSAL',
       badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
     })),
     ...(incident.assignments || []).filter(a => a.approved_at).map(a => ({
       ts: a.approved_at,
       type: 'assignment.approved',
-      text: `${a.unit_call_sign} approved and dispatched`,
-      subtext: 'Commander Authorised',
-      badge: 'DISPATCH',
+      text: `${a.unit_call_sign} Dispatched & En Route`,
+      subtext: 'Authorized by Incident Commander · Responding under Emergency Protocol',
+      badge: 'DISPATCHED',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     })),
     ...(incident.assignments || []).filter(a => a.arrived_at).map(a => ({
       ts: a.arrived_at,
       type: 'unit.on_scene',
-      text: `${a.unit_call_sign} on scene`,
-      subtext: 'Unit Telemetry Confirmed',
-      badge: 'UNITS',
+      text: `${a.unit_call_sign} Arrived on Scene`,
+      subtext: 'First responder arrival telemetry confirmed · Operations active',
+      badge: 'ON SCENE',
       badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
     })),
-  ].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+  ].sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
+
+  // Deduplicate any duplicate timestamp/type combinations
+  const seenKeys = new Set();
+  const events = [];
+  for (const evt of operationalEvents) {
+    const key = `${evt.type}_${evt.ts}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      events.push(evt);
+    }
+  }
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-0 relative">
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-0 relative">
       {events.map((evt, i) => (
-        <div key={i} className="flex gap-4 py-3.5 border-b border-slate-100 last:border-b-0">
+        <div key={i} className="flex gap-4 py-4.5 border-b border-slate-100 last:border-b-0">
           <div className="flex flex-col items-center">
-            <div className="w-3 h-3 rounded-full bg-blue-600 mt-1 shadow-2xs" />
-            {i < events.length - 1 && <div className="w-[1.5px] flex-1 bg-slate-200 mt-1.5" />}
+            <div className="w-3.5 h-3.5 rounded-full bg-blue-600 mt-1 shadow-xs ring-4 ring-blue-50 shrink-0" />
+            {i < events.length - 1 && <div className="w-0.5 flex-1 bg-slate-200 mt-2 min-h-[28px]" />}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${evt.badgeColor || 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+            <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${evt.badgeColor || 'bg-blue-50 text-blue-700 border-blue-200'}`}>
                 {evt.badge || 'EVENT'}
               </span>
-              <span className="text-[11px] text-slate-400 font-mono font-medium">{formatTime(evt.ts)}</span>
+              <span className="text-xs text-slate-500 font-mono font-semibold">{formatTime(evt.ts)}</span>
             </div>
-            <div className="text-xs sm:text-sm text-slate-800 font-semibold leading-snug">{evt.text}</div>
+            <div className="text-sm sm:text-base text-slate-900 font-bold leading-snug">{evt.text}</div>
             {evt.subtext && (
-              <div className="text-xs text-slate-500 mt-1 leading-relaxed">{evt.subtext}</div>
+              <div className="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed font-normal">{evt.subtext}</div>
             )}
           </div>
         </div>

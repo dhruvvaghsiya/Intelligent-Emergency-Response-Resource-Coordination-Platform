@@ -660,13 +660,48 @@ export function ReplayPage() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [position, setPosition] = useState(0); // 0-100 percentage
-  const [selectedIncidentFilter, setSelectedIncidentFilter] = useState('ALL');
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedIncidentFilters, setSelectedIncidentFilters] = useState([]); // [] = all
+  const [selectedCategoryFilters, setSelectedCategoryFilters] = useState([]); // [] = all
+  const [quickFilter, setQuickFilter] = useState('all'); // 'all' | 'latest5' | 'critical' | 'recent'
   const [inspectorTab, setInspectorTab] = useState('focus'); // 'focus' | 'citywide' | 'swimlane'
   const [copied, setCopied] = useState(false);
   const [scenarioMode, setScenarioMode] = useState('demo'); // 'demo' | 'live'
   const [customEvents, setCustomEvents] = useState([]);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+
+  // Refs to always hold latest speed/playing for the interval (avoids stale closures)
+  const speedRef = useRef(1);
+  const playingRef = useRef(false);
+  useEffect(() => { speedRef.current = speed; }, [speed]);
+  useEffect(() => { playingRef.current = playing; }, [playing]);
+
+  const toggleIncidentFilter = (id) => {
+    if (id === 'ALL') {
+      setSelectedIncidentFilters([]);
+      return;
+    }
+    setSelectedIncidentFilters(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(x => x !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const toggleCategoryFilter = (cat) => {
+    if (cat === 'ALL') {
+      setSelectedCategoryFilters([]);
+      return;
+    }
+    setSelectedCategoryFilters(prev => {
+      if (prev.includes(cat)) {
+        return prev.filter(x => x !== cat);
+      } else {
+        return [...prev, cat];
+      }
+    });
+  };
 
   // New custom event form state
   const [newIncidentId, setNewIncidentId] = useState('inc_naroda_01');
@@ -728,62 +763,90 @@ export function ReplayPage() {
       ? liveData.data
       : DEMO_REPLAY_EVENTS;
 
-    // Convert real reported incidents into timeline events
+    // Convert real reported incidents into timeline events ONLY if not already present
     const reportedIncidentEvents = [];
     (storeIncidents || []).forEach((inc) => {
       if (['inc_naroda_01', 'inc_sghighway_02', 'inc_subhash_03'].includes(inc.id)) return;
 
-      const reportTime = inc.reported_at || inc.occurred_at || new Date().toISOString();
-      reportedIncidentEvents.push({
-        event_id: `evt_rep_${inc.id}`,
-        seq: 900,
-        incident_id: inc.id,
-        room: 'incidents',
-        type: 'INCIDENT_REPORTED',
-        category: 'incident',
-        ts: reportTime,
-        entity: { kind: 'incident', id: inc.id },
-        actor: { kind: 'CITIZEN_APP', name: inc.reports?.[0]?.source_label || 'Citizen Report' },
-        summary: `Citizen Emergency Report: ${inc.description || inc.title}`,
-        payload: {
-          incident_id: inc.id,
-          code: inc.code,
-          type: inc.type,
-          description: inc.description,
-          location: inc.location,
-          status: inc.status || 'INGESTED',
-        },
-      });
+      const alreadyInLiveTimeline = (liveTimelineEvents || []).some(
+        e => e.incident_id === inc.id || e.payload?.incident_id === inc.id
+      );
+      const alreadyInBase = (base || []).some(
+        e => e.incident_id === inc.id || e.payload?.incident_id === inc.id
+      );
 
-      reportedIncidentEvents.push({
-        event_id: `evt_triage_${inc.id}`,
-        seq: 901,
-        incident_id: inc.id,
-        room: 'incidents',
-        type: 'AI_TRIAGE_COMPLETE',
-        category: 'ai',
-        ts: new Date(new Date(reportTime).getTime() + 15000).toISOString(),
-        entity: { kind: 'incident', id: inc.id },
-        actor: { kind: 'AI_AGENT', name: 'Llama-3.3-70B Ingest Core' },
-        summary: `AI Belief Fusion: Severity ${inc.priority || 'HIGH'} (${inc.severity_score || 75}/100)`,
-        payload: {
+      if (!alreadyInLiveTimeline && !alreadyInBase) {
+        const reportTime = inc.reported_at || inc.occurred_at || new Date().toISOString();
+        reportedIncidentEvents.push({
+          event_id: `evt_rep_${inc.id}`,
+          seq: 900,
           incident_id: inc.id,
-          severity: inc.priority || 'HIGH',
-          score: inc.severity_score || 75,
-          required_capabilities: inc.required_capabilities,
-        },
-      });
+          room: 'incidents',
+          type: 'INCIDENT_REPORTED',
+          category: 'incident',
+          ts: reportTime,
+          entity: { kind: 'incident', id: inc.id },
+          actor: { kind: 'CITIZEN_APP', name: inc.reports?.[0]?.source_label || 'Citizen Report' },
+          summary: `Citizen Emergency Report: ${inc.description || inc.title}`,
+          payload: {
+            incident_id: inc.id,
+            code: inc.code,
+            type: inc.type,
+            description: inc.description,
+            location: inc.location,
+            status: inc.status || 'INGESTED',
+          },
+        });
+
+        reportedIncidentEvents.push({
+          event_id: `evt_triage_${inc.id}`,
+          seq: 901,
+          incident_id: inc.id,
+          room: 'incidents',
+          type: 'AI_TRIAGE_COMPLETE',
+          category: 'ai',
+          ts: new Date(new Date(reportTime).getTime() + 15000).toISOString(),
+          entity: { kind: 'incident', id: inc.id },
+          actor: { kind: 'AI_AGENT', name: 'Llama-3.3-70B Ingest Core' },
+          summary: `AI Belief Fusion: Severity ${inc.priority || 'HIGH'} (${inc.severity_score || 75}/100)`,
+          payload: {
+            incident_id: inc.id,
+            severity: inc.priority || 'HIGH',
+            score: inc.severity_score || 75,
+            required_capabilities: inc.required_capabilities,
+          },
+        });
+      }
     });
 
     const all = [...base, ...customEvents, ...(liveTimelineEvents || []), ...reportedIncidentEvents];
-    const seen = new Set();
+    
+    // Semantic deduplication: ensure each incident has at most 1 reporting event and at most 1 AI triage event
+    const seenIncidentReport = new Set();
+    const seenIncidentTriage = new Set();
+    const seenEventId = new Set();
     const unique = [];
+
     for (const evt of all) {
-      if (!seen.has(evt.event_id)) {
-        seen.add(evt.event_id);
-        unique.push(evt);
+      if (seenEventId.has(evt.event_id)) continue;
+      seenEventId.add(evt.event_id);
+
+      const incId = evt.incident_id || evt.payload?.incident_id;
+      const isReport = evt.type === 'INCIDENT_REPORTED' || evt.type === 'report.ingested' || evt.type === 'report.received';
+      const isTriage = evt.type === 'AI_TRIAGE_COMPLETED' || evt.type === 'AI_TRIAGE_COMPLETE' || evt.type === 'ai.triage';
+
+      if (isReport && incId) {
+        if (seenIncidentReport.has(incId)) continue;
+        seenIncidentReport.add(incId);
       }
+      if (isTriage && incId) {
+        if (seenIncidentTriage.has(incId)) continue;
+        seenIncidentTriage.add(incId);
+      }
+
+      unique.push(evt);
     }
+
     return unique.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
   }, [scenarioMode, liveData, customEvents, storeIncidents, liveTimelineEvents]);
 
@@ -815,14 +878,35 @@ export function ReplayPage() {
   const totalDurationMs = Math.max(1000, endTime.getTime() - startTime.getTime());
   const currentTime = new Date(startTime.getTime() + (totalDurationMs * position) / 100);
 
-  // Filter events based on active incident and category filters
+  // Filter events based on active incident, category filters + quick filter preset
   const filteredEvents = useMemo(() => {
-    return events.filter(e => {
-      const matchInc = selectedIncidentFilter === 'ALL' || e.incident_id === selectedIncidentFilter;
-      const matchCat = selectedCategory === 'ALL' || e.category === selectedCategory;
+    let base = events.filter(e => {
+      const matchInc = selectedIncidentFilters.length === 0 || selectedIncidentFilters.includes(e.incident_id);
+      const matchCat = selectedCategoryFilters.length === 0 || selectedCategoryFilters.includes(e.category);
       return matchInc && matchCat;
     });
-  }, [events, selectedIncidentFilter, selectedCategory]);
+
+    if (quickFilter === 'latest5') {
+      // Show events from the 5 most-recently-started incident IDs
+      const incidentOrder = [...new Map(
+        [...events].reverse().map(e => [e.incident_id, e.incident_id])
+      ).values()].slice(0, 5);
+      base = base.filter(e => incidentOrder.includes(e.incident_id));
+    } else if (quickFilter === 'critical') {
+      // Show only events belonging to CRITICAL incidents
+      const criticalIds = Object.entries(incidentsConfig)
+        .filter(([, conf]) => conf.severity === 'CRITICAL')
+        .map(([id]) => id);
+      base = base.filter(e => criticalIds.includes(e.incident_id));
+    } else if (quickFilter === 'recent') {
+      // Show events within ±5 minutes of current scrubber time
+      const windowMs = 5 * 60 * 1000;
+      const t = currentTime.getTime();
+      base = base.filter(e => Math.abs(new Date(e.ts).getTime() - t) <= windowMs);
+    }
+
+    return base;
+  }, [events, selectedIncidentFilters, selectedCategoryFilters, quickFilter, incidentsConfig, currentTime]);
 
   // Find nearest event to current time
   const nearestEventIndex = useMemo(() => {
@@ -921,29 +1005,41 @@ export function ReplayPage() {
     }
   }, [nearestEventIndex]);
 
-  // Playback timer
+  // Smooth playback timer — single stable interval reads from refs to avoid stale closures
   useEffect(() => {
-    if (!playing) return;
+    const intervalMs = 50;
     const tick = setInterval(() => {
+      if (!playingRef.current) return; // paused — keep interval alive but skip tick
       setPosition(p => {
-        const step = (speed * 0.4);
+        // At 1x: 0.125% per 50ms → full 100% in 40 seconds real time
+        const step = speedRef.current * 0.125;
         const next = p + step;
         if (next >= 100) {
           setPlaying(false);
+          playingRef.current = false;
           return 100;
         }
         return next;
       });
-    }, 150);
+    }, intervalMs);
     return () => clearInterval(tick);
-  }, [playing, speed]);
+  }, []); // intentionally empty — interval is stable, reads latest state via refs
 
-  const handleCopyPayload = () => {
-    if (activeEvent?.payload) {
-      navigator.clipboard.writeText(JSON.stringify(activeEvent.payload, null, 2));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const togglePlay = () => {
+    if (!playing && position >= 99.9) {
+      setPosition(0);
+      setPlaying(true);
+    } else {
+      setPlaying(!playing);
     }
+  };
+
+  const stepTime = (deltaSeconds) => {
+    const deltaMs = deltaSeconds * 1000;
+    const currentMs = currentTime.getTime();
+    const targetMs = Math.max(startTime.getTime(), Math.min(endTime.getTime(), currentMs + deltaMs));
+    const newPct = Math.max(0, Math.min(100, ((targetMs - startTime.getTime()) / totalDurationMs) * 100));
+    setPosition(newPct);
   };
 
   const jumpToEvent = (eventIndex) => {
@@ -951,6 +1047,32 @@ export function ReplayPage() {
     const eventTime = new Date(events[eventIndex].ts).getTime();
     const pct = Math.max(0, Math.min(100, ((eventTime - startTime.getTime()) / totalDurationMs) * 100));
     setPosition(pct);
+  };
+
+  const jumpToPrevEvent = () => {
+    const list = filteredEvents.length > 0 ? filteredEvents : events;
+    const currentIdx = list.findIndex(e => e.index === nearestEventIndex);
+    const targetIdx = currentIdx > 0 ? currentIdx - 1 : 0;
+    if (list[targetIdx]) {
+      jumpToEvent(list[targetIdx].index);
+    }
+  };
+
+  const jumpToNextEvent = () => {
+    const list = filteredEvents.length > 0 ? filteredEvents : events;
+    const currentIdx = list.findIndex(e => e.index === nearestEventIndex);
+    const targetIdx = currentIdx < list.length - 1 ? currentIdx + 1 : list.length - 1;
+    if (list[targetIdx]) {
+      jumpToEvent(list[targetIdx].index);
+    }
+  };
+
+  const handleCopyPayload = () => {
+    if (activeEvent?.payload) {
+      navigator.clipboard.writeText(JSON.stringify(activeEvent.payload, null, 2));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleAddCustomEvent = (e) => {
@@ -1006,30 +1128,6 @@ export function ReplayPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Scenario toggle */}
-            <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
-              <button
-                onClick={() => { setScenarioMode('demo'); setPosition(0); }}
-                className={`px-2.5 py-1 rounded font-medium transition-all cursor-pointer text-[11px] ${
-                  scenarioMode === 'demo'
-                    ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Multi-Emergency Demo ({rawEvents.length})
-              </button>
-              <button
-                onClick={() => { setScenarioMode('live'); setPosition(0); }}
-                className={`px-2.5 py-1 rounded font-medium transition-all cursor-pointer text-[11px] ${
-                  scenarioMode === 'live'
-                    ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Live ({liveData?.data?.length || 0})
-              </button>
-            </div>
-
             {/* + Add Custom Event Button */}
             <button
               onClick={() => setIsAddEventOpen(!isAddEventOpen)}
@@ -1121,36 +1219,67 @@ export function ReplayPage() {
           </div>
         )}
 
-        {/* Compact Concurrent Incident Tracker Chips */}
-        <div className="flex gap-2 shrink-0 overflow-x-auto pb-0.5">
-          {Object.entries(incidentsConfig).map(([incId, conf]) => {
-            const st = incidentStatuses[incId] || { state: 'REPORTED', badge: 'bg-rose-50 text-rose-700 border-rose-200', label: 'Reported' };
-            const isSelected = selectedIncidentFilter === incId;
-            const isActive = activeEvent?.incident_id === incId;
+        {/* Incident Filter Dropdown (Replaces horizontal scrollbar) */}
+        <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-xs shrink-0 flex-wrap gap-2">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 shrink-0">Incident:</span>
+            <select
+              value={selectedIncidentFilters[0] || 'ALL'}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'ALL') {
+                  setSelectedIncidentFilters([]);
+                } else {
+                  setSelectedIncidentFilters([val]);
+                }
+              }}
+              className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all min-w-[260px]"
+            >
+              <option value="ALL">All Incidents ({Object.keys(incidentsConfig).length})</option>
+              {Object.entries(incidentsConfig).map(([incId, conf]) => {
+                const st = incidentStatuses[incId] || { label: 'Reported' };
+                return (
+                  <option key={incId} value={incId}>
+                    [{conf.severity}] {conf.shortTitle} — {st.label}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* Quick status summary of selected incident or active event incident */}
+          {(() => {
+            const targetId = selectedIncidentFilters[0] || activeEvent?.incident_id;
+            const targetConf = targetId ? incidentsConfig[targetId] : null;
+            if (!targetConf) return null;
+            const st = incidentStatuses[targetId] || { state: 'REPORTED', badge: 'bg-rose-50 text-rose-700 border-rose-200', label: 'Reported' };
+            const isExplicit = selectedIncidentFilters.length > 0;
             return (
-              <button
-                key={incId}
-                type="button"
-                onClick={() => setSelectedIncidentFilter(isSelected ? 'ALL' : incId)}
-                className={`relative flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                  isSelected
-                    ? 'bg-blue-50 border-2 border-blue-600 shadow-sm ring-2 ring-blue-100'
-                    : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50'
-                }`}
-              >
-                
-                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${conf.badgeBg} ${conf.badgeText} ${conf.badgeBorder}`}>
-                  {conf.severity} ({conf.severityScore})
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-400 font-medium">
+                  {isExplicit ? 'Filtered Incident:' : 'Current Event Incident:'}
                 </span>
-                <span className="text-xs font-bold text-slate-900">
-                  {conf.shortTitle}
+                <span className={`font-bold px-2 py-0.5 rounded border ${targetConf.badgeBg} ${targetConf.badgeText} ${targetConf.badgeBorder}`}>
+                  {targetConf.severity}
                 </span>
-                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${st.badge}`}>
+                <span className="font-semibold text-slate-700 max-w-[280px] truncate">
+                  {targetConf.title || targetConf.shortTitle}
+                </span>
+                <span className={`font-medium px-2 py-0.5 rounded-full border ${st.badge}`}>
                   {st.label}
                 </span>
-              </button>
+                {isExplicit && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIncidentFilters([])}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800 underline cursor-pointer ml-1"
+                  >
+                    Show All
+                  </button>
+                )}
+              </div>
             );
-          })}
+          })()}
         </div>
 
         {/* Main 2-Column Playback Canvas */}
@@ -1165,61 +1294,49 @@ export function ReplayPage() {
                   <Radio size={13} className="text-blue-600 animate-pulse" />
                   Chronological Stream ({filteredEvents.length})
                 </span>
-                <span className="text-xs font-mono text-slate-500">
+                <span className="text-xs font-mono font-medium text-slate-500">
                   Step {nearestEventIndex + 1} of {events.length}
                 </span>
               </div>
 
-              {/* Incident Filter Chips */}
-              <div className="flex gap-1 overflow-x-auto pb-1 text-[11px]">
-                <button
-                  onClick={() => setSelectedIncidentFilter('ALL')}
-                  className={`px-2 py-0.5 rounded-md font-medium whitespace-nowrap transition-all cursor-pointer ${
-                    selectedIncidentFilter === 'ALL'
-                      ? 'bg-blue-600 text-white shadow-2xs font-semibold'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                  }`}
+              {/* Quick Filter Dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">Filter:</span>
+                <select
+                  value={quickFilter}
+                  onChange={e => setQuickFilter(e.target.value)}
+                  className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all"
                 >
-                  All Incidents ({events.length})
-                </button>
-                {Object.entries(incidentsConfig).map(([id, conf]) => (
-                  <button
-                    key={id}
-                    onClick={() => setSelectedIncidentFilter(id)}
-                    className={`px-2 py-0.5 rounded-md font-medium whitespace-nowrap transition-all cursor-pointer ${
-                      selectedIncidentFilter === id
-                        ? 'bg-blue-600 text-white shadow-2xs font-semibold'
-                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    {(conf.shortTitle || id).split(' ')[0]} ({events.filter(e => e.incident_id === id).length})
-                  </button>
-                ))}
+                  <option value="all">All Events</option>
+                  <option value="latest5">Latest Incidents</option>
+                  <option value="critical">Critical Only</option>
+                  <option value="recent">Last 5 Min</option>
+                </select>
               </div>
 
-              {/* Category Filter Chips */}
-              <div className="flex gap-1 overflow-x-auto pb-1 text-[11px]">
-                {['ALL', 'incident', 'ai', 'dispatch', 'units', 'hospital'].map(cat => {
-                  const isSelected = selectedCategory === cat;
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`px-2 py-0.5 rounded-md capitalize font-medium whitespace-nowrap transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-slate-800 text-white shadow-2xs font-semibold'
-                          : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      {cat === 'ALL' ? 'All Types' : cat}
-                    </button>
-                  );
-                })}
+
+              {/* Category Filter Dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">Type:</span>
+                <select
+                  value={selectedCategoryFilters[0] || 'ALL'}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === 'ALL') toggleCategoryFilter('ALL');
+                    else { setSelectedCategoryFilters([val]); }
+                  }}
+                  className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition-all capitalize"
+                >
+                  <option value="ALL">All Types</option>
+                  {['incident', 'ai', 'dispatch', 'units', 'hospital'].map(cat => (
+                    <option key={cat} value={cat} className="capitalize">{cat}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
             {/* Scrollable Event List */}
-            <div ref={timelineListRef} className="flex-1 overflow-y-auto p-3 space-y-2 divide-slate-100">
+            <div ref={timelineListRef} className="flex-1 overflow-y-auto p-3.5 space-y-2.5 divide-slate-100">
               {filteredEvents.map(evt => {
                 const isCurrent = evt.index === nearestEventIndex;
                 const conf = CATEGORY_COLORS[evt.category] || CATEGORY_COLORS.dispatch;
@@ -1230,39 +1347,39 @@ export function ReplayPage() {
                     key={evt.event_id}
                     data-event-index={evt.index}
                     onClick={() => jumpToEvent(evt.index)}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3.5 ${
                       isCurrent
                         ? 'bg-blue-50/50 border-2 border-blue-600 shadow-sm ring-2 ring-blue-100/80 scale-[1.01]'
                         : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50/80'
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-lg ${conf.bg} ${conf.text} ${conf.border} border flex items-center justify-center shrink-0 mt-0.5`}>
-                      <Icon size={15} />
+                      <Icon size={16} />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-xs font-bold text-slate-900 truncate">
+                        <span className="text-sm font-bold text-slate-900 truncate">
                           {evt.type.replace(/_/g, ' ')}
                         </span>
-                        <span className="text-[11px] font-mono text-slate-500 shrink-0">
+                        <span className="text-xs font-mono text-slate-500 shrink-0 font-medium">
                           {formatTime(evt.ts)}
                         </span>
                       </div>
 
                       {/* Incident Badge */}
-                      <div className="mb-1">
-                        <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded border ${inc.badgeBg} ${inc.badgeText} ${inc.badgeBorder}`}>
+                      <div className="mb-1.5">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${inc.badgeBg} ${inc.badgeText} ${inc.badgeBorder}`}>
                           {inc.shortTitle}
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">
                         {evt.summary || evt.payload?.description || evt.payload?.title || JSON.stringify(evt.payload)}
                       </p>
 
-                      <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
-                        <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-medium">
+                      <div className="flex items-center gap-2 mt-2.5 text-xs text-slate-500">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-medium">
                           {evt.actor?.name || evt.actor?.kind || 'System'}
                         </span>
                         <span>•</span>
@@ -1286,38 +1403,38 @@ export function ReplayPage() {
             
             {/* Inspector Navigation Tabs */}
             <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/60 flex items-center justify-between">
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
                 <button
                   onClick={() => setInspectorTab('focus')}
-                  className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                     inspectorTab === 'focus'
                       ? 'bg-white text-blue-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Eye size={13} />
+                  <Eye size={14} />
                   Event Detail
                 </button>
                 <button
                   onClick={() => setInspectorTab('citywide')}
-                  className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                     inspectorTab === 'citywide'
                       ? 'bg-white text-blue-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Grid size={13} />
+                  <Grid size={14} />
                   Citywide Multi-Incident State
                 </button>
                 <button
                   onClick={() => setInspectorTab('swimlane')}
-                  className={`px-3 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                     inspectorTab === 'swimlane'
                       ? 'bg-white text-blue-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <GitCommit size={13} />
+                  <GitCommit size={14} />
                   Swimlane Tracks
                 </button>
               </div>
@@ -1326,9 +1443,9 @@ export function ReplayPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCopyPayload}
-                    className="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-2xs transition-colors flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                    {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
                     {copied ? 'Copied' : 'Copy Payload'}
                   </button>
                 </div>
@@ -1337,28 +1454,28 @@ export function ReplayPage() {
 
             {/* Tab 1: Single Focused Event Detail */}
             {inspectorTab === 'focus' && (
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+              <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
                 
                 {/* Event Title & Incident Indicator */}
                 <div className="flex items-start justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3.5">
                     <div className={`w-10 h-10 rounded-xl ${activeCategoryConf.bg} ${activeCategoryConf.text} ${activeCategoryConf.border} border flex items-center justify-center shrink-0`}>
                       <ActiveIcon size={20} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                        <span className="text-sm sm:text-base font-bold text-slate-900 uppercase tracking-wide">
                           {activeEvent?.type?.replace(/_/g, ' ')}
                         </span>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${activeCategoryConf.bg} ${activeCategoryConf.text} ${activeCategoryConf.border}`}>
                           {activeEvent?.category?.toUpperCase()}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-500 font-mono mt-0.5">
+                      <div className="text-xs text-slate-500 font-mono mt-1">
                         Timestamp: {formatDateTime(activeEvent?.ts || currentTime.toISOString())}
                       </div>
-                      <div className="mt-1">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${activeIncidentConf.badgeBg} ${activeIncidentConf.badgeText} ${activeIncidentConf.badgeBorder}`}>
+                      <div className="mt-1.5">
+                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded border ${activeIncidentConf.badgeBg} ${activeIncidentConf.badgeText} ${activeIncidentConf.badgeBorder}`}>
                           Incident: {activeIncidentConf.title}
                         </span>
                       </div>
@@ -1368,80 +1485,80 @@ export function ReplayPage() {
 
                 {/* Structured Cards View */}
                 <div className="space-y-4">
-                    {/* Summary Callout */}
-                    <div className="bg-white border border-slate-200 rounded-xl p-4">
-                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                        Summary
-                      </div>
-                      <div className="text-sm font-medium text-slate-900 leading-relaxed">
-                        {activeEvent?.summary || activeEvent?.payload?.description || 'Operational state transitioned at this timestamp.'}
-                      </div>
+                  {/* Summary Callout */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                      Summary
                     </div>
-
-                    {/* Operational Context Cards Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="border border-slate-200 rounded-xl p-3.5 bg-white">
-                        <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                          <Bot size={13} className="text-blue-600" />
-                          Authoritative Actor
-                        </div>
-                        <div className="text-sm font-bold text-slate-800">
-                          {activeEvent?.actor?.name || 'Automated Orchestrator'}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-0.5">
-                          Kind: <code className="text-blue-600 font-mono">{activeEvent?.actor?.kind || 'SYSTEM'}</code>
-                        </div>
-                      </div>
-
-                      <div className="border border-slate-200 rounded-xl p-3.5 bg-white">
-                        <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                          <Layers size={13} className="text-emerald-600" />
-                          Target Entity
-                        </div>
-                        <div className="text-sm font-bold text-slate-800">
-                          {activeEvent?.entity?.id || 'Regional Grid'}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-0.5">
-                          Entity Type: <code className="text-emerald-600 font-mono">{activeEvent?.entity?.kind || 'global'}</code>
-                        </div>
-                      </div>
+                    <div className="text-sm font-medium text-slate-900 leading-relaxed">
+                      {activeEvent?.summary || activeEvent?.payload?.description || 'Operational state transitioned at this timestamp.'}
                     </div>
-
-                    {/* Operational Telemetry Attributes */}
-                    {activeEvent?.payload && (
-                      <div className="border border-slate-200 rounded-xl p-4 bg-white">
-                        <div className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
-                          Operational Telemetry Attributes
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                          {Object.entries(activeEvent.payload)
-                            .filter(([k]) => !['description'].includes(k))
-                            .map(([key, val]) => (
-                              <div key={key} className="bg-slate-50 border border-slate-200/80 rounded-lg p-2.5">
-                                <span className="text-[11px] uppercase font-semibold text-slate-500 block truncate">
-                                  {key.replace(/_/g, ' ')}
-                                </span>
-                                <span className="text-xs font-bold text-slate-900 mt-1 block truncate">
-                                  {typeof val === 'object' ? JSON.stringify(val) : String(val)}
-                                </span>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
+
+                  {/* Operational Context Cards Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="border border-slate-200 rounded-xl p-4 bg-white">
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Bot size={14} className="text-blue-600" />
+                        Authoritative Actor
+                      </div>
+                      <div className="text-sm font-bold text-slate-800">
+                        {activeEvent?.actor?.name || 'Automated Orchestrator'}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        Kind: <code className="text-blue-600 font-mono">{activeEvent?.actor?.kind || 'SYSTEM'}</code>
+                      </div>
+                    </div>
+
+                    <div className="border border-slate-200 rounded-xl p-4 bg-white">
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Layers size={14} className="text-emerald-600" />
+                        Target Entity
+                      </div>
+                      <div className="text-sm font-bold text-slate-800">
+                        {activeEvent?.entity?.id || 'Regional Grid'}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        Entity Type: <code className="text-emerald-600 font-mono">{activeEvent?.entity?.kind || 'global'}</code>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Operational Telemetry Attributes */}
+                  {activeEvent?.payload && (
+                    <div className="border border-slate-200 rounded-xl p-4 bg-white">
+                      <div className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
+                        Operational Telemetry Attributes
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                        {Object.entries(activeEvent.payload)
+                          .filter(([k]) => !['description'].includes(k))
+                          .map(([key, val]) => (
+                            <div key={key} className="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
+                              <span className="text-xs uppercase font-semibold text-slate-500 block truncate mb-1">
+                                {key.replace(/_/g, ' ')}
+                              </span>
+                              <span className="text-xs sm:text-sm font-bold text-slate-900 block truncate">
+                                {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {/* Tab 2: Citywide Concurrent State at `currentTime` */}
             {inspectorTab === 'citywide' && (
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
-                <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-3.5 flex items-center justify-between">
+              <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
+                <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
                   <div>
                     <span className="text-sm font-bold text-blue-900">Citywide Incident Snapshot</span>
                     <p className="text-xs text-blue-700 mt-0.5">Reconstructed status across all sectors at this exact moment</p>
                   </div>
-                  <span className="text-xs font-mono font-bold text-blue-800 bg-white border border-blue-200 px-2.5 py-1 rounded-md">
+                  <span className="text-xs font-mono font-bold text-blue-800 bg-white border border-blue-200 px-3 py-1 rounded-md">
                     {formatTime(currentTime.toISOString())}
                   </span>
                 </div>
@@ -1451,7 +1568,7 @@ export function ReplayPage() {
                   {Object.entries(incidentsConfig).map(([incId, conf]) => {
                     const st = incidentStatuses[incId] || { state: 'REPORTED', badge: 'bg-rose-50 text-rose-700 border-rose-200', label: 'Reported' };
                     return (
-                      <div key={incId} className="border border-slate-200 rounded-xl p-4 bg-white space-y-2">
+                      <div key={incId} className="border border-slate-200 rounded-xl p-4 bg-white space-y-2.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-slate-900">{conf.title}</span>
@@ -1464,11 +1581,11 @@ export function ReplayPage() {
                           </span>
                         </div>
 
-                        <div className="text-xs text-slate-600">
+                        <div className="text-xs sm:text-sm text-slate-600">
                           {st.lastEvent ? st.lastEvent.summary : 'Awaiting emergency report in this timeframe.'}
                         </div>
 
-                        <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+                        <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
                           <span>Deployed Apparatus: <strong>{conf.assignedUnits?.length ? conf.assignedUnits.join(', ') : 'Standby / En Route'}</strong></span>
                           <span>Ward: <strong>{conf.ward}</strong></span>
                         </div>
@@ -1478,22 +1595,22 @@ export function ReplayPage() {
                 </div>
 
                 {/* Fleet Allocation Summary */}
-                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-2">
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
                   <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Regional Emergency Resource Allocation
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-center text-xs">
-                    <div className="bg-white border border-slate-200 rounded-lg p-2.5">
-                      <span className="text-xs uppercase font-semibold text-slate-400 block">Active Apparatus</span>
-                      <span className="text-lg font-bold text-blue-600 mt-1 block">8 / 14</span>
+                    <div className="bg-white border border-slate-200 rounded-lg p-3">
+                      <span className="text-xs uppercase font-semibold text-slate-500 block mb-1">Active Apparatus</span>
+                      <span className="text-lg font-bold text-blue-600 block">8 / 14</span>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-lg p-2.5">
-                      <span className="text-[10px] uppercase font-semibold text-slate-400 block">ICU Beds Reserved</span>
-                      <span className="text-lg font-bold text-emerald-600 mt-1 block">7 beds</span>
+                    <div className="bg-white border border-slate-200 rounded-lg p-3">
+                      <span className="text-xs uppercase font-semibold text-slate-500 block mb-1">ICU Beds Reserved</span>
+                      <span className="text-lg font-bold text-emerald-600 block">7 beds</span>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-lg p-2.5">
-                      <span className="text-[10px] uppercase font-semibold text-slate-400 block">Total Casualties</span>
-                      <span className="text-lg font-bold text-orange-600 mt-1 block">7 citizens</span>
+                    <div className="bg-white border border-slate-200 rounded-lg p-3">
+                      <span className="text-xs uppercase font-semibold text-slate-500 block mb-1">Total Casualties</span>
+                      <span className="text-lg font-bold text-orange-600 block">7 citizens</span>
                     </div>
                   </div>
                 </div>
@@ -1502,10 +1619,10 @@ export function ReplayPage() {
 
             {/* Tab 3: Multi-Incident Timeline Swimlane Graph */}
             {inspectorTab === 'swimlane' && (
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+              <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
                 <div className="flex items-center justify-between text-xs text-slate-500 pb-2 border-b border-slate-200">
-                  <span className="font-semibold text-slate-700">Concurrent Incident Swimlanes</span>
-                  <span>Click any event node to jump scrubber</span>
+                  <span className="font-semibold text-slate-700 text-xs">Concurrent Incident Swimlanes</span>
+                  <span className="text-xs">Click any event node to jump scrubber</span>
                 </div>
 
                 {/* Horizontal tracks for each incident */}
@@ -1516,16 +1633,16 @@ export function ReplayPage() {
                       <div key={incId} className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900">{conf.shortTitle}</span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded border ${conf.badgeBg} ${conf.badgeText} ${conf.badgeBorder}`}>
+                            <span className="font-bold text-slate-900 text-xs sm:text-sm">{conf.shortTitle}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded border ${conf.badgeBg} ${conf.badgeText} ${conf.badgeBorder}`}>
                               {conf.severity}
                             </span>
                           </div>
-                          <span className="text-[11px] font-mono text-slate-500">{incEvents.length} events</span>
+                          <span className="text-xs font-mono text-slate-500">{incEvents.length} events</span>
                         </div>
 
                         {/* Track bar with node dots */}
-                        <div className="relative h-7 bg-slate-100 border border-slate-200 rounded-lg flex items-center px-2">
+                        <div className="relative h-8 bg-slate-100 border border-slate-200 rounded-lg flex items-center px-2">
                           {/* Current time scrubber indicator line */}
                           <div
                             className="absolute top-0 bottom-0 w-0.5 bg-blue-600 z-10"
@@ -1576,7 +1693,7 @@ export function ReplayPage() {
           
           {/* Top Row: Time Range & Full Width Range Slider */}
           <div className="flex items-center gap-3">
-            <span className="font-mono text-[11px] font-semibold text-slate-500 shrink-0">
+            <span className="font-mono text-xs font-semibold text-slate-500 shrink-0">
               {formatTime(startTime.toISOString())}
             </span>
             <div className="flex-1 relative flex items-center">
@@ -1594,7 +1711,7 @@ export function ReplayPage() {
                   hover:[&::-webkit-slider-thumb]:scale-110 transition-all"
               />
             </div>
-            <span className="font-mono text-[11px] font-semibold text-slate-500 shrink-0 text-right">
+            <span className="font-mono text-xs font-semibold text-slate-500 shrink-0 text-right">
               {formatTime(endTime.toISOString())}
             </span>
           </div>
@@ -1606,67 +1723,67 @@ export function ReplayPage() {
               <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full shadow-2xs">
                 {formatTime(currentTime.toISOString())}
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">
+              <span className="text-xs text-slate-500 font-medium">
                 {Math.round(position)}% · Step {nearestEventIndex + 1}/{events.length}
               </span>
             </div>
 
             {/* Center: Playback Transport Buttons */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 title="Jump to Previous Event"
-                onClick={() => jumpToEvent(Math.max(0, nearestEventIndex - 1))}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
+                onClick={jumpToPrevEvent}
+                className="w-8.5 h-8.5 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
               >
-                <SkipBack size={14} />
+                <SkipBack size={15} />
               </button>
 
               <button
                 type="button"
-                title="Slow Down Playback"
-                onClick={() => setSpeed(s => Math.max(0.5, s / 2))}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
+                title="Rewind 15 Seconds"
+                onClick={() => stepTime(-15)}
+                className="w-8.5 h-8.5 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
               >
-                <Rewind size={14} />
+                <Rewind size={15} />
               </button>
 
               <button
                 type="button"
                 title={playing ? "Pause" : "Play"}
-                onClick={() => setPlaying(!playing)}
-                className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-xs transition-transform active:scale-95 cursor-pointer mx-1"
+                onClick={togglePlay}
+                className="w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-xs transition-transform active:scale-95 cursor-pointer mx-1"
               >
-                {playing ? <Pause size={15} /> : <Play size={15} className="ml-0.5" />}
+                {playing ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
               </button>
 
               <button
                 type="button"
-                title="Speed Up Playback"
-                onClick={() => setSpeed(s => Math.min(10, s * 2))}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
+                title="Fast Forward 15 Seconds"
+                onClick={() => stepTime(15)}
+                className="w-8.5 h-8.5 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
               >
-                <FastForward size={14} />
+                <FastForward size={15} />
               </button>
 
               <button
                 type="button"
                 title="Jump to Next Event"
-                onClick={() => jumpToEvent(Math.min(events.length - 1, nearestEventIndex + 1))}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
+                onClick={jumpToNextEvent}
+                className="w-8.5 h-8.5 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
               >
-                <SkipForward size={14} />
+                <SkipForward size={15} />
               </button>
             </div>
 
             {/* Right: Speed Multiplier Presets */}
             <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-              {[0.5, 1, 2, 5].map(s => (
+              {[0.5, 1, 2, 4, 8].map(s => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setSpeed(s)}
-                  className={`text-[11px] px-2 py-0.5 rounded font-semibold transition-colors cursor-pointer ${
+                  className={`text-xs px-2.5 py-1 rounded font-semibold transition-colors cursor-pointer ${
                     speed === s
                       ? 'bg-blue-600 text-white shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
