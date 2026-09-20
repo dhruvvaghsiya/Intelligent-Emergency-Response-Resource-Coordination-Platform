@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
 import { useStore, DEMO_USERS } from '../lib/store';
+import { BackgroundMap } from '../components/map/BackgroundMap';
 
 const ROLE_PRESETS = [
   { id: 'COMMANDER',  label: 'Commander',   badge: 'bg-red-50 text-red-700 border-red-200',      email: 'commander@prahari.in' },
@@ -53,17 +54,19 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-full w-full relative flex items-center justify-center p-3 sm:p-6 lg:p-8 bg-slate-100/80 overflow-y-auto font-sans">
-      {/* ── Soft Ambient Background Glow (Bright daylight aerial vibe) ── */}
+    <div className="min-h-full w-full relative flex items-center justify-center p-3 sm:p-6 lg:p-8 bg-slate-900 overflow-y-auto font-sans">
+      {/* ── Aerial City View Satellite Background with Subtle 3px Blur ── */}
       <div
-        className="absolute inset-0 z-0 opacity-20 blur-3xl scale-110 pointer-events-none"
+        className="absolute inset-0 z-0 scale-105 pointer-events-none filter blur-[3px] brightness-95 contrast-105 opacity-95"
         style={{
           backgroundImage: `url('/satellite-hero.jpg')`,
           backgroundPosition: 'center',
           backgroundSize: 'cover',
+          backgroundRepeat: 'no-repeat',
         }}
       />
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-100/90 via-sky-50/40 to-slate-200/80 pointer-events-none" />
+      {/* Subtle overlay for depth and contrast */}
+      <div className="absolute inset-0 z-0 bg-slate-950/20 pointer-events-none" />
 
       {/* ── Outer White Card Frame ─────────────────────────────────── */}
       <motion.div
