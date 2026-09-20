@@ -1,4 +1,5 @@
 # 🚨 Resilio — Intelligent Emergency Response & Resource Coordination Platform
+# 🚨 Resilio — Intelligent Emergency Response & Resource Coordination Platform
 
 > Turns a flood of noisy, duplicated, conflicting emergency reports into **one trusted operating picture**, then tells commanders **which unit to send where, and why**.
 
@@ -61,7 +62,15 @@ Each step is independently retryable and degrades on its own. If extraction, cor
 ---
 
 ## Core algorithms
+## Core algorithms
 
+### 1. Bayesian evidence fusion — `core-logic/belief.js`
+```
+w      = source_reliability × extraction_confidence × e^(−age / τ)
+Belief = sigmoid( Σ w · logit(p) )          # p clamped to [0.02, 0.98]
+State  = SUPPORTED (≥.6) | REFUTED (≤.4) | UNKNOWN | CONTESTED (supporting AND refuting weight both ≥ 0.8)
+```
+11 source priors (Field unit **0.93** · Gov/Hospital 0.88 · IoT 0.82 · CCTV 0.72 · Emergency call 0.62 · Citizen app 0.55 · SMS 0.50 · Social **0.35**) and per-attribute decay τ (fire 10 min, flood depth 30 min). Conflict is **flagged, never averaged away**.
 ### 1. Bayesian evidence fusion — `core-logic/belief.js`
 ```
 w      = source_reliability × extraction_confidence × e^(−age / τ)
@@ -144,6 +153,33 @@ cd ai      && python -m pytest tests -q        # 83 AI tests
 ```
 
 | Test | Result |
+## Reliability
+
+| If this fails… | Resilio does this |
+|---|---|
+| AI / LLM down or slow | Rule fallback, incident still created and marked `degraded`, `AI_DEGRADED` alert |
+| A pipeline job crashes | Exponential-backoff retry (5 attempts), then dead-letter |
+| Live connection drops | Per-room sequence numbers, `GET /sync?since_seq` gap recovery, a STALE banner that disables actions |
+| Double-click or network retry | Idempotency-Key replays the stored response (24 h) |
+| Two dispatchers grab one unit | Version CAS + unique index → clean `RESOURCE_CONFLICT` |
+| Simultaneous duplicate reports | Per-block lock |
+| Field unit offline | Idempotent sync with a monotonic-status rule (a stale update can't move a unit backwards) |
+
+Also: JWT auth, Helmet, Zod validation, rate limits, structured logs, a full audit trail, and 23 data models.
+
+---
+
+## Verified results
+
+Measured on this repo's own code. Re-run them:
+
+```bash
+cd backend && node scripts/benchmarks.mjs      # dispatch + fusion (no database needed)
+cd ai      && python scripts/heldout_eval.py   # held-out classification
+cd ai      && python -m pytest tests -q        # 83 AI tests
+```
+
+| Test | Result |
 |---|---|
 | Hungarian vs brute-force optimum (2,000 random matrices) | **2,000 / 2,000 optimal** |
 | Hungarian vs greedy (3,000 simulated dispatches, real cost function) | Better in **~50%** of cases, never worse, **4.7% lower total cost** (avg ~144 s-equivalent, up to 960 s) |
@@ -172,9 +208,16 @@ Anyone can **view** the live picture. Actions (approve dispatch, override severi
 | Backend | Node 20, Express, MongoDB (2dsphere), Socket.IO, Zod, JWT, Pino. 59 REST endpoints, 21 event types |
 | AI sidecar | FastAPI, sentence-transformers (MiniLM-L6-v2), scikit-learn, Gemini / OpenAI / Groq adapters |
 | Core algorithms | Pure, dependency-free JS: fusion, severity, correlation, Hungarian, ETA |
+| Frontend | React 19, Vite, Zustand, TanStack Query, MapLibre GL, Recharts, Socket.IO client, Tailwind v4 |
+| Backend | Node 20, Express, MongoDB (2dsphere), Socket.IO, Zod, JWT, Pino. 59 REST endpoints, 21 event types |
+| AI sidecar | FastAPI, sentence-transformers (MiniLM-L6-v2), scikit-learn, Gemini / OpenAI / Groq adapters |
+| Core algorithms | Pure, dependency-free JS: fusion, severity, correlation, Hungarian, ETA |
 
 ---
 
+## Run locally
+
+Requires Node 20+, MongoDB (local or Atlas), and Python 3.11+ (optional, for the AI service).
 ## Run locally
 
 Requires Node 20+, MongoDB (local or Atlas), and Python 3.11+ (optional, for the AI service).
@@ -183,11 +226,18 @@ Requires Node 20+, MongoDB (local or Atlas), and Python 3.11+ (optional, for the
 # 1. Backend  →  http://localhost:4000
 cd backend && cp .env.example .env && npm install
 npm run seed && npm run dev
+# 1. Backend  →  http://localhost:4000
+cd backend && cp .env.example .env && npm install
+npm run seed && npm run dev
 
+# 2. AI service (optional)  →  http://localhost:8000
+cd ai && cp .env.example .env && pip install -r requirements.txt   # first install is large
 # 2. AI service (optional)  →  http://localhost:8000
 cd ai && cp .env.example .env && pip install -r requirements.txt   # first install is large
 uvicorn app.main:app --reload --port 8000
 
+# 3. Frontend  →  http://localhost:3000
+cd frontend && cp .env.example .env && npm install && npm run dev
 # 3. Frontend  →  http://localhost:3000
 cd frontend && cp .env.example .env && npm install && npm run dev
 ```
