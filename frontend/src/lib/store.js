@@ -326,7 +326,8 @@ export const useStore = create((set, get) => ({
       const reported = get().reportedIncidents || [];
       const existingIds = new Set((data || []).map(d => d.id));
       const unsubmitted = reported.filter(r => !existingIds.has(r.id));
-      set({ incidents: [...unsubmitted, ...(data || [])] });
+      const mockUnseeded = MOCK_INCIDENTS.filter(m => !existingIds.has(m.id));
+      set({ incidents: [...unsubmitted, ...(data || []), ...mockUnseeded] });
     } catch (err) {
       if (USE_MOCKS) {
         console.warn('fetchIncidents failed, using mock data', err);
@@ -343,7 +344,9 @@ export const useStore = create((set, get) => ({
   fetchUnits: async () => {
     try {
       const data = await unitsApi.list();
-      set({ units: data });
+      const existingIds = new Set((data || []).map(d => d.id));
+      const mockUnseeded = MOCK_UNITS.filter(m => !existingIds.has(m.id));
+      set({ units: [...(data || []), ...mockUnseeded] });
     } catch (err) {
       if (USE_MOCKS) {
         console.warn('fetchUnits failed, using mock data', err);
